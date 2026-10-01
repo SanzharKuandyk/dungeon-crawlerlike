@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580">
+  <title>sentinel dungeon</title>
+  <rect width="1200" height="580" fill="#f4f3ef" />
+  <path d="M0 0h1200v430H0z" fill="#eae8e1" />
+  <g stroke="#d3d1c9" stroke-width="2" fill="none">
+    <path d="M0 60h1200" />
+    <path d="M0 125h1200" />
+    <path d="M0 190h1200" />
+    <path d="M0 255h1200" />
+    <path d="M0 320h1200" />
+    <path d="M0 385h1200" />
+    <path d="M90 60v65" />
+    <path d="M260 60v65" />
+    <path d="M430 60v65" />
+    <path d="M770 60v65" />
+    <path d="M940 60v65" />
+    <path d="M1110 60v65" />
+    <path d="M90 190v65" />
+    <path d="M260 190v65" />
+    <path d="M430 190v65" />
+    <path d="M770 190v65" />
+    <path d="M940 190v65" />
+    <path d="M1110 190v65" />
+    <path d="M90 320v65" />
+    <path d="M260 320v65" />
+    <path d="M430 320v65" />
+    <path d="M770 320v65" />
+    <path d="M940 320v65" />
+    <path d="M1110 320v65" />
+    <path d="M0 125v65" />
+    <path d="M175 125v65" />
+    <path d="M345 125v65" />
+    <path d="M855 125v65" />
+    <path d="M1025 125v65" />
+    <path d="M1190 125v65" />
+    <path d="M0 255v65" />
+    <path d="M175 255v65" />
+    <path d="M345 255v65" />
+    <path d="M855 255v65" />
+    <path d="M1025 255v65" />
+    <path d="M1190 255v65" />
+  </g>
+  <path
+    d="M195 430V153q0-119 110-119t110 119v277m370 0V153q0-119 110-119t110 119v277"
+    stroke="#b9b7b0"
+    stroke-width="28"
+    fill="#f4f3ef"
+  />
+  <g stroke="#a5a39c" stroke-width="3" fill="none">
+    <path d="M200 410V150q0-110 105-110t105 110v260M790 410V150q0-110 105-110t105 110v260" />
+    <path
+      d="M0 430h1200M0 510h1200M210 430l-90 150M420 430l-35 150M780 430l35 150M990 430l90 150"
+    />
+    <path d="M510 170h180v160H510zM535 180v150m35-150v150m30-150v150m30-150v150m35-150v150" />
+    <path d="M530 155v-25m140 25v-25" />
+  </g>
+  <path d="M0 440h1200v140H0z" fill="#efeee8" />
+  <g stroke="#d3d1c9" fill="none">
+    <path d="M0 465h1200M0 520h1200" />
+    <path d="m130 420 -30 100" />
+    <path d="m310 420 -30 100" />
+    <path d="m890 420 -30 100" />
+    <path d="m1070 420 -30 100" />
+  </g>
+  <path d="M85 225v180h50V225m930 0v180h50V225" fill="#b9b7b0" />
+  <path d="M80 226h60m920 0h60" stroke="#77776e" stroke-width="8" />
+  <g stroke="#b3b1a9" stroke-width="2">
+    <path
+      d="m31 398 14-21 25 18m1060-284 20 16 12-23M321 201l18 19-13 18m427 45 22 21-12 27"
+      fill="none"
+    />
+  </g>
+</svg>

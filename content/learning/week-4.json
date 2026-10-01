@@ -1,0 +1,212 @@
+[
+  {
+    "id": "ui-priority",
+    "topic": "Week 4 · UI and gameplay input",
+    "prompt": "Tapping Pause also fires the weapon. Which fix prevents the conflict?",
+    "choices": [
+      "Make the weapon fire more slowly",
+      "Give UI touches priority and prevent them reaching gameplay",
+      "Use a smaller Pause button",
+      "Disable all touch input"
+    ],
+    "correctIndex": 1,
+    "explanation": "A touch claimed by a UI button should not also fire a gameplay action. Separate UI ownership from world input.",
+    "source": "MGD_4_week.pptx · slide 17: UI and gameplay input"
+  },
+  {
+    "id": "swipe-axis",
+    "topic": "Week 4 · Swipe recognition",
+    "prompt": "A diagonal swipe makes a runner change lane and jump. Which rule produces one clear command?",
+    "choices": [
+      "Trigger both axes whenever they move",
+      "Require three fingers",
+      "Lock the dominant axis after a threshold and accept one command",
+      "Wait until the next level"
+    ],
+    "correctIndex": 2,
+    "explanation": "A runner needs one clear directional command per accepted swipe. Use a movement threshold, choose the dominant direction, and commit once.",
+    "source": "MGD_4_week.pptx · slide 21: Swipe recognition"
+  },
+  {
+    "id": "drag-preview",
+    "topic": "Week 4 · Drag controls",
+    "prompt": "You drag a tower onto an invalid tile. What should happen when you release?",
+    "choices": [
+      "Build it anyway",
+      "Hide the tower permanently",
+      "Spend currency before checking the tile",
+      "Show invalid placement and return or cancel the drag"
+    ],
+    "correctIndex": 3,
+    "explanation": "Preview snapping, range and valid placement while dragging. Commit on a valid area; otherwise return or cancel clearly.",
+    "source": "MGD_4_week.pptx · slide 22: Drag controls"
+  },
+  {
+    "id": "hold-feedback",
+    "topic": "Week 4 · Hold controls",
+    "prompt": "A button charges an attack while held. What makes the wait understandable?",
+    "choices": [
+      "Visible charge progress and a clear release rule",
+      "No feedback until release",
+      "Random charge duration",
+      "A smaller button"
+    ],
+    "correctIndex": 0,
+    "explanation": "Hold needs visible progress and a predictable release or cancellation rule. Otherwise charging can feel like input delay.",
+    "source": "MGD_4_week.pptx · slide 20: Hold controls"
+  },
+  {
+    "id": "scroll-tap",
+    "topic": "Week 4 · Resolving gesture conflicts",
+    "prompt": "A list item activates while the player starts scrolling. What is the best fix?",
+    "choices": [
+      "Activate every item immediately",
+      "Delay activation until the movement stays within tap tolerance",
+      "Disable scrolling",
+      "Require a double tap for every gesture"
+    ],
+    "correctIndex": 1,
+    "explanation": "Let movement distinguish a tap from a scroll. The scroll view can claim the drag before the item commits.",
+    "source": "MGD_4_week.pptx · slide 28: Resolving gesture conflicts"
+  },
+  {
+    "id": "cancel-input",
+    "topic": "Week 4 · Interruption and cancellation",
+    "prompt": "The app loses focus while a player is dragging. What should the input system do?",
+    "choices": [
+      "Keep the finger active forever",
+      "Commit the drag at a random position",
+      "Clear active ownership and previews safely",
+      "Trigger the held action again"
+    ],
+    "correctIndex": 2,
+    "explanation": "Focus loss, system cancellation and scene changes need a cancellation path that leaves the game in a valid state.",
+    "source": "MGD_4_week.pptx · slide 28: Interruption and cancellation"
+  },
+  {
+    "id": "named-actions",
+    "topic": "Week 4 · From gesture to game action",
+    "prompt": "You want Dodge to work from a swipe, keyboard and gamepad. Where should gameplay receive input?",
+    "choices": [
+      "In separate gameplay code for each device",
+      "Directly from raw finger coordinates everywhere",
+      "Only from the touchscreen",
+      "From a named Dodge action shared by the control schemes"
+    ],
+    "correctIndex": 3,
+    "explanation": "Map different device inputs onto a named game action. This keeps the mechanic independent of the control scheme.",
+    "source": "MGD_4_week.pptx · slide 25: From gesture to game action"
+  },
+  {
+    "id": "safe-area",
+    "topic": "Week 4 · Safe areas and display cutouts",
+    "prompt": "A phone cutout hides the health display. Which layout rule fixes it?",
+    "choices": [
+      "Anchor critical HUD elements inside the safe area",
+      "Move every element to the screen center",
+      "Shrink all text until it fits",
+      "Ignore the cutout in landscape"
+    ],
+    "correctIndex": 0,
+    "explanation": "Keep critical HUD and touch targets inside safe anchors. Background art may extend beyond them; test both orientations.",
+    "source": "MGD_4_week.pptx · slide 31: Safe areas and display cutouts"
+  },
+  {
+    "id": "thumb-reach",
+    "topic": "Week 4 · One-thumb and two-thumb play",
+    "prompt": "Which layout suits a portrait game intended for one-thumb play?",
+    "choices": [
+      "Movement and aim must be simultaneous on opposite sides",
+      "Frequent actions inside one reachable region",
+      "Every action requires two fingers",
+      "Tiny buttons along the top edge"
+    ],
+    "correctIndex": 1,
+    "explanation": "One-thumb play needs frequent actions in a reachable region. Avoid assuming two simultaneous controls.",
+    "source": "MGD_4_week.pptx · slide 14: One-thumb and two-thumb play"
+  },
+  {
+    "id": "continuous",
+    "topic": "Week 4 · Touch control families",
+    "prompt": "Which gesture best suits moving an object continuously with your finger?",
+    "choices": [
+      "A one-time tap",
+      "A directional swipe with one command",
+      "A drag that shows the object following the finger",
+      "A long press with no visual response"
+    ],
+    "correctIndex": 2,
+    "explanation": "Drag is direct manipulation: the object or camera follows the finger continuously. Preserve a stable finger-to-object offset.",
+    "source": "MGD_4_week.pptx · slide 13: Touch control families"
+  },
+  {
+    "id": "device-evidence",
+    "topic": "Week 4 · Editor success is incomplete evidence",
+    "prompt": "The prototype works with a mouse in the editor. What still needs real-device testing?",
+    "choices": [
+      "Nothing; the editor proves touch works",
+      "Only the title screen text",
+      "Only the level count",
+      "Touch identity, display layout, runtime and performance"
+    ],
+    "correctIndex": 3,
+    "explanation": "Mouse success does not prove multi-touch comfort, safe-area layout, packaging behavior or frame pacing on a phone.",
+    "source": "MGD_4_week.pptx · slide 3: Editor success is incomplete evidence"
+  },
+  {
+    "id": "build-loop",
+    "topic": "Week 4 · The deployment loop",
+    "prompt": "Which loop gives useful mobile prototype evidence?",
+    "choices": [
+      "Edit, build, install, run, observe, fix",
+      "Only edit until the project is finished",
+      "Build once at the end of the course",
+      "Watch another team play a different build"
+    ],
+    "correctIndex": 0,
+    "explanation": "Short device loops expose defects early. Record device, build version, reproduction steps and the expected result.",
+    "source": "MGD_4_week.pptx · slide 7: The deployment loop"
+  },
+  {
+    "id": "app-identity",
+    "topic": "Week 4 · Android and iOS build paths",
+    "prompt": "Why keep the package name or bundle identifier stable during development?",
+    "choices": [
+      "It increases frame rate automatically",
+      "It preserves the app identity across development builds",
+      "It removes the need for touch testing",
+      "It changes the device orientation"
+    ],
+    "correctIndex": 1,
+    "explanation": "The package or bundle identifier defines the app identity. Keep it stable so development builds can replace earlier installations predictably.",
+    "source": "MGD_4_week.pptx · slide 9: Android and iOS build paths"
+  },
+  {
+    "id": "test-matrix",
+    "topic": "Week 4 · A minimum device test matrix",
+    "prompt": "Your game works on one phone. What is the most useful next test?",
+    "choices": [
+      "Repeat only the same title screen",
+      "Stop testing until release",
+      "Use a contrasting screen and test interruptions",
+      "Remove all platform logging"
+    ],
+    "correctIndex": 2,
+    "explanation": "A contrasting screen exposes HUD assumptions. Backgrounding, orientation changes and rapid touch sequences reveal common defects.",
+    "source": "MGD_4_week.pptx · slide 11: A minimum device test matrix"
+  },
+  {
+    "id": "input-feedback",
+    "topic": "Week 4 · Feedback, latency and forgiveness",
+    "prompt": "A gesture needs time to classify. How can the interface still feel responsive?",
+    "choices": [
+      "Commit every gesture immediately before validation",
+      "Ignore the finger until classification finishes",
+      "Skip visual feedback entirely",
+      "Acknowledge the touch immediately, then confirm the validated action"
+    ],
+    "correctIndex": 3,
+    "explanation": "Show a press state or contact marker on begin, then give distinct feedback when the command commits. Acknowledgement and commitment can be separate.",
+    "source": "MGD_4_week.pptx · slide 29: Feedback, latency and forgiveness"
+  }
+]

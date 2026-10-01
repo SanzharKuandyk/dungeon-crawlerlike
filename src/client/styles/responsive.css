@@ -1,0 +1,74 @@
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 1150px) {
+  .test-layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 18px;
+  }
+}
+@media (max-width: 760px) {
+  main {
+    padding: 18px 14px;
+  }
+  .topbar {
+    padding: 0 16px;
+    height: 56px;
+  }
+  .test-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .test-layout .phone-panel {
+    width: 100%;
+    grid-row: 1;
+  }
+
+  .decision-card,
+  .quiz-card,
+  .panel {
+    padding: 18px;
+  }
+  .home {
+    margin: 5vh auto;
+  }
+  .home > p:not(.eyebrow) {
+    font-size: 17px;
+  }
+
+  .timer {
+    font-size: 24px;
+  }
+  .banner {
+    padding: 10px 14px;
+  }
+  .test-toolbar {
+    gap: 8px;
+  }
+  .debugger > div {
+    right: auto;
+    left: 0;
+  }
+
+  .inline {
+    flex-wrap: wrap;
+  }
+  .inline input {
+    flex: 1 1 140px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,0 +1,52 @@
+.home {
+  max-width: 640px;
+  margin: 8vh auto;
+  display: grid;
+  gap: 24px;
+}
+.home > p:not(.eyebrow) {
+  font-size: 19px;
+  max-width: 520px;
+}
+.eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--muted);
+}
+.home-actions {
+  display: grid;
+  gap: 24px;
+}
+.home-actions > .primary {
+  justify-self: start;
+}
+.inline {
+  display: flex;
+  gap: 8px;
+}
+.inline input {
+  min-width: 0;
+}
+.inline button {
+  flex-shrink: 0;
+}
+.text-link {
+  font-size: 14px;
+}
+.banner {
+  padding: 12px 24px;
+  background: var(--soft);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+.hint,
+.muted {
+  font-size: 13px;
+  color: var(--muted);
+}

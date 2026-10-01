@@ -1,0 +1,9 @@
+<svg width="300" height="250" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 250">
+  <title>sentinel</title>
+  <g fill="#18181b" stroke="#18181b" stroke-width="5" stroke-linejoin="round">
+    <path d="M85 35L150 10l65 25-10 90 35 105H60l35-105Z" />
+    <path d="M108 50h86v51l-44 27-42-27Z" />
+    <path d="M110 75h80M150 49v55" />
+    <path d="M38 72v150M18 70h41V35H18Z" stroke-width="8" />
+  </g>
+</svg>

@@ -1,0 +1,93 @@
+.test-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.test-toolbar > strong {
+  margin-right: auto;
+  font-size: 14px;
+}
+.debugger {
+  position: relative;
+}
+.debugger > div {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  width: 260px;
+  display: grid;
+  gap: 10px;
+}
+.test-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 28px;
+  align-items: start;
+}
+.test-layout .phone-panel {
+  margin: 0;
+  width: 100%;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 400;
+}
+.checkbox input {
+  width: 18px;
+  min-height: 18px;
+}
+
+.lobby {
+  max-width: 600px;
+  margin: 30px auto;
+  display: grid;
+  gap: 20px;
+}
+.lobby form {
+  display: grid;
+  gap: 8px;
+}
+.lobby-crews {
+  display: grid;
+  gap: 10px;
+}
+.crew-option {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 16px;
+}
+.crew-option > strong {
+  color: var(--team);
+}
+.crew-option small {
+  width: 100%;
+  text-align: left;
+}
+.results {
+  background: var(--surface);
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: grid;
+  gap: 16px;
+}
+.projector main {
+  max-width: 1600px;
+}
+
+.projector .event-log li {
+  font-size: 15px;
+}

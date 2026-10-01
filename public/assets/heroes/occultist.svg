@@ -1,0 +1,9 @@
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <title>occultist</title>
+  <g fill="white" stroke="black" stroke-width="3" stroke-linejoin="round">
+    <path d="M64 8L29 58l15 20-18 42h76L85 78l15-20Z" />
+    <path d="M47 43h34L65 65Z" fill="black" />
+    <circle cx="96" cy="38" r="12" />
+    <path d="M96 50v62" stroke-width="5" />
+  </g>
+</svg>

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "d1-0",
+    "depth": 1,
+    "name": "Gatehouse",
+    "risk": "low",
+    "family": "sentinel",
+    "description": "Break the weapon to weaken heavy strikes."
+  },
+  {
+    "id": "d1-1",
+    "depth": 1,
+    "name": "Whispering Chapel",
+    "risk": "medium",
+    "family": "seer",
+    "description": "Break the seal to silence its terrifying whispers."
+  },
+  {
+    "id": "d1-2",
+    "depth": 1,
+    "name": "Feeding Pit",
+    "risk": "high",
+    "family": "devourer",
+    "description": "Break its maw to protect treasure hunters."
+  },
+  {
+    "id": "d2-0",
+    "depth": 2,
+    "name": "Broken Barracks",
+    "risk": "low",
+    "family": "sentinel",
+    "description": "Break the weapon to weaken heavy strikes."
+  },
+  {
+    "id": "d2-1",
+    "depth": 2,
+    "name": "Ink Archive",
+    "risk": "medium",
+    "family": "seer",
+    "description": "Break the seal to silence its terrifying whispers."
+  },
+  {
+    "id": "d2-2",
+    "depth": 2,
+    "name": "Bone Kitchen",
+    "risk": "high",
+    "family": "devourer",
+    "description": "Break its maw to protect treasure hunters."
+  },
+  {
+    "id": "d3-0",
+    "depth": 3,
+    "name": "Prison Causeway",
+    "risk": "low",
+    "family": "sentinel",
+    "description": "Break the weapon to weaken heavy strikes."
+  },
+  {
+    "id": "d3-1",
+    "depth": 3,
+    "name": "Mirror Shrine",
+    "risk": "medium",
+    "family": "seer",
+    "description": "Break the seal to silence its terrifying whispers."
+  },
+  {
+    "id": "d3-2",
+    "depth": 3,
+    "name": "Red Orchard",
+    "risk": "high",
+    "family": "devourer",
+    "description": "Break its maw to protect treasure hunters."
+  },
+  {
+    "id": "d4-0",
+    "depth": 4,
+    "name": "Royal Crypt",
+    "risk": "low",
+    "family": "sentinel",
+    "description": "Break the weapon to weaken heavy strikes."
+  },
+  {
+    "id": "d4-1",
+    "depth": 4,
+    "name": "Blind Observatory",
+    "risk": "medium",
+    "family": "seer",
+    "description": "Break the seal to silence its terrifying whispers."
+  },
+  {
+    "id": "d4-2",
+    "depth": 4,
+    "name": "Hollow Nursery",
+    "risk": "high",
+    "family": "devourer",
+    "description": "Break its maw to protect treasure hunters."
+  },
+  {
+    "id": "d5-0",
+    "depth": 5,
+    "name": "Throne of Iron",
+    "risk": "low",
+    "family": "sentinel",
+    "description": "Break the weapon to weaken heavy strikes."
+  },
+  {
+    "id": "d5-1",
+    "depth": 5,
+    "name": "Throne of Ash",
+    "risk": "medium",
+    "family": "seer",
+    "description": "Break the seal to silence its terrifying whispers."
+  },
+  {
+    "id": "d5-2",
+    "depth": 5,
+    "name": "Throne of Teeth",
+    "risk": "high",
+    "family": "devourer",
+    "description": "Break its maw to protect treasure hunters."
+  }
+]

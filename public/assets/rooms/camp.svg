@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580">
+  <title>Campfire</title>
+  <rect width="1200" height="580" fill="#f5f4ef" />
+  <g fill="none" stroke="#dedbd1" stroke-width="4">
+    <path
+      d="M0 400h1200M0 510h1200M50 400l-40 180M400 400l-30 180M800 400l30 180M1150 400l40 180"
+    />
+    <path d="m120 395 50-240 110 240m650 0 70-270 110 270" />
+  </g>
+  <path d="m554 380 44-96 29 70 21-44 18 70Z" fill="#d7d1c3" stroke="#a7a296" stroke-width="3" />
+  <path d="m558 397 96-22m-96 0 96 22" stroke="#858077" stroke-width="9" />
+</svg>

@@ -1,0 +1,54 @@
+.timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 28px;
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 74px;
+  text-align: right;
+}
+
+.team-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--team, var(--text));
+  color: var(--surface);
+  min-width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-weight: 750;
+}
+
+.event-log {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.section-heading h2 {
+  font-size: 15px;
+}
+.event-log ol {
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+}
+.event-log li {
+  font-size: 13px;
+  display: flex;
+  gap: 12px;
+}
+.event-log li > span {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  min-width: 48px;
+}

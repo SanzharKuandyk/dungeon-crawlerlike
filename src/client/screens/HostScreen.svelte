@@ -1,0 +1,104 @@
+<script lang="ts">
+  import QRCode from "qrcode";
+  import { onMount } from "svelte";
+  import { NEUTRALS } from "../../shared/palette.js";
+  import type { HostRoomView } from "../../shared/view-types.js";
+  import { hostControl } from "../connection.js";
+  import { room } from "../room.svelte.js";
+  import ProjectorScreen from "./ProjectorScreen.svelte";
+
+  let { view }: { view: HostRoomView } = $props();
+  let base = $state(location.origin),
+    qr = $state("");
+  let joinUrl = $derived(`${base.replace(/\/$/, "")}/#/room/${view.code}`);
+  let locked = $derived(room.status !== "ready" || view.readOnly || room.pending > 0);
+  let waiting = $derived(view.players.filter((p) => !p.crewId));
+  $effect(() => {
+    let cancelled = false;
+    void QRCode.toDataURL(joinUrl, {
+      margin: 1,
+      width: 180,
+      color: { dark: NEUTRALS.text, light: NEUTRALS.surface },
+    })
+      .then((value) => {
+        if (!cancelled) qr = value;
+      })
+      .catch(() => {
+        qr = "";
+      });
+    return () => {
+      cancelled = true;
+    };
+  });
+  onMount(() => (base = localStorage.getItem(`siege-join-base:${view.code}`) ?? location.origin));
+</script>
+<section class="host-screen">
+  <div class="host-bar">
+    <div>
+      <h1>Room {view.code}</h1>
+      <small>{view.crews.length} crews · {view.players.length} characters</small>
+    </div>
+    <details class="invite-menu">
+      <summary>Invite</summary>
+      <section class="invite-content">
+        {#if qr}
+          <img src={qr} alt="Scan to join" width="180" height="180">
+        {/if}
+        <a href={joinUrl}>{joinUrl}</a>
+        <label for="join-base">Join base URL</label>
+        <input
+          id="join-base"
+          type="url"
+          bind:value={base}
+          onchange={() => localStorage.setItem(`siege-join-base:${view.code}`, base)}
+        >
+      </section>
+    </details>
+    <a class="button quiet" href={`#/board/${view.code}`} target="_blank" rel="noopener"
+      >Projector ↗</a
+    >
+    {#if view.status === "lobby"}
+      <label class="checkbox"
+        ><input
+          type="checkbox"
+          checked={view.learningEnabled}
+          disabled={locked}
+          onchange={(e) => void hostControl("learning", { enabled: e.currentTarget.checked })}
+        >Inscriptions</label
+      >
+      <button
+        type="button"
+        class="primary"
+        disabled={locked || !view.crews.length || waiting.length > 0}
+        onclick={() => void hostControl("start")}
+      >
+        Start expedition
+      </button>
+    {:else if view.status === "running"}
+      <button type="button" disabled={locked} onclick={() => void hostControl("pause")}>
+        Pause
+      </button>
+    {:else if view.status === "paused"}
+      <button
+        type="button"
+        class="primary"
+        disabled={locked}
+        onclick={() => void hostControl("resume")}
+      >
+        Resume
+      </button>
+    {/if}
+    {#if view.status === "running" || view.status === "paused"}
+      <details class="end-menu">
+        <summary>End</summary>
+        <button type="button" disabled={locked} onclick={() => void hostControl("end")}>
+          End expedition · secured scores only
+        </button>
+      </details>
+    {/if}
+  </div>
+  {#if waiting.length}
+    <p class="waiting-crews">{waiting.map((p) => p.name).join(", ")} · choosing a crew</p>
+  {/if}
+  <ProjectorScreen {view} embedded />
+</section>

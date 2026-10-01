@@ -1,0 +1,9 @@
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <title>physician</title>
+  <g fill="white" stroke="black" stroke-width="3" stroke-linejoin="round">
+    <path d="M35 47Q34 10 64 10t29 37L83 67H45Z" />
+    <path d="M48 40h34l-17 19Z" />
+    <path d="M44 70L24 119h80L84 70Z" />
+    <path d="M60 78v23M49 90h23" stroke-width="6" />
+  </g>
+</svg>

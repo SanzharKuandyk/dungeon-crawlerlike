@@ -1,0 +1,316 @@
+.crew-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: 18px;
+}
+.crew-stage {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+  min-width: 0;
+}
+.crew-stage.own {
+  border-color: var(--team);
+}
+.crew-stage.selected {
+  outline: 2px solid var(--team);
+}
+.crew-stage header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+}
+.crew-stage .team-badge {
+  min-width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.crew-title {
+  border: 0;
+  padding: 0;
+  min-height: 44px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--team);
+  background: transparent;
+}
+.crew-state {
+  margin-left: auto;
+  font-size: 11px;
+  max-width: 40%;
+  text-align: right;
+  color: var(--muted);
+}
+.crew-battle {
+  position: relative;
+  min-height: 215px;
+  display: flex;
+  align-items: flex-end;
+  gap: 15px;
+  padding: 15px 12px 14px;
+  isolation: isolate;
+}
+.battle-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+}
+.crew-party {
+  display: flex;
+  flex: 1;
+  justify-content: space-evenly;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+.party-character {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 0;
+  max-width: 90px;
+  flex: 1;
+}
+.hero-model {
+  width: 100%;
+  height: 112px;
+  filter: drop-shadow(0 4px 1px #18181b18);
+}
+.hero-model.fallen {
+  opacity: 0.3;
+}
+.party-character strong {
+  font-size: 10px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.party-character span {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.party-character meter {
+  width: 100%;
+  height: 6px;
+}
+.party-character .party-stress {
+  color: var(--muted);
+  font-size: 9px;
+}
+.party-character.acting {
+  outline: 2px solid var(--team);
+  outline-offset: 4px;
+  border-radius: 5px;
+}
+.party-enemy {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 90px;
+  flex-shrink: 0;
+}
+.party-enemy img {
+  width: 90px;
+  height: 116px;
+  object-fit: contain;
+}
+.party-enemy span {
+  font-size: 10px;
+}
+.party-enemy meter {
+  width: 90%;
+  height: 6px;
+}
+.crew-stage footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+.crew-stage .eliminated .battle-backdrop {
+  opacity: 0.5;
+}
+.expedition-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 22px 0;
+}
+.expedition-heading h1 {
+  font-size: clamp(20px, 2vw, 27px);
+  margin-top: 5px;
+  line-height: 1.3;
+}
+.expedition-heading .timer {
+  font-size: 24px;
+}
+.host-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.host-bar > div:first-child {
+  margin-right: auto;
+}
+.host-bar h1 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+.invite-menu {
+  position: relative;
+}
+.invite-content {
+  position: absolute;
+  z-index: 30;
+  top: 48px;
+  right: 0;
+  width: 290px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: grid;
+  gap: 14px;
+  overflow-wrap: anywhere;
+}
+.invite-content img {
+  justify-self: center;
+}
+.end-menu {
+  position: relative;
+}
+.end-menu button {
+  position: absolute;
+  right: 0;
+  z-index: 30;
+  width: 250px;
+}
+.waiting-crews {
+  font-size: 13px;
+  margin-top: 16px;
+}
+.encounter-detail {
+  max-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  margin: 0;
+}
+.encounter-detail.open {
+  visibility: visible;
+  max-height: 1000px;
+  margin: 22px 0;
+}
+.encounter-detail header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.encounter-detail h2 {
+  font-size: 18px;
+}
+.inscription-panel {
+  max-width: 760px;
+  margin: 0 auto 20px;
+}
+.inscription-panel .quiz-card {
+  gap: 12px;
+}
+.inscription-panel .answers {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.expedition-board > .results {
+  margin-bottom: 20px;
+}
+.expedition-board .event-log ol {
+  max-height: 140px;
+}
+.empty-crews {
+  min-height: 230px;
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.phone-panel > .crew-stage {
+  margin-bottom: 16px;
+}
+.phone-panel .crew-stage header {
+  display: none;
+}
+.phone-panel .crew-battle {
+  min-height: 188px;
+}
+.phone-panel .crew-stage footer {
+  display: none;
+}
+.test-layout .crew-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+}
+.test-layout .crew-battle {
+  gap: 8px;
+  padding: 12px 8px;
+}
+.test-layout .party-enemy {
+  width: 70px;
+}
+.test-layout .party-enemy img {
+  width: 70px;
+}
+@media (max-width: 760px) {
+  .crew-grid {
+    grid-template-columns: 1fr;
+  }
+  .host-bar {
+    gap: 8px;
+  }
+  .host-bar > div:first-child {
+    width: 100%;
+  }
+  .invite-content {
+    left: 0;
+    right: auto;
+  }
+  .expedition-heading {
+    gap: 10px;
+  }
+  .inscription-panel .answers {
+    grid-template-columns: 1fr;
+  }
+  .party-character .hero-model {
+    height: 100px;
+  }
+  .party-character strong {
+    font-size: 9px;
+  }
+  .party-enemy {
+    width: 75px;
+  }
+  .party-enemy img {
+    width: 75px;
+  }
+}
+
+.battle-intent {
+  position: absolute;
+  left: 12px;
+  top: 9px;
+  font-size: 10px;
+  color: var(--muted);
+}

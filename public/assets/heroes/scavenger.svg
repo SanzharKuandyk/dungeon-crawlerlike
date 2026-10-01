@@ -1,0 +1,10 @@
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <title>scavenger</title>
+  <g fill="white" stroke="black" stroke-width="3" stroke-linejoin="round">
+    <path d="M27 27Q64 8 101 27L88 47H40Z" />
+    <path d="M43 46h42v29H43Z" />
+    <path d="M42 78L24 120h83L85 78Z" />
+    <path d="M12 68l23 18-10 27L6 94Z" />
+    <path d="M93 77l22-19-4 39Z" />
+  </g>
+</svg>

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "knight",
+    "name": "Knight",
+    "skill": "Protect",
+    "description": "Give an ally a strong barrier.",
+    "maxCrewSize": 4
+  },
+  {
+    "id": "physician",
+    "name": "Physician",
+    "skill": "Mend",
+    "description": "Restore an ally\u2019s health.",
+    "maxCrewSize": 4
+  },
+  {
+    "id": "occultist",
+    "name": "Occultist",
+    "skill": "Hex",
+    "description": "Heavy damage at the cost of stress.",
+    "maxCrewSize": 4
+  },
+  {
+    "id": "scavenger",
+    "name": "Scavenger",
+    "skill": "Pilfer",
+    "description": "Strike and compete for treasure.",
+    "maxCrewSize": 4
+  },
+  {
+    "id": "wanderer",
+    "name": "Wanderer",
+    "skill": "Skirmish",
+    "description": "Strike and protect yourself.",
+    "maxCrewSize": 2
+  },
+  {
+    "id": "exorcist",
+    "name": "Exorcist",
+    "skill": "Channel",
+    "description": "Strike, heal, and calm yourself.",
+    "maxCrewSize": 2
+  }
+]
