@@ -7,6 +7,7 @@ import { encounterFor, fighting } from "./routes.js";
 
 export function rivalryDoor(s: MatchState, room: RoomDefinition) {
   return (
+    !s.expeditionMap &&
     s.expeditionFeatures === "rivalries-v1" &&
     s.depth >= 2 &&
     s.depth <= 4 &&

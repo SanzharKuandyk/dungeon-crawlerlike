@@ -26,8 +26,62 @@ export function assertInvariants(s: MatchState) {
   unique(s.resolvedPhaseIds.map(String), "phase resolution");
   unique(s.usedQuestions, "questions");
   unique(s.quizDepths.map(String), "question per depth");
-  if (s.rulesVersion !== "dungeon-v1" || s.depth < 1 || s.depth > 5 || s.turn < 1 || s.turn > 4)
+  if (
+    s.rulesVersion !== "dungeon-v1" ||
+    !Number.isInteger(s.depth) ||
+    s.depth < 1 ||
+    (!s.expeditionMap && s.depth > 5) ||
+    s.turn < 1 ||
+    s.turn > 4
+  )
     fail("progress");
+
+  if (s.expeditionMap) {
+    const map = s.expeditionMap;
+    const nodes = new Map(map.nodes.map((node) => [node.id, node]));
+    unique(
+      map.nodes.map((node) => node.id),
+      "map nodes",
+    );
+
+    if (
+      map.version !== "branching-v1" ||
+      map.rows !== 10 ||
+      map.chapter !== Math.floor((s.depth - 1) / map.rows) + 1
+    )
+      fail("map chapter");
+
+    for (const node of map.nodes) {
+      if (
+        node.row < 1 ||
+        node.row > map.rows ||
+        node.lane < 0 ||
+        node.lane > 2 ||
+        node.room.id !== node.id ||
+        node.room.depth !== (map.chapter - 1) * map.rows + node.row ||
+        (node.row < map.rows && node.nextIds.length === 0) ||
+        node.nextIds.some((id) => nodes.get(id)?.row !== node.row + 1)
+      )
+        fail("map connections");
+    }
+
+    for (const crew of s.crews) {
+      const position = crew.mapPosition;
+      if (!position || crew.status === "eliminated") continue;
+
+      if (
+        position.chapter !== map.chapter ||
+        (position.nodeId !== null && !nodes.has(position.nodeId)) ||
+        position.trail.some(
+          (id, index) =>
+            !nodes.has(id) ||
+            (index > 0 && !nodes.get(position.trail[index - 1])?.nextIds.includes(id)),
+        ) ||
+        (position.nodeId !== null && position.trail.at(-1) !== position.nodeId)
+      )
+        fail("crew map position");
+    }
+  }
   for (const c of s.crews) {
     const members = s.players.filter((p) => p.crewId === c.id);
     if (members.length < 1 || members.length > 4) fail("crew size");

@@ -11,11 +11,15 @@
 </script>
 <section class="class-picker">
   <h2>Your character</h2>
+  <p class="selected-class">
+    Selected: <strong>{view.classes.find((c) => c.id === view.self.classId)?.name}</strong>
+  </p>
   <div class="class-options">
     {#each view.classes as c}
       <button
         type="button"
         class:chosen={view.self.classId === c.id}
+        aria-pressed={view.self.classId === c.id}
         disabled={locked || size > c.maxCrewSize}
         onclick={() => void controller.chooseClass(c.id)}
       >

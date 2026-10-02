@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import { NEUTRALS } from "../../shared/palette.js";
   import type { HostRoomView } from "../../shared/view-types.js";
+  import HostRoster from "../components/HostRoster.svelte";
   import { hostControl } from "../connection.js";
   import { room } from "../room.svelte.js";
   import ProjectorScreen from "./ProjectorScreen.svelte";
@@ -13,6 +14,8 @@
   let joinUrl = $derived(`${base.replace(/\/$/, "")}/#/room/${view.code}`);
   let locked = $derived(room.status !== "ready" || view.readOnly || room.pending > 0);
   let waiting = $derived(view.players.filter((p) => !p.crewId));
+  let rosterOpen = $state(false),
+    rosterCrew = $state<string | null>(null);
   $effect(() => {
     let cancelled = false;
     void QRCode.toDataURL(joinUrl, {
@@ -59,9 +62,6 @@
         >Join as player ↗</a
       >
     {/if}
-    <a class="button quiet" href={`#/board/${view.code}`} target="_blank" rel="noopener"
-      >Projector ↗</a
-    >
     {#if view.status === "lobby"}
       <label class="checkbox"
         ><input
@@ -71,6 +71,16 @@
           onchange={(e) => void hostControl("learning", { enabled: e.currentTarget.checked })}
         >Inscriptions</label
       >
+      <button
+        type="button"
+        disabled={locked}
+        onclick={() => {
+          rosterCrew = null;
+          rosterOpen = true;
+        }}
+      >
+        Manage crews
+      </button>
       <button
         type="button"
         class="primary"
@@ -105,5 +115,13 @@
   {#if waiting.length}
     <p class="waiting-crews">{waiting.map((p) => p.name).join(", ")} · choosing a crew</p>
   {/if}
-  <ProjectorScreen {view} embedded />
+  <ProjectorScreen
+    {view}
+    embedded
+    onmanage={(id) => {
+      rosterCrew = id;
+      rosterOpen = true;
+    }}
+  />
+  <HostRoster {view} bind:open={rosterOpen} crewId={rosterCrew} {locked} />
 </section>

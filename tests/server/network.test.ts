@@ -41,6 +41,72 @@ async function setup() {
   await ack((done) => player.emit("crew:create", { ...env(), name: "Seekers" }, done));
   return { ...f, created, host, player, playerId, playerSecret, current, env, ack };
 }
+it("host roster deletion is authorized, durable and returns crew members to selection", async () => {
+  const f = await setup();
+  const change = {
+    ...f.env(),
+    action: "delete-crew" as const,
+    crewId: f.current().state.crews[0].id,
+  };
+  expect(await f.ack((done) => f.player.emit("host:roster", change, done))).toMatchObject({
+    ok: false,
+    code: "UNAUTHORIZED",
+  });
+  f.memory.setFail(true);
+  expect(await f.ack((done) => f.host.emit("host:roster", change, done))).toMatchObject({
+    ok: false,
+    code: "SAVE_FAILED",
+  });
+  expect(f.current().state.crews).toHaveLength(1);
+  expect(f.current().state.players[0].crewId).toBe(change.crewId);
+  f.memory.setFail(false);
+  const first = await f.ack((done) => f.host.emit("host:roster", change, done));
+  expect(first.ok).toBe(true);
+  expect(await f.ack((done) => f.host.emit("host:roster", change, done))).toEqual(first);
+  expect(
+    await f.ack((done) => f.host.emit("host:roster", { ...change, crewId: "different" }, done)),
+  ).toMatchObject({ ok: false, code: "CONFLICT" });
+  expect(f.current().state.crews).toHaveLength(0);
+  expect(f.current().state.players[0].crewId).toBeNull();
+  expect(f.memory.saved.get(f.created.code)?.state.players[0].crewId).toBeNull();
+  expect(
+    (await f.ack((done) => f.player.emit("crew:create", { ...f.env(), name: "Again" }, done))).ok,
+  ).toBe(true);
+  await f.ack((done) => f.host.emit("host:control", { ...f.env(), action: "start" }, done));
+  expect(
+    await f.ack((done) =>
+      f.host.emit(
+        "host:roster",
+        { ...f.env(), action: "remove-player", playerId: f.playerId },
+        done,
+      ),
+    ),
+  ).toMatchObject({ ok: false, code: "CLOSED" });
+});
+it("removing a player revokes connected and offline sessions and cleans up empty crews", async () => {
+  const f = await setup();
+  const input = { ...f.env(), action: "remove-player" as const, playerId: f.playerId };
+  const removed = new Promise<void>((resolve) => f.player.once("session:removed", resolve));
+  expect((await f.ack((done) => f.host.emit("host:roster", input, done))).ok).toBe(true);
+  expect((await f.ack((done) => f.host.emit("host:roster", input, done))).ok).toBe(true);
+  await removed;
+  expect(f.current().state.players).toHaveLength(0);
+  expect(f.current().state.crews).toHaveLength(0);
+  expect(
+    await f.ack((done) => f.player.emit("crew:create", { ...f.env(), name: "Ghost" }, done)),
+  ).toMatchObject({ ok: false, code: "UNAUTHORIZED" });
+  const resumed = await f.connect();
+  expect(
+    await f.ack((done) =>
+      resumed.emit("session:resume", { code: f.created.code, token: f.playerSecret }, done),
+    ),
+  ).toMatchObject({ ok: false, code: "UNAUTHORIZED" });
+  expect(
+    Object.values(f.memory.saved.get(f.created.code)?.sessions ?? {}).some(
+      (s) => s.playerId === f.playerId,
+    ),
+  ).toBe(false);
+});
 it("joining and requests survive lost responses; reused IDs cannot change content", async () => {
   const f = await setup();
   const repeatedJoin = await f.ack((done) =>

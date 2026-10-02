@@ -160,6 +160,8 @@ export function createRoomManager(
       const cacheKey = `${binding.tokenHash}:${env.requestId}`;
       const fingerprint = JSON.stringify(payload);
       const receipt = (room: StoredRoom): ActionResult<Receipt> | undefined => {
+        if (!binding.tokenHash || !room.sessions[binding.tokenHash])
+          reject("UNAUTHORIZED", "This player was removed. Join again.");
         if (binding.readOnly) reject("READ_ONLY", "A newer tab controls this identity.");
         if (room.state.id !== env.matchId) reject("STALE", "This match changed. Reconnect.");
         const cached = room.processed[cacheKey];

@@ -1,6 +1,7 @@
 import type { CampChoice, EquipmentChoice, HeroAction } from "./command-types.js";
 import type { ClassId, DungeonContent, EnemyFamily, RoomDefinition } from "./content-types.js";
 import type { GameEvent } from "./event-types.js";
+import type { ExpeditionMap, MapPosition } from "./map-types.js";
 
 export type { Question } from "./content-types.js";
 export type EquipmentKind = "ward" | "salve" | "lantern";
@@ -55,6 +56,7 @@ export type Crew = {
   carriedTreasure: number;
   securedTreasure: number;
   status: "active" | "eliminated";
+  mapPosition?: MapPosition;
   location: { kind: "room"; roomId: string } | { kind: "camp" };
 };
 export type RoomEncounter = {
@@ -70,6 +72,7 @@ export type RoomEncounter = {
   status: "active" | "defeated" | "abandoned" | "timed-out";
   contribution: Record<string, number>;
   purseAwarded: boolean;
+  chapter?: number;
   rivalry?: { winnerCrewId: string | null };
 };
 export type QuizResult = {
@@ -84,6 +87,7 @@ export type MatchState = ArenaState & {
   code: string;
   rulesVersion: "dungeon-v1";
   expeditionFeatures?: "rivalries-v1";
+  expeditionMap?: ExpeditionMap;
   seed: number;
   revision: number;
   status: "lobby" | "running" | "paused" | "finished";
@@ -112,7 +116,7 @@ export type MatchState = ArenaState & {
   quizQuestionId: string | null;
   quizLocked: boolean;
   quizGranted: boolean;
-  quizContinuation: "next-combat-turn" | "finish-floor" | null;
+  quizContinuation: "start-combat" | "next-combat-turn" | "finish-floor" | null;
   treasureEquipmentDepths: Record<string, number>;
   resolvedPhaseIds: number[];
   before: ArenaState | null;

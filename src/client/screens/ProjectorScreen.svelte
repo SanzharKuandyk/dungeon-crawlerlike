@@ -5,17 +5,22 @@
   import CrewGrid from "../components/CrewGrid.svelte";
   import DungeonProgress from "../components/DungeonProgress.svelte";
   import EventLog from "../components/EventLog.svelte";
+  import ExpeditionMap from "../components/ExpeditionMap.svelte";
   import QuizCard from "../components/QuizCard.svelte";
   import RoundTimer from "../components/RoundTimer.svelte";
   import { phaseInstruction, presentation } from "../event-presenter.js";
   import { preferences } from "../room.svelte.js";
   import ResultsScreen from "./ResultsScreen.svelte";
 
-  let { view, embedded = false }: { view: RoomView; embedded?: boolean } = $props();
+  let {
+    view,
+    embedded = false,
+    onmanage,
+  }: { view: RoomView; embedded?: boolean; onmanage?: (id: string) => void } = $props();
   let now = $state(Date.now()),
     received = $state(Date.now()),
     selected = $state<string | null>(null),
-    tab = $state<"board" | "log">("board"),
+    tab = $state<"board" | "map" | "log">("map"),
     page = $state(0),
     pageSize = $state(2),
     detail = $state<HTMLDialogElement | null>(null);
@@ -54,9 +59,16 @@
   let quiz = $derived(
     ["question-intro", "question", "explanation", "equipment", "return"].includes(view.phase.kind),
   );
+  let shownTab = $derived(
+    view.status === "lobby" || view.status === "finished" || !view.expeditionMap
+      ? tab === "map"
+        ? "board"
+        : tab
+      : tab,
+  );
   $effect(() => {
     if (!detail) return;
-    if (selected !== null && tab === "board" && !quiz) {
+    if (selected !== null && shownTab === "board" && !quiz) {
       if (!detail.open) detail.showModal();
     } else if (detail.open) detail.close();
   });
@@ -72,20 +84,32 @@
       <p class="eyebrow">
         {embedded ? "" : `Room ${view.code} · `}{view.status === "lobby"
           ? "Gather your crews"
-          : `Depth ${view.depth} · Turn ${view.turn}`}
+          : view.expeditionMap
+            ? `Chapter ${view.expeditionMap.chapter} · Room ${((view.depth - 1) % view.expeditionMap.rows) + 1}`
+            : `Depth ${view.depth} · Turn ${view.turn}`}
       </p>
       <h1>{phaseInstruction(view)}</h1>
     </div>
     <RoundTimer {view} />
   </header>
-  {#if view.status !== "lobby"}
+  {#if view.status !== "lobby" && !view.expeditionMap}
     <DungeonProgress depth={view.depth} finished={view.status === "finished"} />
   {/if}
   <nav class="board-tabs" aria-label="Board views">
+    {#if view.expeditionMap && view.status !== "lobby" && view.status !== "finished"}
+      <button
+        type="button"
+        class:chosen={shownTab === "map"}
+        aria-pressed={shownTab === "map"}
+        onclick={() => (tab = "map")}
+      >
+        Map
+      </button>
+    {/if}
     <button
       type="button"
-      class:chosen={tab === "board"}
-      aria-pressed={tab === "board"}
+      class:chosen={shownTab === "board"}
+      aria-pressed={shownTab === "board"}
       onclick={() => (tab = "board")}
     >
       Dungeon
@@ -99,7 +123,19 @@
       Log
     </button>
   </nav>
-  <div hidden={tab !== "board"} class="board-panel">
+  {#if view.expeditionMap && view.status !== "lobby" && view.status !== "finished"}
+    <div hidden={shownTab !== "map"} class="board-panel map-board-panel">
+      {#if quiz}
+        <section class="inscription-panel">
+          <QuizCard view={{ ...view, role: "projector" }} />
+        </section>
+      {:else}
+        <ExpeditionMap map={view.expeditionMap} crews={current.arena.crews} />
+      {/if}
+    </div>
+  {/if}
+
+  <div hidden={shownTab !== "board"} class="board-panel">
     {#if quiz}
       <section class="inscription-panel">
         <QuizCard view={{ ...view, role: "projector" }} />
@@ -107,9 +143,9 @@
     {:else if view.status === "finished"}
       <ResultsScreen {view} />
     {:else}
-      {#if current.message !== phaseInstruction(view)}
-        <p class="board-narration" aria-live="polite">{current.message}</p>
-      {/if}
+      <p class="board-narration" aria-live="polite">
+        {current.message !== phaseInstruction(view) ? current.message : "\u00a0"}
+      </p>
       <div class="crew-pages" class:single-page={pages === 1}>
         {#if pages > 1}
           <button
@@ -128,7 +164,10 @@
           actor={current.actor}
           {selected}
           crewIds={visibleCrews.map((c) => c.id)}
-          onselect={(id) => (selected = selected === id ? null : id)}
+          onselect={(id) => {
+            if (view.status === "lobby" && onmanage) onmanage(id);
+            else selected = selected === id ? null : id;
+          }}
         />
         {#if pages > 1}
           <button
@@ -153,7 +192,7 @@
       {/if}
     {/if}
   </div>
-  <div hidden={tab !== "log"} class="board-log">
+  <div hidden={shownTab !== "log"} class="board-log">
     <EventLog {view} cursor={current.cursor} full />
   </div>
   <dialog

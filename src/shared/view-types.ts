@@ -2,6 +2,7 @@ import type { CampChoice, EquipmentChoice, HeroAction } from "./command-types.js
 import type { ClassDefinition, Question, RoomDefinition } from "./content-types.js";
 import type { GameEvent } from "./event-types.js";
 import type { ArenaState, Hero, MatchState, Player } from "./game-types.js";
+import type { ExpeditionMap } from "./map-types.js";
 export type PublicRoomView = ArenaState & {
   role: "projector";
   id: string;
@@ -17,6 +18,7 @@ export type PublicRoomView = ArenaState & {
   players: Pick<Player, "id" | "name" | "crewId" | "connected" | "classId">[];
   classes: ClassDefinition[];
   offeredRooms: RoomDefinition[];
+  expeditionMap: ExpeditionMap | null;
   events: GameEvent[];
   history: GameEvent[];
   before: ArenaState | null;
@@ -53,6 +55,8 @@ export type PlayerRoomView = Omit<PublicRoomView, "role"> & {
   legalActions: HeroAction[];
   selectedAction: HeroAction | null;
   winningRoute: string | null;
+  reachableNodeIds: string[];
+  canCamp: boolean;
   winningCamp: CampChoice | null;
   answerChoice: number | null;
   equipmentChoice: EquipmentChoice | null;

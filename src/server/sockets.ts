@@ -1,10 +1,16 @@
 import type { Server, Socket } from "socket.io";
 import { activeQuestion } from "../game/learning.js";
 import type { Ack, ActionResult, ClientEvents, ServerEvents } from "../shared/protocol.js";
-import { codeSchema, hostSchema, nameSchema, secretSchema } from "../shared/validation.js";
+import {
+  codeSchema,
+  hostSchema,
+  nameSchema,
+  rosterSchema,
+  secretSchema,
+} from "../shared/validation.js";
 import { CommandError, reject } from "./errors.js";
 import { hostControl } from "./handlers/host.js";
-import { joinPlayer } from "./handlers/lobby.js";
+import { changeRoster, joinPlayer } from "./handlers/lobby.js";
 import { attachPlayerSockets } from "./player-sockets.js";
 import type { RoomManager } from "./room-manager.js";
 import type { Binding } from "./room-types.js";
@@ -21,6 +27,12 @@ export function attachSockets(
   function emitView(socket: GameSocket, reliable = true) {
     const b = bindings.get(socket.id);
     if (!b || !socket.connected || (!reliable && !socket.conn.transport.writable)) return;
+    if (b.tokenHash && !manager.rooms.get(b.code)?.sessions[b.tokenHash]) {
+      b.session = null;
+      b.tokenHash = null;
+      b.readOnly = false;
+      socket.emit("session:removed");
+    }
     const channel = reliable ? socket : socket.volatile;
     channel.emit("room:snapshot", manager.snapshot(b));
   }
@@ -165,6 +177,16 @@ export function attachSockets(
         }),
     );
     attachPlayerSockets(socket, manager, binding, respond, clock);
+    socket.on(
+      "host:roster",
+      (input, ack) =>
+        void respond(ack, async () => {
+          const parsed = rosterSchema.parse(input),
+            b = binding();
+          if (b.session?.role !== "host") reject("UNAUTHORIZED", "Host access required.");
+          return manager.command(b, parsed, parsed, (r) => changeRoster(r, parsed));
+        }),
+    );
     socket.on(
       "host:control",
       (input, ack) =>

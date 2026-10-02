@@ -4,10 +4,7 @@
   import type { PlayerRoomView } from "../../shared/view-types.js";
   import ActionPanel from "../components/ActionPanel.svelte";
   import CampPicker from "../components/CampPicker.svelte";
-  import CrewStage from "../components/CrewStage.svelte";
-  import DungeonProgress from "../components/DungeonProgress.svelte";
-  import EnemyIntent from "../components/EnemyIntent.svelte";
-  import HeroCard from "../components/HeroCard.svelte";
+  import EquipmentSlot from "../components/EquipmentSlot.svelte";
   import QuizCard from "../components/QuizCard.svelte";
   import RoundTimer from "../components/RoundTimer.svelte";
   import RoutePicker from "../components/RoutePicker.svelte";
@@ -29,6 +26,7 @@
   } = $props();
   let now = $state(Date.now());
   let received = $state(Date.now());
+  let rotationDismissed = $state(sessionStorage.getItem("siege-rotation-hint") === "dismissed");
   $effect(() => {
     view.revision;
     received = Date.now();
@@ -51,66 +49,106 @@
   let quiz = $derived(
     ["question-intro", "question", "explanation", "equipment", "return"].includes(view.phase.kind),
   );
+  let interactiveCombat = $derived(
+    view.status === "running" &&
+      view.phase.kind === "combat" &&
+      encounter?.status === "active" &&
+      hero?.status === "alive",
+  );
+  let campChoice = $derived(view.phase.kind === "camp" && view.canCamp && hero?.status === "alive");
+
+  let mapNode = $derived(
+    view.expeditionMap?.nodes.find((node) => node.id === crew?.mapPosition?.nodeId),
+  );
 </script>
 <div
-  class="phone-panel"
+  class="phone-panel combat-player"
   data-phase={view.phase.kind}
   data-depth={view.depth}
   style:--team={teamColor(crew?.colorId ?? "blue").hex}
 >
+  {#if !rotationDismissed}
+    <aside class="rotation-hint" aria-label="Phone orientation tip">
+      <span>↻ Rotate your phone for a better battle view.</span>
+      <button
+        type="button"
+        class="quiet rotation-dismiss"
+        aria-label="Dismiss rotation hint"
+        onclick={() => {
+          rotationDismissed = true;
+          sessionStorage.setItem("siege-rotation-hint", "dismissed");
+        }}
+      >
+        ×
+      </button>
+    </aside>
+  {/if}
   <div class="player-heading">
     <span class="team-badge">{crew?.symbol}</span><strong>{crew?.name} · YOU</strong>
     <RoundTimer {view} />
   </div>
   {#if hero}
-    <HeroCard {hero} name={view.self.name} crewName={crew?.name ?? ""} selected />
+    <div class="player-vitals">
+      <div>
+        <strong>{view.self.name} · {hero.classId}</strong
+        ><span
+          >{hero.hp}/{hero.maxHp}
+          HP · {hero.stress}/6 stress{hero.mastery ? ` · ★${hero.mastery.rank}` : ""}</span
+        >
+      </div>
+      <EquipmentSlot {hero} globalTurn={view.globalTurn} />
+    </div>
   {/if}
   <div class="treasure-strip">
     <span>{crew?.carriedTreasure ?? 0} carried</span
     ><strong>{crew?.securedTreasure ?? 0} secured</strong>
   </div>
   <p class="phase-instruction">Turn {view.turn}/4 · {phaseInstruction(view)}</p>
-  <DungeonProgress depth={view.depth} finished={view.status === "finished"} />
+  <p class="combat-depth">
+    {view.expeditionMap
+      ? `Chapter ${view.expeditionMap.chapter} · Room ${((view.depth - 1) % view.expeditionMap.rows) + 1}/${view.expeditionMap.rows}`
+      : `Depth ${view.depth}/5`}
+    ·
+    {encounter?.rivalry
+      ? "Lethal rivalry"
+      : (encounter?.definition.name ??
+        mapNode?.room.name ??
+        (view.expeditionMap ? "At the start" : "Campfire"))}
+  </p>
   {#if view.readOnly}
     <p class="banner">A newer tab controls this character.</p>
   {/if}
-  {#if crew && !quiz && view.status !== "finished"}
-    <CrewStage {view} arena={current.arena} {crew} actor={current.actor} />
-  {/if}
   {#if view.status === "finished"}
     <ResultsScreen {view} />
-  {:else if quiz}
-    <QuizCard {view} {controller} {locked} />
-  {:else if view.status === "paused"}
-    <section class="decision-card"><h2>Expedition paused</h2></section>
-  {:else if view.phase.kind === "route" && hero?.status === "alive"}
-    <RoutePicker {view} {controller} {locked} />
-  {:else if view.phase.kind === "camp" && hero?.status === "alive"}
-    <CampPicker {view} {controller} {locked} />
-  {:else if view.phase.kind === "combat"}
-    {#if encounter?.status === "active" && hero?.status === "alive"}
-      {#if encounter.rivalry}
-        <section class="enemy-intent rivalry-intent">
-          <strong>Lethal rivalry</strong>
-          <p>Target a rival hero. Both crews act together; fallen heroes become spirits.</p>
-        </section>
-      {:else}
-        <EnemyIntent {encounter} {hero} depth={view.depth} turn={view.turn} />
-      {/if}
-      <ActionPanel {view} {controller} {locked} />
-    {:else}
-      <SpiritPanel {view} {controller} {locked} />
-    {/if}
   {:else}
-    <section class="decision-card">
-      <h2>{hero?.status === "dead" ? "Your spirit remains" : phaseInstruction(view)}</h2>
-      <p aria-live="polite">{current.message}</p>
-    </section>
-  {/if}
-  {#if encounter}
-    <small class="participation"
-      >Victory purse contribution: {encounter.contribution[crew?.id ?? ""] ?? 0}/{encounter
-        .enteringPower[crew?.id ?? ""] ?? 0}</small
+    <ActionPanel
+      {view}
+      {controller}
+      {locked}
+      arena={current.arena}
+      actor={current.actor}
+      active={interactiveCombat}
+      message={view.status === "paused" ? "Expedition paused" : current.message}
+      panel={quiz
+        ? "question"
+        : view.phase.kind === "route" && view.expeditionMap
+          ? "map"
+          : ((view.phase.kind === "route" || campChoice) && hero?.status === "alive") ||
+              (view.phase.kind === "combat" && !interactiveCombat)
+            ? "phase"
+            : "combat"}
     >
+      {#if view.status === "paused"}
+        <section class="decision-card"><h2>Expedition paused</h2></section>
+      {:else if quiz}
+        <QuizCard {view} {controller} {locked} />
+      {:else if view.phase.kind === "route" && (hero?.status === "alive" || view.expeditionMap)}
+        <RoutePicker {view} {controller} locked={locked || hero?.status !== "alive"} />
+      {:else if campChoice}
+        <CampPicker {view} {controller} {locked} />
+      {:else if view.phase.kind === "combat" && !interactiveCombat}
+        <SpiritPanel {view} {controller} {locked} />
+      {/if}
+    </ActionPanel>
   {/if}
 </div>

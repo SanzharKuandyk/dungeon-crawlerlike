@@ -8,12 +8,12 @@ export function drawEnemy(
   e: RoomEncounter,
 ) {
   const image = enemyModel(scene, e.definition.family)
-    .setPosition(600, 245)
+    .setPosition(250, 270)
     .setAlpha(e.bodyHp > 0 ? 1 : 0.2);
   layer.add(image);
   layer.add(
     scene.add
-      .text(600, 112, e.definition.family.toUpperCase(), {
+      .text(250, 137, e.definition.family.toUpperCase(), {
         fontFamily: "Arial",
         fontSize: "14px",
         fontStyle: "bold",
@@ -23,7 +23,7 @@ export function drawEnemy(
   );
   layer.add(
     scene.add
-      .text(600, 372, e.bodyHp === 0 ? "DEFEATED" : `${e.bodyHp}/${e.maxBodyHp} HEALTH`, {
+      .text(250, 397, e.bodyHp === 0 ? "DEFEATED" : `${e.bodyHp}/${e.maxBodyHp} HEALTH`, {
         fontFamily: "Arial",
         fontSize: "18px",
         fontStyle: "bold",
@@ -34,8 +34,8 @@ export function drawEnemy(
   layer.add(
     scene.add
       .text(
-        600,
-        399,
+        250,
+        424,
         e.weakHp > 0 ? `WEAK POINT ${e.weakHp}/${e.maxWeakHp}` : "WEAK POINT BROKEN",
         { fontFamily: "Arial", fontSize: "12px", color: NEUTRALS.muted },
       )

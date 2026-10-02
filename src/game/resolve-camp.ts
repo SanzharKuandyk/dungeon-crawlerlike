@@ -7,12 +7,13 @@ import {
   heroName,
   lockResolution,
 } from "./events.js";
+import { campAvailable } from "./expedition-map.js";
 import { finalizeDeaths, resolveStress } from "./stress-and-death.js";
 import { winningCamp } from "./voting.js";
 export function resolveCamp(s: MatchState) {
   lockResolution(s);
   beginEvents(s);
-  for (const c of s.crews.filter((c) => c.status === "active")) {
+  for (const c of s.crews.filter((c) => campAvailable(s, c))) {
     const choice = winningCamp(s, c.id);
     if (choice === "secure") {
       const value = c.carriedTreasure;

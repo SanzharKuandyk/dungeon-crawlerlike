@@ -149,7 +149,13 @@ test("separate host, five phones and projector support crew controls and recover
         await p.getByLabel("Or create a crew").fill(i === 0 ? "Four players" : "Solo");
         await p.getByRole("button", { name: "Create crew", exact: true }).click();
       } else await p.getByRole("button", { name: /Four players/ }).click();
-      await expect(p.locator(".banner").filter({ hasText: "You joined" })).toBeVisible();
+      await expect(
+        p.getByRole("heading", {
+          name: `Your crew: ${i === 4 ? "Solo" : "Four players"}`,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(p.getByLabel("Or create a crew")).toHaveCount(0);
     }
     const projector = await hostContext.newPage();
     await projector.goto(`/#/board/${code}`);

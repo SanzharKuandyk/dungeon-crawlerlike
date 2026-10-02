@@ -66,6 +66,10 @@ export const hostSchema = envelopeSchema.extend({
   enabled: z.boolean().optional(),
   speed: z.enum(["manual", "normal", "fast"]).optional(),
 });
+export const rosterSchema = z.discriminatedUnion("action", [
+  envelopeSchema.extend({ action: z.literal("remove-player"), playerId: target }).strict(),
+  envelopeSchema.extend({ action: z.literal("delete-crew"), crewId: target }).strict(),
+]);
 export const scenarioSchema = z.enum([
   "fresh",
   "split",

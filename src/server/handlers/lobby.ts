@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { shuffled } from "../../game/random.js";
 import type { ClassId } from "../../shared/content-types.js";
 import { TEAM_COLORS } from "../../shared/palette.js";
+import type { RosterChange } from "../../shared/protocol.js";
 import { nameSchema } from "../../shared/validation.js";
 import { reject } from "../errors.js";
 import type { StoredRoom } from "../room-types.js";
@@ -97,4 +98,20 @@ export function chooseClass(room: StoredRoom, playerId: string, classId: ClassId
     reject("INVALID", "This class is available to crews of one or two.");
   p.classId = classId;
   p.classNotice = null;
+}
+export function changeRoster(room: StoredRoom, change: RosterChange) {
+  const s = room.state;
+  if (s.status !== "lobby") reject("CLOSED", "The roster is locked after starting.");
+  if (change.action === "delete-crew") {
+    if (!s.crews.some((c) => c.id === change.crewId)) reject("NOT_FOUND", "Crew not found.");
+    for (const player of s.players) if (player.crewId === change.crewId) player.crewId = null;
+    s.crews = s.crews.filter((c) => c.id !== change.crewId);
+  } else {
+    const player = s.players.find((p) => p.id === change.playerId);
+    if (!player) reject("NOT_FOUND", "Player not found.");
+    s.players = s.players.filter((p) => p.id !== player.id);
+    if (player.crewId) updateCrew(room, player.crewId);
+    for (const [hash, session] of Object.entries(room.sessions))
+      if (session.role === "player" && session.playerId === player.id) delete room.sessions[hash];
+  }
 }

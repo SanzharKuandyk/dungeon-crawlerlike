@@ -1,4 +1,5 @@
 import { beginEvents } from "../game/events.js";
+import { campAvailable, moveToNextMapRow } from "../game/expedition-map.js";
 import { grantEquipment, lockQuiz } from "../game/learning.js";
 import { resolveCamp } from "../game/resolve-camp.js";
 import { resolveCombat } from "../game/resolve-combat.js";
@@ -31,6 +32,18 @@ function afterCombat(room: StoredRoom, now: number) {
   if (room.state.encounters.some((e) => e.status === "active")) nextTurn(room, now);
   else enter(room, { kind: "floor-result" }, now);
 }
+
+function nextMapRoom(room: StoredRoom, now: number) {
+  const s = room.state;
+  moveToNextMapRow(s);
+  s.turn = 1;
+  s.quizCause = null;
+  s.quizQuestionId = null;
+  s.quizLocked = false;
+  offerRooms(s);
+  enter(room, { kind: "route" }, now);
+}
+
 export function advancePhase(room: StoredRoom, now: number) {
   const s = room.state;
   if (s.status !== "running") throw new Error("Start or resume first.");
@@ -42,7 +55,21 @@ export function advancePhase(room: StoredRoom, now: number) {
     case "arrival":
       s.actions = {};
       s.withdrawVotes = {};
-      enter(room, { kind: "combat" }, now);
+      if (s.quizQuestionId && s.quizCause && !s.quizLocked) {
+        s.quizContinuation = s.encounters.some((encounter) => encounter.status === "active")
+          ? "start-combat"
+          : "finish-floor";
+        enter(room, { kind: "question-intro", questionId: s.quizQuestionId }, now);
+      } else
+        enter(
+          room,
+          {
+            kind: s.encounters.some((encounter) => encounter.status === "active")
+              ? "combat"
+              : "floor-result",
+          },
+          now,
+        );
       break;
     case "combat":
       room.state = resolveCombat(s).state;
@@ -80,13 +107,22 @@ export function advancePhase(room: StoredRoom, now: number) {
       enter(room, { kind: "return" }, now);
       break;
     case "return":
-      if (s.quizContinuation === "next-combat-turn") nextTurn(room, now);
+      if (s.quizContinuation === "start-combat") {
+        s.before = null;
+        s.events = [];
+        enter(room, { kind: "combat" }, now);
+      } else if (s.quizContinuation === "next-combat-turn") nextTurn(room, now);
       else enter(room, { kind: "floor-result" }, now);
       s.quizContinuation = null;
       break;
     case "floor-result":
       for (const h of s.heroes) if (h.bargainDepth === s.depth) h.bargainDepth = null;
-      if (s.depth === 5) {
+      if (s.expeditionMap) {
+        if (s.crews.some((crew) => campAvailable(s, crew))) {
+          s.campVotes = {};
+          enter(room, { kind: "camp" }, now);
+        } else nextMapRoom(room, now);
+      } else if (s.depth === 5) {
         extract(s);
         enter(room, { kind: "extraction" }, now);
       } else {
@@ -104,6 +140,11 @@ export function advancePhase(room: StoredRoom, now: number) {
         room.deadline = null;
         break;
       }
+      if (s.expeditionMap) {
+        nextMapRoom(room, now);
+        break;
+      }
+
       s.depth++;
       s.turn = 1;
       s.quizCause = null;

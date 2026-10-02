@@ -1,0 +1,377 @@
+.map-panel > .phase-pane {
+  inset: 0;
+  border-radius: 12px;
+  border-top: 0;
+}
+
+.map-panel > .crew-stage {
+  visibility: hidden;
+}
+
+.map-route-picker {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.route-vote-heading,
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 12px;
+  flex-shrink: 0;
+}
+
+.route-vote-heading h2 {
+  font-size: 18px;
+}
+
+.expedition-map {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.map-route-picker .expedition-map {
+  flex: 1;
+  min-height: 0;
+}
+
+.map-toolbar {
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+
+.map-toolbar strong {
+  font-size: 15px;
+}
+
+.map-subtitle {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.map-pan {
+  display: flex;
+  gap: 4px;
+}
+
+.map-pan button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 26px;
+}
+
+.map-viewport {
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+  min-height: 120px;
+  background: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.map-canvas {
+  min-width: 1088px;
+  height: 270px;
+  position: relative;
+}
+
+.map-connections {
+  position: absolute;
+  width: 100%;
+  height: 270px;
+}
+
+.map-connections path {
+  fill: none;
+  stroke: var(--strong-border);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+}
+
+.map-connections .traveled {
+  stroke: var(--text);
+  stroke-width: 4;
+  stroke-dasharray: none;
+}
+
+.map-connections .available {
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+
+.map-stop {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.map-node {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+}
+
+.map-node svg {
+  width: 26px;
+  height: 26px;
+}
+
+.map-node.reachable {
+  border-color: var(--text);
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 0 0 5px var(--strong-border);
+}
+
+.map-node.visited {
+  border-color: var(--strong-border);
+}
+
+.map-node.current-node {
+  border-width: 3px;
+  box-shadow: 0 0 0 4px var(--selected);
+}
+
+.map-node.crew-choice {
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 0 0 7px var(--team, var(--text));
+}
+
+.map-node.own-vote {
+  background: var(--text);
+  color: var(--surface);
+  border-color: var(--text);
+}
+
+.map-node.guardian {
+  border-radius: 12px;
+}
+
+.map-vote-check,
+.map-vote-count {
+  position: absolute;
+  top: -9px;
+  background: var(--text);
+  color: var(--surface);
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  display: grid;
+  place-items: center;
+}
+
+.map-vote-check {
+  left: -8px;
+}
+
+.map-vote-count {
+  right: -8px;
+}
+
+.map-node-label {
+  position: absolute;
+  top: 47px;
+  left: -14px;
+  width: 72px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.map-markers {
+  position: absolute;
+  left: 47px;
+  top: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 20px);
+  gap: 2px;
+}
+
+.map-markers > span {
+  width: 20px;
+  height: 20px;
+  background: var(--team);
+  color: white;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.map-markers > .fallen {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.map-markers > b {
+  font-size: 10px;
+}
+
+.map-start {
+  position: absolute;
+  top: 49.63%;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 12px 8px;
+  font-size: 12px;
+}
+
+.map-next-chapter {
+  position: absolute;
+  left: 96%;
+  top: 49.63%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.map-inspection {
+  height: 80px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow: auto;
+}
+
+.map-inspection strong {
+  font-size: 14px;
+}
+
+.map-inspection strong span {
+  font-size: 12px;
+}
+
+.voting-map .map-viewport {
+  flex: 1;
+}
+
+.map-crew-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  padding: 12px;
+}
+
+.map-crew-label {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  text-align: left;
+  padding: 8px;
+  gap: 4px 8px;
+}
+
+.map-crew-label .team-badge {
+  grid-row: 1 / 3;
+}
+
+.map-crew-label strong,
+.map-crew-label small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.map-board-panel[hidden] {
+  display: none;
+}
+
+.map-board-panel > .expedition-map {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  grid-template-rows: 52px minmax(216px, 1fr) 60px;
+}
+
+.map-board-panel .map-toolbar,
+.map-board-panel .map-viewport,
+.map-board-panel .map-inspection {
+  grid-column: 1;
+}
+
+.map-board-panel .map-viewport {
+  min-height: 0;
+}
+
+.map-board-panel .map-canvas,
+.map-board-panel .map-connections {
+  height: 100%;
+  min-height: 216px;
+}
+
+.map-board-panel .map-inspection {
+  height: 60px;
+}
+
+.map-board-panel .map-crew-legend {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  border-left: 1px solid var(--border);
+}
+
+.map-board-panel .map-crew-label {
+  flex-shrink: 0;
+}
+
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 1100px) {
+  .route-vote-heading h2,
+  .map-toolbar strong {
+    font-size: 12px;
+  }
+
+  .map-toolbar {
+    min-height: 44px;
+  }
+
+  .map-route-picker .map-toolbar {
+    display: none;
+  }
+
+  .map-route-picker .map-canvas,
+  .map-route-picker .map-connections {
+    height: 216px;
+  }
+
+  .map-subtitle {
+    display: none;
+  }
+
+  .map-inspection {
+    height: 50px;
+    padding: 4px 8px;
+  }
+
+  .map-inspection strong,
+  .map-inspection small {
+    font-size: 11px;
+  }
+
+  .map-route-picker .map-viewport {
+    min-height: 96px;
+  }
+}

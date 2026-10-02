@@ -24,6 +24,10 @@ export type HostInput = Envelope & {
   enabled?: boolean;
   speed?: "normal" | "fast" | "manual";
 };
+export type RosterChange =
+  | { action: "remove-player"; playerId: string }
+  | { action: "delete-crew"; crewId: string };
+export type RosterInput = Envelope & RosterChange;
 export interface ClientEvents {
   "session:join": (
     input: { code: string; name: string; bootstrapSecret: string },
@@ -44,6 +48,7 @@ export interface ClientEvents {
   "learning:answer": (input: Envelope & { questionId: string; choice: number }, ack: Ack) => void;
   "equipment:choose": (input: Envelope & { item: EquipmentChoice }, ack: Ack) => void;
   "host:control": (input: HostInput, ack: Ack) => void;
+  "host:roster": (input: RosterInput, ack: Ack) => void;
   "test:answer": (
     input: Envelope,
     ack: (result: ActionResult<{ choice: number | null }>) => void,
@@ -54,6 +59,7 @@ export interface ClientEvents {
   ) => void;
 }
 export interface ServerEvents {
+  "session:removed": () => void;
   "room:snapshot": (view: RoomView) => void;
   "session:error": (error: { code: ErrorCode; message: string }) => void;
 }

@@ -1,5 +1,6 @@
 import type { CampChoice } from "../shared/command-types.js";
 import type { MatchState } from "../shared/game-types.js";
+import { reachableNodes } from "./expedition-map.js";
 import { shuffled } from "./random.js";
 export function livingMembers(s: MatchState, crewId: string) {
   return s.players.filter(
@@ -26,6 +27,20 @@ export function plurality<T extends string>(
   );
 }
 export function winningRoute(s: MatchState, id: string) {
+  if (s.expeditionMap) {
+    const nodes = reachableNodes(s, id);
+    const allowed = new Set(nodes.map((node) => node.id));
+    const votes = Object.fromEntries(
+      Object.entries(s.routeVotes).filter(([, nodeId]) => allowed.has(nodeId)),
+    );
+    const fallback =
+      nodes.find((node) => node.kind === "camp") ??
+      nodes.find((node) => node.room.risk === "low") ??
+      nodes[0];
+
+    return plurality(s, id, votes, fallback?.id ?? "");
+  }
+
   return plurality(s, id, s.routeVotes, s.offeredRooms.find((r) => r.risk === "low")?.id ?? "");
 }
 export function winningCamp(s: MatchState, id: string): CampChoice {

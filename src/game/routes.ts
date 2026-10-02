@@ -1,13 +1,19 @@
 import type { Hero, MatchState } from "../shared/game-types.js";
 import { beginEvents, crewEvent, enemyEvent, finalizeEvents, lockResolution } from "./events.js";
+import { chooseQuestion } from "./learning.js";
+import { enterMapRooms } from "./map-arrival.js";
 import { shuffled } from "./random.js";
 import { rivalryDoor } from "./rivalry.js";
 import { winningRoute } from "./voting.js";
 export function offerRooms(s: MatchState) {
-  s.offeredRooms = shuffled(
-    s.content.rooms.filter((r) => r.depth === s.depth),
-    s.seed + s.depth,
-  );
+  s.offeredRooms = s.expeditionMap
+    ? s.expeditionMap.nodes
+        .filter((node) => node.room.depth === s.depth)
+        .map((node) => ({ ...node.room }))
+    : shuffled(
+        s.content.rooms.filter((r) => r.depth === s.depth),
+        s.seed + s.depth,
+      );
   s.routeVotes = {};
   s.encounters = [];
   s.before = null;
@@ -25,6 +31,14 @@ export function fighting(s: MatchState, h: Hero) {
 export function resolveRoutes(s: MatchState) {
   lockResolution(s);
   beginEvents(s);
+
+  if (s.expeditionMap) {
+    enterMapRooms(s);
+    chooseQuestion(s);
+    finalizeEvents(s);
+    return;
+  }
+
   for (const c of s.crews.filter((c) => c.status === "active")) {
     c.location = { kind: "room", roomId: winningRoute(s, c.id) };
     crewEvent(

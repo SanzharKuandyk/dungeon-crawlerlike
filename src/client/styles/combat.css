@@ -1,0 +1,820 @@
+.roster-dialog {
+  width: min(620px, calc(100vw - 28px));
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  color: var(--text);
+  background: var(--surface);
+}
+.roster-dialog::backdrop {
+  background: #18181b66;
+}
+.roster-dialog header,
+.roster-player,
+.roster-confirm > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.roster-group,
+.roster-confirm {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+.roster-player {
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.roster-dialog h3,
+.roster-player > span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.crew-stage {
+  container-type: inline-size;
+  container-name: encounter;
+}
+.nearby-allies > .crew-party {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 8px;
+}
+.crew-battle {
+  grid-template-columns: minmax(100px, 1fr) minmax(0, 3fr);
+  grid-template-rows: auto 1fr;
+  align-content: center;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px 20px;
+  min-height: 250px;
+}
+.crew-battle.camp {
+  grid-template-columns: minmax(0, 1fr);
+}
+.crew-battle > .crew-party {
+  grid-column: 2;
+  grid-row: 2;
+  grid-template-columns: repeat(var(--party-size, 4), minmax(0, 128px));
+  justify-content: center;
+}
+.crew-battle.camp > .crew-party {
+  grid-column: 1;
+}
+.crew-battle .battle-intent {
+  position: static;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  font-size: 13px;
+}
+.crew-battle .party-enemy {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  gap: 6px;
+  width: min(180px, 100%);
+  justify-self: center;
+}
+.crew-battle .party-enemy img {
+  width: min(100%, 130px);
+  height: 104px;
+  object-fit: contain;
+}
+.enemy-vitals {
+  width: 100%;
+  text-align: center;
+}
+.enemy-vitals button {
+  width: 100%;
+  font-size: 13px;
+  padding: 8px 4px;
+}
+
+.enemy-targets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.enemy-targets button {
+  min-height: 44px;
+  border-radius: 22px;
+  font-size: 12px;
+  padding: 6px;
+}
+.crew-battle:has(.rival-party) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.crew-battle .rival-party {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  background: transparent;
+  padding: 0;
+  border: 0;
+  gap: 8px;
+  min-width: 0;
+}
+.rival-party > strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.party-character {
+  position: relative;
+  padding: 4px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 128px;
+  justify-self: center;
+}
+
+.party-character > meter {
+  max-width: 88px;
+}
+
+.party-character > strong,
+.party-character > span {
+  background: #ffffffc9;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.party-character strong {
+  font-size: 14px;
+}
+.party-character > span {
+  font-size: 13px;
+}
+.party-character.own-hero {
+  background: transparent;
+  box-shadow: none;
+}
+
+.party-character:where(.own-hero) > strong {
+  color: var(--team);
+}
+.party-character.target-selected {
+  outline: 3px solid var(--team);
+  outline-offset: 1px;
+}
+.hero-target {
+  padding: 0;
+  width: 100%;
+  background: transparent;
+  border: 2px dashed var(--team);
+}
+.hero-target .hero-model {
+  pointer-events: none;
+}
+.hero-inspect {
+  width: 100%;
+}
+
+.hero-target:hover:not(:disabled) {
+  background: #18181b14;
+}
+.hero-inspect summary {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  min-width: 44px;
+}
+.hero-inspect summary::-webkit-details-marker,
+.equipment-slot summary::-webkit-details-marker {
+  display: none;
+}
+.hero-inspect > div,
+.bag-content {
+  position: absolute;
+  z-index: 8;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px #18181b22;
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  width: 210px;
+  max-width: 85vw;
+  right: 0;
+  top: 0;
+}
+.hero-inspect > div {
+  top: auto;
+  bottom: 0;
+  pointer-events: none;
+}
+.phone-panel {
+  max-width: 1100px;
+  container-type: inline-size;
+  container-name: player;
+}
+.player-vitals {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+.player-vitals > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.player-vitals strong {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.player-vitals span {
+  font-size: 13px;
+}
+.hero-inspect > div strong,
+.hero-inspect > div span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.equipment-slot {
+  position: relative;
+  flex-shrink: 0;
+}
+.equipment-slot summary {
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+  min-height: 44px;
+  text-transform: capitalize;
+}
+.equipment-slot small {
+  font-size: 11px;
+  text-transform: none;
+}
+.bag-content {
+  top: calc(100% + 4px);
+  width: 260px;
+}
+.bag-content p {
+  font-size: 13px;
+}
+.combat-depth {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.combat-console {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.combat-console > .crew-stage {
+  border: 0;
+  border-radius: 12px 12px 0 0;
+}
+.combat-console .crew-battle {
+  min-height: 280px;
+}
+.combat-hud {
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 0 0 12px 12px;
+}
+.combat-hud .action-tabs {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.combat-hud .action-tabs button {
+  font-size: 14px;
+}
+.target-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+.confirm-action {
+  min-height: 44px;
+}
+.combat-hud .confirmed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding: 8px 10px;
+}
+.combat-hud .confirmed strong {
+  font-size: 12px;
+}
+.tactics-trigger {
+  min-height: 44px;
+}
+.crew-tactics {
+  position: relative;
+}
+.tactics-content {
+  position: fixed;
+  inset: auto 12px max(12px, env(safe-area-inset-bottom)) auto;
+  margin: 0;
+  width: min(380px, 85vw);
+  max-height: min(65dvh, 420px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px #18181b22;
+  z-index: 10;
+}
+.crew-tactics .vote-list {
+  padding-bottom: 12px;
+}
+.nearby-allies {
+  padding: 0 12px;
+}
+.combat-player .treasure-strip {
+  padding: 6px 0;
+}
+.combat-player .phase-instruction {
+  padding: 6px 0;
+}
+.combat-player .participation {
+  display: none;
+}
+.rotation-hint {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12px;
+  position: fixed;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 12px;
+  right: 12px;
+  z-index: 30;
+  box-shadow: 0 8px 24px #18181b22;
+}
+.rotation-dismiss {
+  flex-shrink: 0;
+  min-width: 44px;
+  font-size: 22px;
+}
+@media (orientation: portrait) and (max-width: 760px) {
+  .rotation-hint {
+    display: flex;
+  }
+}
+.hero-target,
+.hero-inspect summary {
+  height: 112px;
+}
+.stable-console {
+  --scene-height: 280px;
+  --hud-height: 164px;
+  position: relative;
+  height: calc(var(--scene-height) + var(--hud-height));
+  overflow-anchor: none;
+}
+.stable-console > .crew-stage {
+  position: relative;
+  height: var(--scene-height);
+  overflow: visible;
+}
+.stable-console .crew-battle {
+  height: 100%;
+  min-height: 0;
+}
+.stable-console .crew-battle.camp {
+  grid-template-columns: minmax(100px, 1fr) minmax(0, 3fr);
+}
+.stable-console .crew-battle.camp > :where(.crew-party) {
+  grid-column: 2;
+}
+.stable-console .combat-hud {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  height: var(--hud-height);
+  overflow-y: auto;
+  align-content: start;
+  padding: 8px;
+  gap: 4px;
+}
+
+.stable-console .action-tabs {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.stable-console .action-tabs button {
+  height: 48px;
+}
+.stable-console .combat-hud[hidden],
+.phase-pane[hidden] {
+  display: none;
+}
+.stable-console .target-hint {
+  grid-column: 1;
+  grid-row: 2;
+  height: 22px;
+  overflow-y: auto;
+}
+.stable-console .confirm-action {
+  grid-column: 2;
+  grid-row: 1;
+  height: 48px;
+}
+.stable-console .confirmed {
+  grid-column: 2;
+  grid-row: 2;
+  height: 36px;
+  overflow: auto;
+  padding: 4px 6px;
+}
+
+.stable-console .crew-tactics {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+.phase-pane {
+  position: absolute;
+  inset: var(--scene-height) 0 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 0 0 12px 12px;
+}
+.question-panel > .phase-pane {
+  inset: 0;
+  border-radius: 12px;
+  border-top: 0;
+}
+.phase-pane > .decision-card,
+.phase-pane > .quiz-card {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+.stable-console .nearby-allies {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  z-index: 6;
+}
+.stable-console .nearby-allies > summary {
+  padding: 0 8px;
+  background: var(--surface);
+  border-radius: 8px;
+}
+.stable-console .nearby-allies > .crew-party {
+  width: min(480px, 80vw);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+@container encounter (max-width: 460px) {
+  .crew-battle,
+  .combat-console .crew-battle {
+    min-height: 180px;
+    padding: 8px;
+    gap: 6px 10px;
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+  .crew-battle.camp {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .crew-battle:has(.rival-party) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .crew-battle > .crew-party,
+  .rival-party > .crew-party {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .crew-party:has(> .party-character:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .party-character .hero-model {
+    height: 48px;
+    max-width: 64px;
+  }
+  .hero-target,
+  .hero-inspect summary {
+    height: 48px;
+  }
+  .party-character {
+    padding: 2px;
+    gap: 2px;
+  }
+  .party-character strong,
+  .party-character > span {
+    font-size: 11px;
+  }
+  .crew-battle .party-enemy img {
+    height: 58px;
+    width: 66px;
+  }
+  .enemy-vitals {
+    gap: 3px;
+  }
+  .enemy-vitals span {
+    font-size: 10px;
+  }
+  .crew-battle .battle-intent {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+  .enemy-vitals button {
+    font-size: 11px;
+  }
+}
+@container player (max-width: 500px) {
+  .stable-console {
+    --scene-height: 220px;
+    --hud-height: 240px;
+  }
+  .stable-console .combat-hud {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .stable-console .action-tabs,
+  .stable-console .target-hint,
+  .stable-console .confirm-action,
+  .stable-console .confirmed,
+  .stable-console .crew-tactics {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .player-heading {
+    padding-bottom: 6px;
+  }
+  .player-heading strong {
+    font-size: 13px;
+  }
+  .combat-hud {
+    padding: 8px;
+    gap: 4px;
+  }
+  .combat-hud .action-tabs button {
+    font-size: 12px;
+  }
+  .combat-hud .confirmed {
+    padding: 4px 6px;
+  }
+  .combat-depth {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+  .player-vitals strong {
+    font-size: 12px;
+  }
+  .player-vitals span {
+    font-size: 11px;
+  }
+  .target-hint {
+    font-size: 11px;
+  }
+}
+.phone-panel {
+  overflow-anchor: none;
+}
+.combat-player .player-heading {
+  height: 44px;
+}
+.combat-player .player-vitals {
+  height: 60px;
+}
+.combat-player .player-vitals strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.combat-player .phase-instruction {
+  height: 38px;
+  overflow: hidden;
+}
+.combat-player .combat-depth {
+  height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.expedition-board .board-panel {
+  height: clamp(340px, calc(100dvh - 350px), 700px);
+  overflow: auto;
+  overflow-anchor: none;
+}
+.expedition-board .board-narration {
+  height: 24px;
+  overflow: hidden;
+}
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 1100px) {
+  .battle-play > .topbar {
+    height: 44px;
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+  }
+  .battle-play > main {
+    padding: 4px max(8px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
+  .combat-player {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 12px;
+  }
+  .combat-player > .player-heading {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    gap: 6px;
+  }
+  .combat-player .player-heading strong {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .combat-player .player-heading .timer {
+    font-size: 20px;
+  }
+  .combat-player > .player-vitals {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 0;
+    gap: 8px;
+  }
+  .combat-player .player-vitals strong {
+    font-size: 11px;
+  }
+  .combat-player .player-vitals span {
+    font-size: 11px;
+  }
+  .combat-player .player-vitals {
+    height: 44px;
+  }
+  .combat-player > .treasure-strip {
+    grid-column: 1;
+    grid-row: 2;
+    border: 0;
+    padding: 0;
+    font-size: 11px;
+    justify-content: flex-start;
+    gap: 12px;
+  }
+  .combat-player > .phase-instruction {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 0;
+    font-size: 11px;
+    height: 18px;
+  }
+  .combat-player > .combat-depth {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    font-size: 10px;
+    margin-bottom: 2px;
+    height: 16px;
+  }
+  .combat-player > .banner {
+    grid-column: 1 / -1;
+  }
+  .combat-player > .combat-console {
+    grid-column: 1 / -1;
+    min-width: 0;
+    --scene-height: max(132px, calc(100dvh - 232px));
+    --hud-height: 100px;
+  }
+  .combat-player .combat-console > .crew-stage {
+    overflow: visible;
+    position: relative;
+  }
+  .combat-player .combat-console .crew-battle {
+    min-height: 132px;
+    height: max(132px, calc(100dvh - 232px));
+    grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr);
+    padding: 6px 12px;
+    gap: 4px 12px;
+    overflow: visible;
+  }
+  .combat-player .crew-battle:has(.rival-party) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .combat-player .crew-battle .battle-intent {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .combat-player .crew-party {
+    grid-template-columns: repeat(var(--party-size, 4), minmax(0, 1fr));
+    gap: 6px;
+  }
+  .combat-player .party-character {
+    gap: 1px;
+    padding: 2px;
+  }
+  .combat-player .party-character .hero-model {
+    height: 64px;
+    max-width: 76px;
+  }
+  .combat-player .hero-target,
+  .combat-player .hero-inspect summary {
+    height: 64px;
+  }
+  .combat-player .party-character strong,
+  .combat-player .party-character > span {
+    font-size: 11px;
+  }
+  .combat-player .crew-battle .party-enemy {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 8px;
+    width: min(270px, 100%);
+  }
+  .combat-player .crew-battle .party-enemy img {
+    width: 64px;
+    height: 76px;
+  }
+  .combat-player .enemy-vitals {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .combat-player .enemy-vitals button {
+    font-size: 11px;
+    padding: 4px;
+  }
+  .combat-player .enemy-vitals span {
+    font-size: 10px;
+  }
+  .combat-player .enemy-vitals meter {
+    grid-column: 1;
+  }
+  .combat-player .nearby-allies {
+    position: absolute;
+    top: 0;
+    right: 8px;
+    z-index: 6;
+  }
+  .combat-player .nearby-allies > summary {
+    font-size: 11px;
+    padding: 0 8px;
+    background: var(--surface);
+    border-radius: 8px;
+  }
+  .combat-player .nearby-allies > .crew-party {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-height: 55dvh;
+    width: min(480px, 80vw);
+  }
+  .combat-player .combat-hud {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    padding: 4px 8px;
+    gap: 4px 8px;
+  }
+  .combat-player .combat-hud .action-tabs {
+    grid-column: 1;
+    grid-row: 1;
+    gap: 4px;
+  }
+  .combat-player .combat-hud .action-tabs button {
+    font-size: 12px;
+    padding: 4px;
+  }
+  .combat-player .target-hint {
+    display: none;
+  }
+  .combat-player .confirm-action {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 11px;
+    padding: 4px 8px;
+    height: 44px;
+  }
+  .combat-player .combat-hud .confirmed {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 2px 6px;
+    height: 44px;
+  }
+  .combat-player .combat-hud .confirmed strong {
+    font-size: 11px;
+  }
+  .combat-player .crew-tactics {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .combat-player .tactics-trigger {
+    font-size: 11px;
+  }
+}

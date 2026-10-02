@@ -10,7 +10,7 @@ export function chooseQuestion(s: MatchState) {
   s.quizQuestionId = null;
   if (
     !s.learningEnabled ||
-    s.depth === 5 ||
+    s.depth > 4 ||
     s.quizDepths.includes(s.depth) ||
     s.usedQuestions.length >= s.questionDeck.length ||
     s.crews.every((c) => c.status === "eliminated")

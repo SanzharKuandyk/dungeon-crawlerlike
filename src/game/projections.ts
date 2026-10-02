@@ -1,6 +1,7 @@
 import type { MatchState } from "../shared/game-types.js";
 import type { PublicRoomView, RoomView } from "../shared/view-types.js";
 import { legalActions } from "./action-options.js";
+import { campAvailable, reachableNodes } from "./expedition-map.js";
 import { activeQuestion } from "./learning.js";
 import { rivalryDoor } from "./rivalry.js";
 import { winningCamp, winningRoute } from "./voting.js";
@@ -60,6 +61,7 @@ export function projectRoom(
         })),
         classes: structuredClone(s.content.classes),
         offeredRooms: structuredClone(s.offeredRooms),
+        expeditionMap: structuredClone(s.expeditionMap ?? null),
         events: presenting ? structuredClone(s.events) : [],
         history: structuredClone(s.history.slice(-50)),
         before: presenting ? structuredClone(s.before) : null,
@@ -73,11 +75,14 @@ export function projectRoom(
         quizResults: locked ? structuredClone(s.quizResults) : [],
         participation: s.crews.map((c) => {
           const members = s.players.filter((p) => p.crewId === c.id);
-          const eligible = ["route", "camp"].includes(s.phase.kind)
-            ? members.filter((p) =>
-                s.heroes.some((h) => h.playerId === p.id && h.status === "alive"),
-              )
-            : members;
+          const eligible =
+            s.phase.kind === "camp" && !campAvailable(s, c)
+              ? []
+              : ["route", "camp"].includes(s.phase.kind)
+                ? members.filter((p) =>
+                    s.heroes.some((h) => h.playerId === p.id && h.status === "alive"),
+                  )
+                : members;
           return {
             crewId: c.id,
             total: eligible.length,
@@ -116,6 +121,8 @@ export function projectRoom(
     legalActions: hero && s.phase.kind === "combat" ? legalActions(s, hero) : [],
     selectedAction: s.actions[self.id] ?? null,
     winningRoute: self.crewId && s.status !== "lobby" ? winningRoute(s, self.crewId) : null,
+    reachableNodeIds: self.crewId ? reachableNodes(s, self.crewId).map((node) => node.id) : [],
+    canCamp: s.crews.some((crew) => crew.id === self.crewId && campAvailable(s, crew)),
     winningCamp: self.crewId ? winningCamp(s, self.crewId) : null,
     answerChoice: s.answers[self.id] ?? null,
     equipmentChoice: s.equipmentChoices[self.id] ?? null,

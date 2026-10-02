@@ -37,6 +37,10 @@
 <div
   class="app-shell"
   class:projector={route.screen === "board"}
+  class:battle-play={route.screen === "room" &&
+    room.view?.role === "player" &&
+    room.view.status !== "finished" &&
+    room.view.status !== "lobby"}
   style:--background={NEUTRALS.background}
   style:--surface={NEUTRALS.surface}
   style:--text={NEUTRALS.text}

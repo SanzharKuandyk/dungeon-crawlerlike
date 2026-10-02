@@ -62,6 +62,49 @@
   display: grid;
   gap: 10px;
 }
+.current-crew {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.current-crew header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.current-crew h2 {
+  overflow-wrap: anywhere;
+}
+.current-crew header > span:last-child {
+  color: var(--muted);
+}
+.current-crew ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.current-crew li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+.current-crew li > span {
+  color: var(--muted);
+}
+.current-crew > button {
+  justify-self: start;
+}
+.selected-class {
+  margin: 8px 0 12px;
+}
 .crew-option {
   display: flex;
   flex-wrap: wrap;

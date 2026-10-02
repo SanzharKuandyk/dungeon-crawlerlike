@@ -8,8 +8,23 @@
   let { view }: { view: RoomView } = $props();
   let nickname = $state(""),
     crewName = $state(""),
-    busy = $state(false);
+    busy = $state(false),
+    changingCrew = $state(false),
+    previousCrewId = $state<string | null>(null);
   let self = $derived(view.role === "player" ? view.self : null);
+  let ownCrew = $derived(view.crews.find((crew) => crew.id === self?.crewId));
+  let choosingCrew = $derived(!ownCrew || changingCrew);
+  let locked = $derived(
+    room.status !== "ready" || room.pending > 0 || (view.role === "player" && view.readOnly),
+  );
+  $effect(() => {
+    const crewId = self?.crewId ?? null;
+    if (crewId !== previousCrewId) {
+      previousCrewId = crewId;
+      changingCrew = false;
+      crewName = "";
+    }
+  });
   async function join() {
     busy = true;
     await joinPlayer(nickname);
@@ -18,7 +33,13 @@
 </script>
 <section class="lobby">
   <p class="eyebrow">Room {view.code}</p>
-  <h1>{self ? "Choose your crew" : "Join the expedition"}</h1>
+  <h1>
+    {!self
+      ? "Join the expedition"
+      : choosingCrew
+        ? "Choose your crew"
+        : `Your crew: ${ownCrew?.name}`}
+  </h1>
   {#if !self}
     {#if view.status !== "lobby"}
       <p>This match has started. Reconnect using your original browser.</p>
@@ -41,47 +62,83 @@
       </form>
     {/if}
   {:else}
-    <p>{self.name} · Crews of 1–4</p>
-    {#if self.crewId}
-      <div class="banner">
-        You joined {view.crews.find((c) => c.id === self?.crewId)?.name}. Ready for launch.
-      </div>
-    {/if}
-    {#if self.crewId && view.role === "player" && room.controller}
-      <ClassPicker
-        {view}
-        controller={room.controller}
-        locked={room.status !== "ready" || room.pending > 0}
-      />
-    {/if}
-    <div class="lobby-crews">
-      {#each view.crews as crew}
-        {@const members = view.players.filter((p) => p.crewId === crew.id)}
+    <p>Playing as <strong>{self.name}</strong></p>
+    {#if ownCrew}
+      <section
+        class="current-crew"
+        style:--team={teamColor(ownCrew.colorId).hex}
+        aria-label="Your crew"
+      >
+        <header>
+          <span class="team-badge">{ownCrew.symbol}</span>
+          <h2>{ownCrew.name}</h2>
+          <span>{ownCrew.playerIds.length}/4 players</span>
+        </header>
+        <ul>
+          {#each view.players.filter((p) => p.crewId === ownCrew.id) as member (member.id)}
+            <li>
+              <strong>{member.name}{member.id === self.id ? " (you)" : ""}</strong>
+              <span>{view.classes.find((c) => c.id === member.classId)?.name}</span>
+            </li>
+          {/each}
+        </ul>
         <button
           type="button"
-          class="crew-option"
-          style:--team={teamColor(crew.colorId).hex}
-          disabled={members.length >= 4 || room.status !== "ready"}
-          onclick={() => void joinCrew(crew.id)}
+          class="quiet"
+          disabled={locked}
+          onclick={() => (changingCrew = !changingCrew)}
         >
-          <span class="team-badge">{crew.symbol}</span><strong>{crew.name}</strong
-          ><small>{members.length}/4 · {members.map((p) => p.name).join(", ")}</small>
+          {changingCrew ? "Keep current crew" : "Change crew"}
         </button>
-      {/each}
-    </div>
-    <form
-      onsubmit={(e) => {
-        e.preventDefault();
-        void createCrew(crewName);
-      }}
-    >
-      <label for="crew-name">Or create a crew</label>
-      <div class="inline">
-        <input id="crew-name" bind:value={crewName} maxlength="24" required>
-        <button type="submit" disabled={!crewName.trim() || room.status !== "ready"}>
-          Create crew
-        </button>
+      </section>
+    {/if}
+    {#if !choosingCrew}
+      <p class="banner" role="status">
+        Waiting for the teacher to start. You can choose your character below.
+      </p>
+      {#if view.role === "player" && room.controller}
+        <ClassPicker {view} controller={room.controller} {locked} />
+      {/if}
+    {:else}
+      <p>
+        {ownCrew
+          ? "Choose another crew or create a new one. You stay in your current crew until you switch."
+          : "Join a crew below, or create one for your group. Up to 4 players per crew."}
+      </p>
+      <div class="lobby-crews">
+        {#each view.crews as crew}
+          {@const members = view.players.filter((p) => p.crewId === crew.id)}
+          <button
+            type="button"
+            class="crew-option"
+            style:--team={teamColor(crew.colorId).hex}
+            disabled={members.length >= 4 || locked || crew.id === self.crewId}
+            onclick={() => void joinCrew(crew.id)}
+          >
+            <span class="team-badge">{crew.symbol}</span><strong>{crew.name}</strong
+            ><small>{members.length}/4 · {members.map((p) => p.name).join(", ")}</small>
+            <small
+              >{crew.id === self.crewId
+                ? "Your current crew"
+                : members.length >= 4
+                  ? "Full"
+                  : `${4 - members.length} places available`}</small
+            >
+          </button>
+        {/each}
       </div>
-    </form>
+      <form
+        onsubmit={(e) => {
+          e.preventDefault();
+          void createCrew(crewName);
+        }}
+      >
+        <label for="crew-name">Or create a crew</label>
+        <div class="inline">
+          <input id="crew-name" bind:value={crewName} maxlength="24" required>
+          <button type="submit" disabled={!crewName.trim() || locked}>Create crew</button>
+        </div>
+      </form>
+    {/if}
   {/if}
 </section>

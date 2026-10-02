@@ -6,8 +6,11 @@ import { encounterFor, fighting } from "./routes.js";
 export function enemyIntent(e: RoomEncounter, h: Hero, depth: number, turn: number): EnemyIntent {
   const intact = e.weakHp > 0;
   const extra = depth >= 4 && turn === 4 ? h.power : 0;
+  const chapterDamage =
+    Math.floor(((e.chapter ?? 1) - 1) / 3) * Math.max(1, Math.floor(h.power / 3));
   const damage =
     h.power +
+    chapterDamage +
     extra +
     (e.definition.family === "sentinel" && intact && turn % 2 === 0 ? h.power : 0);
   const lootDamage = e.definition.family === "devourer" && intact ? h.power : 0;

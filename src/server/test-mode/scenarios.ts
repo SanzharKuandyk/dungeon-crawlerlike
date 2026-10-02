@@ -7,6 +7,9 @@ import { enter } from "../room-clock.js";
 import type { StoredRoom } from "../room-types.js";
 export function applyScenario(room: StoredRoom, scenario: TestScenario, now: number) {
   if (scenario === "fresh") return;
+  // These fixtures intentionally retain the original five-depth encounters.
+  delete room.state.expeditionMap;
+
   startMatch(room.state);
   if (scenario === "rivalry") {
     room.state.depth = 2;

@@ -88,6 +88,12 @@ export function createClientSession(options: SessionOptions) {
       if (!result.ok) {
         clearTimeout(syncTimer);
         authenticated = false;
+        if (result.code === "UNAUTHORIZED" && options.role === "player" && options.token) {
+          forgetPlayer();
+          notifyError("Your previous player session ended. Join the room again.");
+          sync();
+          return;
+        }
         options.onStatus("invalid");
         notifyError(result.message, result.code);
         return;
@@ -126,6 +132,23 @@ export function createClientSession(options: SessionOptions) {
     if (!disposed) options.onStatus("reconnecting");
   });
   socket.on("room:snapshot", accept);
+  function forgetPlayer() {
+    options.token = undefined;
+    localStorage.removeItem(`siege-session:${options.code}:${options.role}`);
+    for (const request of pending.values())
+      request.finish({
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "The teacher removed this player.",
+      });
+    uncertain.clear();
+    savePending();
+  }
+  socket.on("session:removed", () => {
+    forgetPlayer();
+    notifyError("The teacher removed you from the lobby. You can join again.");
+    sync();
+  });
   socket.on("session:error", (error) => notifyError(error.message, error.code));
   function foreground() {
     if (document.visibilityState === "visible") sync();

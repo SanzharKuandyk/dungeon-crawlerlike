@@ -37,18 +37,11 @@ export function drawHeroes(
   for (const [i, h] of heroes.entries()) {
     const row = rivalry ? heroes.filter((v) => v.crewId === h.crewId) : heroes;
     const rowIndex = rivalry ? row.findIndex((v) => v.id === h.id) : i;
-    const gap = Math.min(190, 1050 / Math.max(1, row.length));
-    drawHero(
-      scene,
-      layer,
-      h,
-      arena,
-      view,
-      600 + (rowIndex - (row.length - 1) / 2) * gap,
-      rivalry && h.crewId === crews[0] ? 235 : 490,
-      actor === h.id,
-      own === h.playerId,
-    );
+    const columns = Math.min(row.length, rivalry ? 2 : roomId ? (row.length > 4 ? 3 : 2) : 4);
+    const center = rivalry ? (h.crewId === (crewId ?? crews[1]) ? 880 : 280) : roomId ? 820 : 600;
+    const x = center + ((rowIndex % columns) - (columns - 1) / 2) * 180;
+    const y = row.length > columns ? 205 + Math.floor(rowIndex / columns) * 195 : 305;
+    drawHero(scene, layer, h, arena, view, x, y, actor === h.id, own === h.playerId);
   }
   if (!count)
     layer.add(

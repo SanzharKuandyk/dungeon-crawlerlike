@@ -1,6 +1,7 @@
 import type { DungeonContent } from "../shared/content-types.js";
 import type { MatchState } from "../shared/game-types.js";
 import { createHeroes } from "./create-heroes.js";
+import { createExpeditionMap } from "./expedition-map.js";
 import { shuffled } from "./random.js";
 import { offerRooms } from "./routes.js";
 export function createMatch(
@@ -14,6 +15,7 @@ export function createMatch(
     code,
     rulesVersion: "dungeon-v1",
     expeditionFeatures: "rivalries-v1",
+    expeditionMap: createExpeditionMap(content, seed),
     seed,
     revision: 0,
     status: "lobby",
@@ -61,6 +63,13 @@ export function startMatch(s: MatchState) {
   if (s.status !== "lobby" || !s.crews.length || s.players.some((p) => !p.crewId))
     throw new Error("Every player needs a crew before starting.");
   createHeroes(s);
+
+  if (s.expeditionMap) {
+    for (const crew of s.crews) {
+      crew.mapPosition = { chapter: 1, nodeId: null, trail: [] };
+    }
+  }
+
   s.status = "running";
   offerRooms(s);
 }

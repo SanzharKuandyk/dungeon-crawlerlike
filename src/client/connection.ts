@@ -1,4 +1,4 @@
-import type { HostInput } from "../shared/protocol.js";
+import type { HostInput, RosterChange } from "../shared/protocol.js";
 import { navigate } from "./navigation.js";
 import { notifyError } from "./notify.js";
 import { playerController } from "./player-controller.js";
@@ -94,6 +94,8 @@ export const createCrew = (name: string) =>
   player?.command((env, ack) => player?.socket.emit("crew:create", { ...env, name }, ack));
 export const joinCrew = (crewId: string) =>
   player?.command((env, ack) => player?.socket.emit("crew:join", { ...env, crewId }, ack));
+export const changeRoster = (change: RosterChange) =>
+  player?.command((env, ack) => player?.socket.emit("host:roster", { ...env, ...change }, ack));
 export function hostControl(
   action: HostInput["action"],
   extra: Pick<HostInput, "enabled" | "speed"> = {},

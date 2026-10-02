@@ -152,16 +152,19 @@ export function createTestController() {
       submitted.add(key);
       let task: Promise<boolean> | undefined;
       if (v.phase.kind === "route" && v.hero?.status === "alive") {
+        const offered = v.offeredRooms.filter(
+          (room) => !v.expeditionMap || v.reachableNodeIds.includes(room.id),
+        );
         const index = state.actors
           .filter((x, i, all) => all.findIndex((y) => y.crewId === x.crewId) === i)
           .findIndex((x) => x.crewId === a.crewId);
         task = c.route(
-          v.offeredRooms.find((r) => r.risk === ["low", "medium", "high", "low"][index])?.id ??
-            v.offeredRooms[0].id,
+          offered.find((r) => r.risk === ["low", "medium", "high", "low"][index])?.id ??
+            offered[0].id,
         );
       }
       if (v.phase.kind === "combat") task = c.action(botAction(v));
-      if (v.phase.kind === "camp" && v.hero?.status === "alive") {
+      if (v.phase.kind === "camp" && v.canCamp && v.hero?.status === "alive") {
         const crew = v.crews.find((x) => x.id === a.crewId);
         const wounded = v.heroes
           .filter((h) => h.crewId === a.crewId && h.status === "alive")
