@@ -5,7 +5,8 @@ export function botAction(view: PlayerRoomView): HeroAction {
   const hero = view.hero;
   if (!hero) return { kind: "observe" };
   const choose = (kind: HeroAction["kind"]) => view.legalActions.find((a) => a.kind === kind);
-  if (!choose("attack")) return choose("ward") ?? { kind: "observe" };
+  const duel = choose("duel-attack");
+  if (!choose("attack") && !duel) return choose("ward") ?? { kind: "observe" };
   if (hero.stress >= 4) return { kind: "brace" };
   const heal = view.legalActions.find((a) => {
     if (a.kind !== "mend") return false;
@@ -13,6 +14,13 @@ export function botAction(view: PlayerRoomView): HeroAction {
     return target && target.hp <= target.power * 2;
   });
   if (heal) return heal;
+  if (duel) {
+    if (hero.classId === "wanderer") return choose("duel-skirmish") ?? duel;
+    if (hero.classId === "scavenger") return choose("duel-pilfer") ?? duel;
+    if (hero.classId === "exorcist" && hero.hp <= hero.power * 2)
+      return choose("duel-channel") ?? duel;
+    return duel;
+  }
   const room = view.encounters.find(
     (e) => e.crewIds.includes(hero.crewId) && e.status === "active",
   );

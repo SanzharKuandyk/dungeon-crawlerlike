@@ -13,6 +13,7 @@ export function createMatch(
     id,
     code,
     rulesVersion: "dungeon-v1",
+    expeditionFeatures: "rivalries-v1",
     seed,
     revision: 0,
     status: "lobby",

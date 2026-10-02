@@ -1,5 +1,7 @@
 import { expect, it } from "vitest";
 import { assertInvariants } from "../../src/game/invariants.js";
+import { resolveCombat } from "../../src/game/resolve-combat.js";
+import { offerRooms, resolveRoutes } from "../../src/game/routes.js";
 import { cloneRoom } from "../../src/server/clone-room.js";
 import { hostControl } from "../../src/server/handlers/host.js";
 import { advancePhase, setDeadline } from "../../src/server/room-clock.js";
@@ -80,4 +82,40 @@ it("concurrent deadline ticks close a phase once inside the queue", async () => 
   expect(s?.heroes[0].hp).toBe(36);
   expect(s?.crews[0].carriedTreasure).toBe(2);
   expect(s?.resolvedPhaseIds.filter((id) => id === state.phaseId)).toHaveLength(1);
+});
+
+it("rivalry results and pending mastery survive a paused restart without replaying rewards", async () => {
+  const s = fixture(2);
+  s.depth = 2;
+  s.seed = 1;
+  offerRooms(s);
+  s.phaseId++;
+  const high = s.offeredRooms.find((r) => r.risk === "high");
+  if (!high) throw new Error("Missing door");
+  for (const p of s.players) s.routeVotes[p.id] = high.id;
+  resolveRoutes(s);
+  s.phaseId++;
+  s.heroes[1].hp = 12;
+  s.actions[s.heroes[0].playerId] = { kind: "duel-attack", targetHeroId: s.heroes[1].id };
+  s.actions[s.heroes[1].playerId] = { kind: "loot" };
+  const room = emptyRoom(resolveCombat(s).state);
+  room.state.phase = { kind: "combat-reveal" };
+  room.state.phaseId++;
+  setDeadline(room, 0);
+  const memory = memoryStorage();
+  await memory.storage.save(room);
+  const manager = createRoomManager(memory.storage, s.content, () => 1000);
+  await manager.restore();
+  const restored = manager.rooms.get(s.code);
+  if (!restored) throw new Error("Missing room");
+  expect(restored.state.status).toBe("paused");
+  expect(restored.state.encounters[0].rivalry?.winnerCrewId).toBe(s.crews[0].id);
+  expect(restored.state.heroes[0].mastery).toEqual({ rank: 1, activeFromTurn: 2 });
+  expect(restored.state.crews[0].carriedTreasure).toBe(12);
+  const env = { requestId: "resume-rivalry", matchId: s.id, phaseId: restored.state.phaseId };
+  hostControl(restored, { ...env, action: "resume" }, 1000);
+  advancePhase(restored, 1000);
+  expect(restored.state.crews[0].carriedTreasure).toBe(12);
+  expect(restored.state.heroes[1].status).toBe("dead");
+  expect(restored.state.resolvedPhaseIds.filter((id) => id === s.phaseId)).toHaveLength(1);
 });

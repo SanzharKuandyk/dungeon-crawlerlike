@@ -13,6 +13,11 @@ export const actionSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("pilfer") }).strict(),
   z.object({ kind: z.literal("skirmish"), part }).strict(),
   z.object({ kind: z.literal("channel"), part }).strict(),
+  z.object({ kind: z.literal("duel-attack"), targetHeroId: target }).strict(),
+  z.object({ kind: z.literal("duel-hex"), targetHeroId: target }).strict(),
+  z.object({ kind: z.literal("duel-pilfer"), targetHeroId: target }).strict(),
+  z.object({ kind: z.literal("duel-skirmish"), targetHeroId: target }).strict(),
+  z.object({ kind: z.literal("duel-channel"), targetHeroId: target }).strict(),
   z.object({ kind: z.literal("ward"), targetHeroId: target }).strict(),
   z.object({ kind: z.literal("observe") }).strict(),
 ]);
@@ -68,6 +73,7 @@ export const scenarioSchema = z.enum([
   "critical",
   "question",
   "final",
+  "rivalry",
 ]);
 export const bootstrapSchema = z.object({
   hostSecret: secretSchema,

@@ -25,6 +25,7 @@ test("all ten characters have independent lobby choices and combat controls", as
   await page.getByRole("button", { name: "View Crew 1", exact: true }).click();
   const canvas = await page.locator("canvas").elementHandle();
   if (!canvas) throw new Error("Missing dungeon scene");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   for (let i = 0; i < 10; i++) {
     await page.locator(".team-switcher button").nth(i).click();
     await expect(page.locator(".selected-identity small")).toContainText("ready");
@@ -73,6 +74,7 @@ test("one Start automatically finishes a five-depth expedition with a persistent
   await page.getByRole("button", { name: "View Crew 1", exact: true }).click();
   const canvas = await page.locator("canvas").elementHandle();
   if (!canvas) throw new Error("Missing arena");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   let questionSeen = false;
   for (let i = 0; i < 720; i++) {
     if (await page.locator(".phone-panel .results").count()) break;

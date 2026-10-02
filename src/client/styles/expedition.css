@@ -32,7 +32,9 @@
   border: 0;
   padding: 0;
   min-height: 44px;
-  font-size: 14px;
+  font-size: 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   text-align: left;
   color: var(--team);
   background: transparent;
@@ -47,10 +49,10 @@
 .crew-battle {
   position: relative;
   min-height: 215px;
-  display: flex;
-  align-items: flex-end;
-  gap: 15px;
-  padding: 15px 12px 14px;
+  display: grid;
+  align-content: end;
+  gap: 12px;
+  padding: 34px 12px 14px;
   isolation: isolate;
 }
 .battle-backdrop {
@@ -62,11 +64,10 @@
   z-index: -1;
 }
 .crew-party {
-  display: flex;
-  flex: 1;
-  justify-content: space-evenly;
-  align-items: flex-end;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(var(--party-size, 4), minmax(0, 1fr));
+  align-items: end;
+  gap: 8px;
   min-width: 0;
 }
 .party-character {
@@ -74,26 +75,25 @@
   justify-items: center;
   gap: 3px;
   min-width: 0;
-  max-width: 90px;
-  flex: 1;
 }
 .hero-model {
   width: 100%;
   height: 112px;
+  max-width: 110px;
   filter: drop-shadow(0 4px 1px #18181b18);
 }
 .hero-model.fallen {
   opacity: 0.3;
 }
 .party-character strong {
-  font-size: 10px;
+  font-size: 12px;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .party-character span {
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 .party-character meter {
@@ -102,7 +102,7 @@
 }
 .party-character .party-stress {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
 }
 .party-character.acting {
   outline: 2px solid var(--team);
@@ -111,21 +111,29 @@
 }
 .party-enemy {
   display: grid;
-  justify-items: center;
-  gap: 4px;
-  width: 90px;
-  flex-shrink: 0;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
 }
 .party-enemy img {
-  width: 90px;
-  height: 116px;
+  width: 48px;
+  height: 56px;
   object-fit: contain;
 }
 .party-enemy span {
-  font-size: 10px;
+  font-size: 12px;
+}
+.enemy-vitals {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
 }
 .party-enemy meter {
-  width: 90%;
+  width: 100%;
   height: 6px;
 }
 .crew-stage footer {
@@ -144,7 +152,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  margin: 22px 0;
+  margin: 16px 0;
 }
 .expedition-heading h1 {
   font-size: clamp(20px, 2vw, 27px);
@@ -203,15 +211,22 @@
   margin-top: 16px;
 }
 .encounter-detail {
-  max-height: 0;
-  overflow: hidden;
-  visibility: hidden;
   margin: 0;
+  padding: 0;
+  border: 0;
 }
-.encounter-detail.open {
-  visibility: visible;
-  max-height: 1000px;
-  margin: 22px 0;
+.encounter-detail[open] {
+  width: min(calc(100vw - 32px), 1100px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.encounter-detail::backdrop {
+  background: #18181b66;
 }
 .encounter-detail header {
   display: flex;
@@ -239,10 +254,12 @@
   max-height: 140px;
 }
 .empty-crews {
+  grid-column: 1 / -1;
   min-height: 230px;
   display: grid;
   place-content: center;
   gap: 12px;
+  padding: 24px;
   text-align: center;
   border: 1px dashed var(--border);
   border-radius: 12px;
@@ -268,10 +285,10 @@
   padding: 12px 8px;
 }
 .test-layout .party-enemy {
-  width: 70px;
+  width: 100%;
 }
 .test-layout .party-enemy img {
-  width: 70px;
+  width: 48px;
 }
 @media (max-width: 760px) {
   .crew-grid {
@@ -297,13 +314,13 @@
     height: 100px;
   }
   .party-character strong {
-    font-size: 9px;
+    font-size: 11px;
   }
   .party-enemy {
-    width: 75px;
+    width: 100%;
   }
   .party-enemy img {
-    width: 75px;
+    width: 48px;
   }
 }
 
@@ -311,6 +328,214 @@
   position: absolute;
   left: 12px;
   top: 9px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
+}
+
+.board-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.board-tabs button {
+  min-width: 100px;
+}
+.board-panel[hidden],
+.board-log[hidden] {
+  display: none;
+}
+.crew-pages {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 12px;
+  align-items: center;
+}
+.crew-pages .crew-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.crew-pages.single-page {
+  grid-template-columns: minmax(0, 1fr);
+}
+.page-arrow {
+  width: 44px;
+  min-height: 64px;
+  padding: 0;
+  font-size: 32px;
+}
+.page-count {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  margin-top: 12px;
+}
+.board-narration {
+  min-height: 24px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.board-log .event-log {
+  margin-top: 0;
+  border-top: 0;
+}
+.board-log .event-log ol {
+  max-height: min(60vh, 600px);
+}
+.dungeon-progress {
+  display: flex;
+  padding: 0;
+  margin: 0 0 16px;
+  list-style: none;
+  gap: 8px;
+}
+.dungeon-progress li {
+  display: grid;
+  flex: 1;
+  justify-items: center;
+  gap: 4px;
+  position: relative;
+  min-width: 0;
+}
+.dungeon-progress li::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  right: 50%;
+  width: calc(100% + 8px);
+  height: 2px;
+  background: var(--border);
+}
+.dungeon-progress li:first-child::before {
+  display: none;
+}
+.dungeon-progress li > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  z-index: 1;
+  font-size: 12px;
+}
+.dungeon-progress .current > span,
+.dungeon-progress .complete > span {
+  background: var(--text);
+  color: var(--surface);
+  border-color: var(--text);
+}
+.dungeon-progress .current small {
+  color: var(--text);
+  font-weight: 700;
+}
+.phone-panel .dungeon-progress small {
+  font-size: 9px;
+}
+main:has(.host-screen),
+main:has(> .expedition-board) {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.expedition-board .expedition-heading {
+  margin: 12px 0;
+}
+.expedition-board .dungeon-progress li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.expedition-board .dungeon-progress small {
+  background: var(--background);
+  padding: 0 4px;
+  z-index: 1;
+}
+.expedition-board .crew-battle {
+  padding-top: 12px;
+}
+.expedition-board .hero-model {
+  height: 96px;
+}
+.expedition-board .battle-intent {
+  display: none;
+}
+.mastery-label {
+  color: var(--team, var(--text));
+  font-weight: 700;
+}
+.rival-party {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  min-width: 0;
+}
+.rival-party strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rival-party > span:last-child {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.door-art {
+  width: 100%;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 40px 40px 4px 4px;
+}
+.route-options .route-door {
+  padding: 12px;
+}
+.route-door.crew-choice {
+  border: 2px solid var(--team);
+  padding: 11px;
+}
+.door-heading {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.crew-choice-label {
+  color: var(--team);
+  font-size: 11px;
+  font-weight: 700;
+}
+.crew-votes .vote-list {
+  padding-top: 10px;
+}
+.rivalry-warning {
+  font-size: 12px;
+  line-height: 1.4;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 760px) {
+  .crew-pages {
+    gap: 8px;
+  }
+  .crew-pages .crew-grid {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    grid-template-columns: 1fr;
+  }
+  .crew-pages .page-arrow {
+    grid-row: 2;
+    min-height: 44px;
+  }
+  .crew-pages .page-arrow:last-child {
+    grid-column: 3;
+  }
+  .crew-party {
+    gap: 5px;
+  }
+  .encounter-detail[open] {
+    padding: 12px;
+  }
 }

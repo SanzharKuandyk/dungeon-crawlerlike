@@ -5,6 +5,7 @@
   import ActionPanel from "../components/ActionPanel.svelte";
   import CampPicker from "../components/CampPicker.svelte";
   import CrewStage from "../components/CrewStage.svelte";
+  import DungeonProgress from "../components/DungeonProgress.svelte";
   import EnemyIntent from "../components/EnemyIntent.svelte";
   import HeroCard from "../components/HeroCard.svelte";
   import QuizCard from "../components/QuizCard.svelte";
@@ -68,9 +69,8 @@
     <span>{crew?.carriedTreasure ?? 0} carried</span
     ><strong>{crew?.securedTreasure ?? 0} secured</strong>
   </div>
-  <p class="phase-instruction">
-    Depth {view.depth}/5 · Turn {view.turn}/4 · {phaseInstruction(view)}
-  </p>
+  <p class="phase-instruction">Turn {view.turn}/4 · {phaseInstruction(view)}</p>
+  <DungeonProgress depth={view.depth} finished={view.status === "finished"} />
   {#if view.readOnly}
     <p class="banner">A newer tab controls this character.</p>
   {/if}
@@ -89,7 +89,14 @@
     <CampPicker {view} {controller} {locked} />
   {:else if view.phase.kind === "combat"}
     {#if encounter?.status === "active" && hero?.status === "alive"}
-      <EnemyIntent {encounter} {hero} depth={view.depth} turn={view.turn} />
+      {#if encounter.rivalry}
+        <section class="enemy-intent rivalry-intent">
+          <strong>Lethal rivalry</strong>
+          <p>Target a rival hero. Both crews act together; fallen heroes become spirits.</p>
+        </section>
+      {:else}
+        <EnemyIntent {encounter} {hero} depth={view.depth} turn={view.turn} />
+      {/if}
       <ActionPanel {view} {controller} {locked} />
     {:else}
       <SpiritPanel {view} {controller} {locked} />

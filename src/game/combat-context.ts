@@ -6,6 +6,7 @@ export type CombatContext = {
   barriers: Map<string, Barrier[]>;
   aid: Map<string, number>;
   attacks: Attack[];
+  duelAttacks: { actor: string; roomId: string; targetHeroId: string; amount: number }[];
   claims: Map<string, number>;
   meaningful: Set<string>;
   fightingAtLock: Set<string>;
@@ -20,6 +21,7 @@ export function combatContext(
     barriers: new Map(),
     aid: new Map(),
     attacks: [],
+    duelAttacks: [],
     claims: new Map(),
     meaningful: new Set(),
   };

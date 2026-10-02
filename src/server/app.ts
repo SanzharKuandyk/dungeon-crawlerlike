@@ -22,6 +22,21 @@ export async function createGameServer(
   await manager.restore();
   const app = express();
   app.use(express.json({ limit: "16kb" }));
+  // Private paths must also be denied when the file does not exist.
+  app.use((request, response, next) => {
+    let path: string;
+    try {
+      path = decodeURIComponent(request.path).replaceAll("\\", "/");
+    } catch {
+      response.sendStatus(400);
+      return;
+    }
+    if (/^\/(?:content|data|\.git|\.codex)(?:\/|$)|^\/src\/server(?:\/|$)/i.test(path)) {
+      response.sendStatus(403);
+      return;
+    }
+    next();
+  });
   const http = createServer(app);
   const io = new Server<ClientEvents, ServerEvents>(http, { maxHttpBufferSize: 16384 });
   attachHttp(app, manager, config);

@@ -22,7 +22,7 @@ export function enemyIntent(e: RoomEncounter, h: Hero, depth: number, turn: numb
 export function applyEnemyActions(s: MatchState, ctx: CombatContext) {
   for (const h of s.heroes.filter((h) => fighting(s, h))) {
     const e = encounterFor(s, h);
-    if (!e || e.bodyHp === 0) continue;
+    if (!e || e.rivalry || e.bodyHp === 0) continue;
     const intent = enemyIntent(e, h, s.depth, s.turn);
     const a = ctx.actions[h.playerId];
     const raw =

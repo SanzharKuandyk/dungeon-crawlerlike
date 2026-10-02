@@ -1,6 +1,7 @@
 import type { Hero, MatchState } from "../shared/game-types.js";
 import { beginEvents, crewEvent, enemyEvent, finalizeEvents, lockResolution } from "./events.js";
 import { shuffled } from "./random.js";
+import { rivalryDoor } from "./rivalry.js";
 import { winningRoute } from "./voting.js";
 export function offerRooms(s: MatchState) {
   s.offeredRooms = shuffled(
@@ -49,7 +50,10 @@ export function resolveRoutes(s: MatchState) {
       ]),
     );
     const spawnPower = Object.values(enteringPower).reduce((n, v) => n + v, 0);
-    const bodyHp = spawnPower * { sentinel: 4, seer: 5, devourer: 6 }[definition.family];
+    const rivalry = crews.length === 2 && rivalryDoor(s, definition);
+    const bodyHp = rivalry
+      ? 0
+      : spawnPower * { sentinel: 4, seer: 5, devourer: 6 }[definition.family];
     return [
       {
         id: definition.id,
@@ -59,15 +63,27 @@ export function resolveRoutes(s: MatchState) {
         spawnPower,
         bodyHp,
         maxBodyHp: bodyHp,
-        weakHp: spawnPower,
-        maxWeakHp: spawnPower,
+        weakHp: rivalry ? 0 : spawnPower,
+        maxWeakHp: rivalry ? 0 : spawnPower,
         status: "active" as const,
         contribution: {},
         purseAwarded: false,
+        ...(rivalry ? { rivalry: { winnerCrewId: null } } : {}),
       },
     ];
   });
   for (const e of s.encounters)
-    enemyEvent(s, e, `${e.definition.name}: the ${e.definition.family} awakens.`, 0.5, "arrival");
+    enemyEvent(
+      s,
+      e,
+      e.rivalry
+        ? `${e.definition.name}: ${s.crews
+            .filter((c) => e.crewIds.includes(c.id))
+            .map((c) => c.name)
+            .join(" vs ")}. A lethal rivalry begins.`
+        : `${e.definition.name}: the ${e.definition.family} awakens.`,
+      0.5,
+      "arrival",
+    );
   finalizeEvents(s);
 }

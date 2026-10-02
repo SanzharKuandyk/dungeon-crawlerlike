@@ -1,6 +1,7 @@
 import type { MatchState } from "../shared/game-types.js";
 import type { CombatContext } from "./combat-context.js";
 import { enemyEvent, heroEvent, heroName, storyEvent } from "./events.js";
+import { masteryBonus } from "./mastery.js";
 import { encounterFor, fighting } from "./routes.js";
 import { priority } from "./voting.js";
 export function applyHeroActions(s: MatchState, ctx: CombatContext) {
@@ -9,6 +10,7 @@ export function applyHeroActions(s: MatchState, ctx: CombatContext) {
     const a = ctx.actions[h.playerId],
       e = encounterFor(s, h);
     if (!a || !e) continue;
+    const mastery = masteryBonus(h, s.globalTurn);
     const barrier = (id: string, amount: number) =>
       ctx.barriers.set(id, [...(ctx.barriers.get(id) ?? []), { source: h.id, amount }]);
     const heal = (id: string, amount: number) => {
@@ -32,7 +34,7 @@ export function applyHeroActions(s: MatchState, ctx: CombatContext) {
         actor: h.id,
         roomId: e.id,
         part,
-        amount: amount + (h.bargainDepth === s.depth ? h.power : 0),
+        amount: amount + mastery + (h.bargainDepth === s.depth ? h.power : 0),
       });
       ctx.meaningful.add(h.id);
       storyEvent(
@@ -44,12 +46,29 @@ export function applyHeroActions(s: MatchState, ctx: CombatContext) {
         e.id,
       );
     };
+    const duelStrike = (targetHeroId: string, amount: number) => {
+      ctx.duelAttacks.push({
+        actor: h.id,
+        roomId: e.id,
+        targetHeroId,
+        amount: amount + mastery + (h.bargainDepth === s.depth ? h.power : 0),
+      });
+      const target = s.heroes.find((v) => v.id === targetHeroId);
+      storyEvent(
+        s,
+        `${heroName(s, h)} strikes ${target ? heroName(s, target) : "a rival"}.`,
+        0.3,
+        "attack",
+        h.id,
+        e.id,
+      );
+    };
     switch (a.kind) {
       case "attack":
         strike(2 * h.power, a.part);
         break;
       case "brace":
-        barrier(h.id, 2 * h.power);
+        barrier(h.id, 2 * h.power + mastery);
         h.stress = Math.max(0, h.stress - 1);
         heroEvent(s, h, `${heroName(s, h)} braces.`, 0.15, "brace");
         break;
@@ -58,7 +77,7 @@ export function applyHeroActions(s: MatchState, ctx: CombatContext) {
         storyEvent(s, `${heroName(s, h)} reaches for treasure.`, 0.3, "claim", h.id, e.id);
         break;
       case "protect":
-        barrier(a.targetHeroId, 3 * h.power);
+        barrier(a.targetHeroId, 3 * h.power + mastery);
         storyEvent(
           s,
           `${heroName(s, h)} protects ${heroName(s, s.heroes.find((v) => v.id === a.targetHeroId) ?? h)}.`,
@@ -69,7 +88,7 @@ export function applyHeroActions(s: MatchState, ctx: CombatContext) {
         );
         break;
       case "mend":
-        heal(a.targetHeroId, 2 * h.power);
+        heal(a.targetHeroId, 2 * h.power + mastery);
         break;
       case "hex":
         strike(3 * h.power, a.part);
@@ -82,13 +101,37 @@ export function applyHeroActions(s: MatchState, ctx: CombatContext) {
         break;
       case "skirmish":
         strike(2 * h.power, a.part);
-        barrier(h.id, h.power);
+        barrier(h.id, h.power + mastery);
         h.stress++;
         heroEvent(s, h, `${heroName(s, h)} skirmishes and gains 1 stress.`, 0.15, "skirmish");
         break;
       case "channel":
         strike(h.power, a.part);
-        heal(h.id, h.power);
+        heal(h.id, h.power + mastery);
+        h.stress = Math.max(0, h.stress - 1);
+        heroEvent(s, h, `${heroName(s, h)} channels and calms down.`, 0.15, "channel");
+        break;
+      case "duel-attack":
+        duelStrike(a.targetHeroId, 2 * h.power);
+        break;
+      case "duel-hex":
+        duelStrike(a.targetHeroId, 3 * h.power);
+        h.stress += 2;
+        heroEvent(s, h, `${heroName(s, h)} gains 2 stress from Hex.`, 0.15, "hex");
+        break;
+      case "duel-pilfer":
+        duelStrike(a.targetHeroId, h.power);
+        ctx.claims.set(h.id, h.power);
+        break;
+      case "duel-skirmish":
+        duelStrike(a.targetHeroId, 2 * h.power);
+        barrier(h.id, h.power + mastery);
+        h.stress++;
+        heroEvent(s, h, `${heroName(s, h)} skirmishes and gains 1 stress.`, 0.15, "skirmish");
+        break;
+      case "duel-channel":
+        duelStrike(a.targetHeroId, h.power);
+        heal(h.id, h.power + mastery);
         h.stress = Math.max(0, h.stress - 1);
         heroEvent(s, h, `${heroName(s, h)} channels and calms down.`, 0.15, "channel");
         break;
@@ -120,7 +163,7 @@ export function applyAid(s: MatchState, ctx: CombatContext) {
   }
 }
 export function damageEnemies(s: MatchState, ctx: CombatContext) {
-  for (const e of s.encounters.filter((e) => e.status === "active")) {
+  for (const e of s.encounters.filter((e) => e.status === "active" && !e.rivalry)) {
     const attacks = ctx.attacks.filter((a) => a.roomId === e.id);
     const oldWeak = e.weakHp;
     const oldBody = e.bodyHp;

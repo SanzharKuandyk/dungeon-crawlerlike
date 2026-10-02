@@ -6,6 +6,7 @@ export default defineConfig({
   timeout: 90000,
   workers: 1,
   use: {
+    channel: process.env.HEIST_BROWSER_CHANNEL,
     baseURL: externalUrl ?? "http://127.0.0.1:3100",
     screenshot: "only-on-failure",
     trace: "retain-on-failure",

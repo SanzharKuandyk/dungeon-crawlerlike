@@ -7,39 +7,60 @@
     controller,
     locked,
   }: { view: PlayerRoomView; controller: PlayerController; locked: boolean } = $props();
+  let voters = $derived(
+    view.crewInputs.filter((p) =>
+      view.heroes.some((h) => h.playerId === p.playerId && h.status === "alive"),
+    ),
+  );
+  let votes = $derived(voters.filter((p) => p.route !== null));
+  let ownVote = $derived(voters.find((p) => p.playerId === view.self.id)?.route);
 </script>
 <section class="decision-card">
-  <h2>Choose your crew’s room</h2>
+  <h2>Choose a door</h2>
   <div class="route-options">
     {#each view.offeredRooms as destination}
       <button
         type="button"
-        class:chosen={view.crewInputs.find((p) => p.playerId === view.self.id)?.route ===
-          destination.id}
+        class="route-door"
+        class:chosen={ownVote === destination.id}
+        class:crew-choice={votes.length > 0 && view.winningRoute === destination.id}
+        aria-pressed={ownVote === destination.id}
         disabled={locked}
         onclick={() => void controller.route(destination.id)}
       >
-        <span class="risk-tag">{destination.risk} risk</span><strong>{destination.name}</strong
-        ><small>{destination.description}</small
+        <img class="door-art" src={`/assets/rooms/${destination.family}.svg`} alt="">
+        <span class="door-heading"
+          ><span class="risk-tag">{destination.risk} risk</span>
+          {#if votes.length > 0 && view.winningRoute === destination.id}
+            <span class="crew-choice-label">Crew choice</span>
+          {/if}</span
+        ><strong>{destination.name}</strong><small>{destination.description}</small
         ><small
-          >Treasure bundle: {view.depth + { low: 1, medium: 2, high: 3 }[destination.risk]}</small
+          >{view.depth + { low: 1, medium: 2, high: 3 }[destination.risk]}
+          treasure · {votes.filter((p) => p.route === destination.id).length} votes{ownVote ===
+          destination.id
+            ? " · Your vote ✓"
+            : ""}</small
         >
+        {#if view.rivalryRoomIds.includes(destination.id)}
+          <span class="rivalry-warning"
+            >Rivalry door · exactly two crews fight each other. Death is permanent.</span
+          >
+        {/if}
       </button>
     {/each}
   </div>
-  <p class="confirmed">
-    Crew choice: <strong>{view.offeredRooms.find((r) => r.id === view.winningRoute)?.name}</strong>
-  </p>
-  <ul class="vote-list">
-    {#each view.crewInputs.filter((p) =>
-      view.heroes.some((h) => h.playerId === p.playerId && h.status === "alive"),
-    ) as member}
-      <li>
-        <span>{member.name}</span
-        ><strong
-          >{view.offeredRooms.find((r) => r.id === member.route)?.name ?? "Not voted"}</strong
-        >
-      </li>
-    {/each}
-  </ul>
+  <details class="crew-votes">
+    <summary>Crew votes · {votes.length}/{voters.length}</summary>
+    <ul class="vote-list">
+      {#each voters as member}
+        <li>
+          <span>{member.name}</span
+          ><strong
+            >{view.offeredRooms.find((r) => r.id === member.route)?.name ?? "Not voted"}</strong
+          >
+        </li>
+      {/each}
+    </ul>
+  </details>
 </section>

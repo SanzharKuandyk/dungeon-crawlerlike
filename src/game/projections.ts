@@ -2,6 +2,7 @@ import type { MatchState } from "../shared/game-types.js";
 import type { PublicRoomView, RoomView } from "../shared/view-types.js";
 import { legalActions } from "./action-options.js";
 import { activeQuestion } from "./learning.js";
+import { rivalryDoor } from "./rivalry.js";
 import { winningCamp, winningRoute } from "./voting.js";
 export type ViewOptions = {
   deadline: number | null;
@@ -43,6 +44,8 @@ export function projectRoom(
         status: s.status,
         depth: s.depth,
         turn: s.turn,
+        globalTurn: s.globalTurn,
+        rivalryRoomIds: s.offeredRooms.filter((r) => rivalryDoor(s, r)).map((r) => r.id),
         phase: { ...s.phase },
         phaseId: s.phaseId,
         heroes: structuredClone(s.heroes),

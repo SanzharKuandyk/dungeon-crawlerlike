@@ -62,6 +62,13 @@ export function assertInvariants(s: MatchState) {
       fail("hero bounds");
     if ((h.status === "dead") !== (h.hp === 0)) fail("permanent death");
     if (h.equipment && ![1, 2].includes(h.equipment.charges)) fail("charges");
+    if (
+      h.mastery &&
+      (![1, 2].includes(h.mastery.rank) ||
+        !Number.isInteger(h.mastery.activeFromTurn) ||
+        h.mastery.activeFromTurn < 1)
+    )
+      fail("mastery");
   }
   for (const c of s.crews)
     if (
@@ -70,7 +77,14 @@ export function assertInvariants(s: MatchState) {
         !s.heroes.some((h) => h.crewId === c.id && h.status === "alive")
     )
       fail("crew life");
-  for (const e of s.encounters)
+  for (const e of s.encounters) {
+    if (
+      e.rivalry &&
+      (s.expeditionFeatures !== "rivalries-v1" ||
+        e.crewIds.length !== 2 ||
+        (e.rivalry.winnerCrewId !== null && !e.crewIds.includes(e.rivalry.winnerCrewId)))
+    )
+      fail("rivalry");
     if (
       e.bodyHp < 0 ||
       e.bodyHp > e.maxBodyHp ||
@@ -79,5 +93,6 @@ export function assertInvariants(s: MatchState) {
       e.spawnPower <= 0
     )
       fail("enemy bounds");
+  }
   if (s.history.some((e, i) => e.sequence !== i + 1)) fail("event sequence");
 }

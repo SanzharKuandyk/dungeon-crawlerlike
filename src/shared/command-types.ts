@@ -10,6 +10,11 @@ export type HeroAction =
   | { kind: "pilfer" }
   | { kind: "skirmish"; part: EnemyPart }
   | { kind: "channel"; part: EnemyPart }
+  | { kind: "duel-attack"; targetHeroId: string }
+  | { kind: "duel-hex"; targetHeroId: string }
+  | { kind: "duel-pilfer"; targetHeroId: string }
+  | { kind: "duel-skirmish"; targetHeroId: string }
+  | { kind: "duel-channel"; targetHeroId: string }
   | { kind: "ward"; targetHeroId: string }
   | { kind: "observe" };
 export type CampChoice = "secure" | "rest" | "bargain";

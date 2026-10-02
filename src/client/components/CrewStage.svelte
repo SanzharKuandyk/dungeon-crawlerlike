@@ -25,6 +25,11 @@
   let members = $derived(view.players.filter((p) => p.crewId === crew.id));
   let encounter = $derived(arena.encounters.find((e) => e.crewIds.includes(crew.id)));
   let fighting = $derived(crew.location.kind === "room" && encounter?.status === "active");
+  let rival = $derived(
+    encounter?.rivalry
+      ? arena.crews.find((c) => c.id !== crew.id && encounter?.crewIds.includes(c.id))
+      : null,
+  );
   let own = $derived(view.role === "player" && view.self.crewId === crew.id);
   let readiness = $derived(view.participation.find((p) => p.crewId === crew.id));
   let result = $derived(view.quizResults.find((r) => r.crewId === crew.id));
@@ -33,9 +38,11 @@
       ? "Preparing"
       : crew.status === "eliminated"
         ? "Fallen crew"
-        : fighting
-          ? (encounter?.definition.name ?? "In the dungeon")
-          : "At the campfire",
+        : fighting && rival
+          ? `Rivalry · vs ${rival.name}`
+          : fighting
+            ? (encounter?.definition.name ?? "In the dungeon")
+            : "At the campfire",
   );
 </script>
 <article class="crew-stage" class:selected={selected} class:own={own} style:--team={color}>
@@ -61,9 +68,9 @@
       src={`/assets/rooms/${fighting ? encounter?.definition.family : "camp"}.svg`}
       alt=""
     >
-    {#if fighting && encounter && heroes.some((h) => h.status === "alive")}
+    {#if fighting && encounter && !encounter.rivalry && heroes.some((h) => h.status === "alive")}
       <p class="battle-intent">
-        Next:
+        Intent:
         {enemyIntent(
           encounter,
           heroes.find((h) => h.status === "alive") ?? heroes[0],
@@ -72,7 +79,7 @@
         ).description}
       </p>
     {/if}
-    <div class="crew-party">
+    <div class="crew-party" style:--party-size={members.length}>
       {#each members as member}
         {@const hero = heroes.find((h) => h.playerId === member.id)}
         <div class="party-character" class:acting={actor === hero?.id}>
@@ -82,30 +89,46 @@
             name={member.name}
             fallen={hero?.status === "dead"}
           />
-          <strong>{member.name}</strong>
+          <strong title={member.name}>{member.name}</strong>
           {#if hero}
             <span>{hero.status === "dead" ? "Spirit" : `${hero.hp}/${hero.maxHp} HP`}</span>
             <meter aria-label={`${member.name} health`} value={hero.hp} max={hero.maxHp}></meter>
             <span class="party-stress">{hero.stress}/6 stress</span>
+            {#if hero.mastery}
+              <span class="mastery-label">{"★".repeat(hero.mastery.rank)}</span>
+            {/if}
           {:else}
             <span>{member.classId}</span>
           {/if}
         </div>
       {/each}
     </div>
-    {#if fighting && encounter}
+    {#if fighting && encounter && !encounter.rivalry}
       <div class="party-enemy">
         <img
           src={`/assets/enemies/${encounter.definition.family}.svg`}
           alt={encounter.definition.family}
         >
-        <span>{encounter.bodyHp}/{encounter.maxBodyHp} HP</span>
-        <meter
-          aria-label={`${crew.name} enemy health`}
-          value={encounter.bodyHp}
-          max={encounter.maxBodyHp}
-        ></meter>
-        <span>{encounter.weakHp > 0 ? `Weak point ${encounter.weakHp}` : "Weak point broken"}</span>
+        <div class="enemy-vitals">
+          <span>{encounter.bodyHp}/{encounter.maxBodyHp} HP</span>
+          <meter
+            aria-label={`${crew.name} enemy health`}
+            value={encounter.bodyHp}
+            max={encounter.maxBodyHp}
+          ></meter>
+          <span
+            >{encounter.weakHp > 0 ? `Weak point ${encounter.weakHp}` : "Weak point broken"}</span
+          >
+        </div>
+      </div>
+    {:else if fighting && rival}
+      <div class="rival-party">
+        <span class="team-badge" style:--team={teamColor(rival.colorId).hex}>{rival.symbol}</span
+        ><strong>vs {rival.name}</strong
+        ><span
+          >{arena.heroes.filter((h) => h.crewId === rival.id && h.status === "alive").length}
+          alive</span
+        >
       </div>
     {/if}
   </div>

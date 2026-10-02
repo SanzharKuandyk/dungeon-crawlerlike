@@ -15,7 +15,9 @@
   let mode = $state<HeroAction["kind"]>("attack"),
     target = $state(""),
     phase = $state(-1);
-  let skill = $derived(
+  let duel = $derived(view.legalActions.some((a) => a.kind === "duel-attack"));
+  let attack = $derived<HeroAction["kind"]>(duel ? "duel-attack" : "attack");
+  let classSkill = $derived(
     (
       {
         knight: "protect",
@@ -27,12 +29,17 @@
       } as const
     )[view.hero?.classId ?? "knight"],
   );
+  let skill = $derived<HeroAction["kind"]>(
+    duel && ["hex", "pilfer", "skirmish", "channel"].includes(classSkill)
+      ? (`duel-${classSkill}` as HeroAction["kind"])
+      : classSkill,
+  );
   let options = $derived(view.legalActions.filter((a) => a.kind === mode));
   let selected = $derived(options.find((a) => actionKey(a) === target) ?? options[0] ?? null);
   $effect(() => {
     if (phase !== view.phaseId) {
       phase = view.phaseId;
-      mode = "attack";
+      mode = attack;
       target = "";
     }
   });
@@ -40,7 +47,7 @@
 <section class="decision-card">
   <h2>Your action</h2>
   <div class="action-tabs">
-    {#each ["attack", "brace", "loot", skill] as kind}
+    {#each [attack, "brace", "loot", skill] as kind}
       <button
         type="button"
         class:chosen={mode === kind}
@@ -50,13 +57,13 @@
           target = "";
         }}
       >
-        {kind[0].toUpperCase() + kind.slice(1)}
+        {kind.replace("duel-", "")[0].toUpperCase() + kind.replace("duel-", "").slice(1)}
       </button>
     {/each}
   </div>
   <TargetPicker {options} {view} {selected} {locked} onselect={(key) => (target = key)} />
   <p class="action-effect">{selected ? actionLabel(selected, view) : "No valid targets."}</p>
-  {#if mode === "loot" || mode === "pilfer"}
+  {#if mode === "loot" || mode === "pilfer" || mode === "duel-pilfer"}
     <small>Claims compete with other crews. You collect only if you survive.</small>
   {/if}
   <button

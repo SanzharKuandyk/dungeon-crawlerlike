@@ -43,6 +43,7 @@ export type Hero = {
   equipment: Equipment | null;
   equipmentActiveFromTurn: number;
   bargainDepth: number | null;
+  mastery?: { rank: 1 | 2; activeFromTurn: number };
 };
 export type Crew = {
   id: string;
@@ -69,6 +70,7 @@ export type RoomEncounter = {
   status: "active" | "defeated" | "abandoned" | "timed-out";
   contribution: Record<string, number>;
   purseAwarded: boolean;
+  rivalry?: { winnerCrewId: string | null };
 };
 export type QuizResult = {
   crewId: string;
@@ -81,6 +83,7 @@ export type MatchState = ArenaState & {
   id: string;
   code: string;
   rulesVersion: "dungeon-v1";
+  expeditionFeatures?: "rivalries-v1";
   seed: number;
   revision: number;
   status: "lobby" | "running" | "paused" | "finished";

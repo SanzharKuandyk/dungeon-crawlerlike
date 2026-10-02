@@ -10,7 +10,14 @@
     arena,
     roomId,
     actor,
-  }: { view: RoomView; arena: ArenaState; roomId: string | null; actor: string | null } = $props();
+    crewId = null,
+  }: {
+    view: RoomView;
+    arena: ArenaState;
+    roomId: string | null;
+    actor: string | null;
+    crewId?: string | null;
+  } = $props();
   let parent: HTMLDivElement,
     renderer = $state<ReturnType<typeof createArena> | null>(null);
   onMount(() => {
@@ -23,7 +30,9 @@
       renderer?.game.destroy(true);
     };
   });
-  $effect(() => renderer?.scene.renderArena(view, arena, roomId, actor, preferences.reducedMotion));
+  $effect(() =>
+    renderer?.scene.renderArena(view, arena, roomId, actor, preferences.reducedMotion, crewId),
+  );
 </script>
 <div
   class="dungeon-arena"

@@ -10,6 +10,8 @@ export type PublicRoomView = ArenaState & {
   status: MatchState["status"];
   depth: number;
   turn: number;
+  globalTurn: number;
+  rivalryRoomIds: string[];
   phase: MatchState["phase"];
   phaseId: number;
   players: Pick<Player, "id" | "name" | "crewId" | "connected" | "classId">[];

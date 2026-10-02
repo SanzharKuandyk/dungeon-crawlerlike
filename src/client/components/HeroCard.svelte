@@ -14,6 +14,12 @@
   </div>
   <div>
     <strong>{name}{selected ? " · YOU" : ""}</strong><small>{crewName} · {hero.classId}</small>
+    {#if hero.mastery}
+      <small class="mastery-label"
+        >Mastery {hero.mastery.rank}/2 ·
+        {hero.mastery.rank === 2 ? "Veteran" : "Experienced"}</small
+      >
+    {/if}
     {#if hero.status === "alive"}
       <div class="hero-bars">
         <span>Health {hero.hp}/{hero.maxHp}</span

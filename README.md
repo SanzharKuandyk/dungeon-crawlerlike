@@ -4,14 +4,14 @@ A laptop-hosted competitive dungeon game. Each student controls one character on
 
 ## Launch
 
-Run from C:\Projects\lectures\salvage-heist with the pinned Node 24 runtime and npm dependencies:
+Run from C:\Projects\salvage-heist with the pinned Node 24 runtime and npm dependencies:
 
 ~~~powershell
-npm install
+npm ci
 npm run dev
 ~~~
 
-Open http://localhost:3000. Create a room, invite students, and press **Start expedition** after everyone joins a crew. The host sees a grid of crew expeditions. **Invite** opens the QR/link; **Projector** opens the public board. The host can pause, resume, or end. All other phases advance automatically.
+Open http://localhost:3000. Create a room, invite students, and press **Start expedition** after everyone joins a crew. The host and projector show two crews at a time (one on narrow screens), with side arrows for other crews. **Dungeon** shows the board; **Log** shows narrated history. The timer and depth trail stay visible in either view. Clicking a crew opens its encounter in a dialog; Close or Escape returns to the board. **Invite** opens the QR/link; **Projector** opens the public board. The host can pause, resume, or end. All other phases advance automatically.
 
 ~~~powershell
 npm run build
@@ -30,7 +30,7 @@ npm.cmd start -- --test
 
 Open the displayed /#/test URL, click **Join test match**, then **Start**. Four crews contain 1, 2, 3, and 4 characters. Every identity has its own authenticated connection and pending requests. Crew/member buttons control anyone, including spirits. Selecting a character takes manual control; **Auto** returns it to a deterministic bot. Other sessions remain connected.
 
-Choose classes in the lobby. During play, use the normal controls for rooms, actions, withdrawal votes, answers, equipment, and camp decisions. The collapsed **Test debugger** contains normal/fast/manual speed, Next phase, disconnect/reconnect, answer inspection, and scenarios: Fresh expedition, Split rooms, Treasure contest, Critical health, Question reward, Final depth. Manual mode never advances automatically. Reset creates a fresh in-memory match.
+Choose classes in the lobby. During play, use the normal controls for rooms, actions, withdrawal votes, answers, equipment, and camp decisions. The collapsed **Test debugger** contains normal/fast/manual speed, Next phase, disconnect/reconnect, answer inspection, and scenarios: Fresh expedition, Split rooms, Treasure contest, Critical health, Question reward, Final depth, Lethal rivalry. Manual mode never advances automatically. Reset creates a fresh in-memory match.
 
 PowerShell may consume arguments through npm.ps1; use npm.cmd with --test, --host, or --port. npm test runs automated verification; --test enables interactive play. Test routes and controls are absent in normal mode. Test mode refuses non-loopback binding.
 
@@ -50,6 +50,10 @@ Each character chooses Attack, Brace, Loot, or a class skill. Enemy intent and i
 | Exorcist | Channel: damage, self healing, and stress removal; crews of 1–2 |
 
 Crew sizes have equal starting totals: 48 health and 24 basic attack damage. Each student makes their own choice. Numbers freeze at start; death/disconnect never rescales them. Joining a third member resets restricted classes to Knight with a visible notice.
+
+New expeditions add two mastery ranks. Surviving members of a crew that qualifies for a victory purse gain one rank after a successful encounter, up to two. Each rank adds a power-scaled bonus to attacks, healing and living barriers; base power, class and maximum health stay frozen. Mastery starts working at the next combat choice. The depth trail and mastery stars show progress.
+
+One seeded depth among 2–4 marks the high-risk door for a possible lethal rivalry. The warning appears before voting. If exactly two crews enter that door, they fight each other instead of an enemy; otherwise the usual encounter spawns. Personal door votes and the crew's leading choice have separate highlights. Rival attacks target living opponents and resolve simultaneously, with the normal class skills, protection, equipment, spirit aid and withdrawal rules. A qualifying surviving victor earns 10 + depth carried treasure. Mutual elimination, withdrawal and four-turn timeouts grant no rivalry purse. Secured scores survive defeat. New saves record the feature marker; existing snapshots without it keep the original rules.
 
 Treasure bundles reward the strongest surviving claims, with rotating ties and at most one bundle per crew per turn. Loot sacrifices an attack; Devourers punish treasure hunters until their weak point breaks. Meaningful damage, healing, and absorbed living barriers build a participation meter for victory purses. Loot-only and spirit aid earn no participation credit.
 
@@ -96,4 +100,11 @@ npm run test:load
 ~~~
 
 Playwright requires Chromium (npm exec playwright install chromium if missing). The load harness uses real clients and temporary atomic saves, advancing an injected server clock after commands finish. Reports/screenshots go to ignored test-results/. .Codex/ is ignored temporary development planning; it is not imported, served, built, or required by the application.
+
+To run browser checks with an already installed Microsoft Edge instead of downloading Chromium:
+
+~~~powershell
+$env:HEIST_BROWSER_CHANNEL = "msedge"
+npm.cmd run test:e2e
+~~~
 

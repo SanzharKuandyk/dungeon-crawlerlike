@@ -54,6 +54,11 @@
         >
       </section>
     </details>
+    {#if view.status === "lobby"}
+      <a class="button" href={`#/room/${view.code}`} target="_blank" rel="noopener"
+        >Join as player ↗</a
+      >
+    {/if}
     <a class="button quiet" href={`#/board/${view.code}`} target="_blank" rel="noopener"
       >Projector ↗</a
     >

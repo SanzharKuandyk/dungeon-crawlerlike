@@ -10,8 +10,10 @@ export function drawHeroes(
   view: RoomView,
   roomId: string | null,
   actor: string | null,
+  crewId: string | null = null,
 ) {
   const own = view.role === "player" ? view.self.id : null;
+  const rivalry = arena.encounters.find((e) => e.id === roomId)?.rivalry;
   let heroes = arena.heroes.filter((h) =>
     arena.crews.some(
       (c) =>
@@ -21,6 +23,7 @@ export function drawHeroes(
           : c.location.kind === "camp"),
     ),
   );
+  if (crewId && !rivalry) heroes = heroes.filter((h) => h.crewId === crewId);
   if (heroes.length > 8) {
     const distinct = heroes
       .filter((h, i, all) => all.findIndex((v) => v.crewId === h.crewId) === i)
@@ -29,20 +32,24 @@ export function drawHeroes(
     if (important && !distinct.includes(important)) distinct[0] = important;
     heroes = distinct;
   }
+  const crews = [...new Set(heroes.map((h) => h.crewId))];
   const count = heroes.length;
-  const gap = Math.min(155, 1050 / Math.max(1, count));
-  for (const [i, h] of heroes.entries())
+  for (const [i, h] of heroes.entries()) {
+    const row = rivalry ? heroes.filter((v) => v.crewId === h.crewId) : heroes;
+    const rowIndex = rivalry ? row.findIndex((v) => v.id === h.id) : i;
+    const gap = Math.min(190, 1050 / Math.max(1, row.length));
     drawHero(
       scene,
       layer,
       h,
       arena,
       view,
-      600 + (i - (count - 1) / 2) * gap,
-      490,
+      600 + (rowIndex - (row.length - 1) / 2) * gap,
+      rivalry && h.crewId === crews[0] ? 235 : 490,
       actor === h.id,
       own === h.playerId,
     );
+  }
   if (!count)
     layer.add(
       scene.add
@@ -77,7 +84,8 @@ function drawHero(
       .setScale(0.72)
       .setAlpha(h.status === "dead" ? 0.35 : 1),
   );
-  const name = view.players.find((p) => p.id === h.playerId)?.name ?? "Character";
+  const fullName = view.players.find((p) => p.id === h.playerId)?.name ?? "Character";
+  const name = fullName.length > 14 ? `${fullName.slice(0, 13)}…` : fullName;
   layer.add(
     scene.add
       .text(x, y + 50, `${crew?.symbol ?? ""} · ${name}${self ? " · YOU" : ""}`, {

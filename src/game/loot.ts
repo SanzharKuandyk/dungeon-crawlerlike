@@ -31,7 +31,7 @@ export function awardLoot(s: MatchState, ctx: CombatContext) {
         }
       }
     }
-    if (e.bodyHp === 0 && !e.purseAwarded) {
+    if (!e.rivalry && e.bodyHp === 0 && !e.purseAwarded) {
       e.purseAwarded = true;
       const purse = { low: 6, medium: 8, high: 10 }[e.definition.risk] + s.depth;
       for (const c of s.crews.filter(

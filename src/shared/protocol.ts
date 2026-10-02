@@ -57,7 +57,14 @@ export interface ServerEvents {
   "room:snapshot": (view: RoomView) => void;
   "session:error": (error: { code: ErrorCode; message: string }) => void;
 }
-export type TestScenario = "fresh" | "split" | "treasure" | "critical" | "question" | "final";
+export type TestScenario =
+  | "fresh"
+  | "split"
+  | "treasure"
+  | "critical"
+  | "question"
+  | "final"
+  | "rivalry";
 export type TestBootstrap = {
   code: string;
   players: { playerId: string; crewId: string; clientId: string }[];

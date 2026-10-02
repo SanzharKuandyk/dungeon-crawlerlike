@@ -12,12 +12,20 @@ export function legalActions(s: MatchState, h: Hero): HeroAction[] {
   const e = encounterFor(s, h);
   if (!e) return [];
   const parts = e.weakHp > 0 ? (["body", "weak-point"] as const) : (["body"] as const);
+  const rivals = s.heroes.filter(
+    (v) => fighting(s, v) && v.crewId !== h.crewId && encounterFor(s, v)?.id === e.id,
+  );
   const choices: HeroAction[] = [
-    ...parts.map((part) => ({ kind: "attack" as const, part })),
+    ...(e.rivalry
+      ? rivals.map((v) => ({ kind: "duel-attack" as const, targetHeroId: v.id }))
+      : parts.map((part) => ({ kind: "attack" as const, part }))),
     { kind: "brace" },
     { kind: "loot" },
   ];
-  const allies = s.heroes.filter((v) => fighting(s, v) && encounterFor(s, v)?.id === e.id);
+  const allies = s.heroes.filter(
+    (v) =>
+      fighting(s, v) && encounterFor(s, v)?.id === e.id && (!e.rivalry || v.crewId === h.crewId),
+  );
   switch (h.classId) {
     case "knight":
       choices.push(...allies.map((v) => ({ kind: "protect" as const, targetHeroId: v.id })));
@@ -30,16 +38,30 @@ export function legalActions(s: MatchState, h: Hero): HeroAction[] {
       );
       break;
     case "occultist":
-      choices.push(...parts.map((part) => ({ kind: "hex" as const, part })));
+      choices.push(
+        ...(e.rivalry
+          ? rivals.map((v) => ({ kind: "duel-hex" as const, targetHeroId: v.id }))
+          : parts.map((part) => ({ kind: "hex" as const, part }))),
+      );
       break;
     case "scavenger":
-      choices.push({ kind: "pilfer" });
+      if (e.rivalry)
+        choices.push(...rivals.map((v) => ({ kind: "duel-pilfer" as const, targetHeroId: v.id })));
+      else choices.push({ kind: "pilfer" });
       break;
     case "wanderer":
-      choices.push(...parts.map((part) => ({ kind: "skirmish" as const, part })));
+      choices.push(
+        ...(e.rivalry
+          ? rivals.map((v) => ({ kind: "duel-skirmish" as const, targetHeroId: v.id }))
+          : parts.map((part) => ({ kind: "skirmish" as const, part }))),
+      );
       break;
     case "exorcist":
-      choices.push(...parts.map((part) => ({ kind: "channel" as const, part })));
+      choices.push(
+        ...(e.rivalry
+          ? rivals.map((v) => ({ kind: "duel-channel" as const, targetHeroId: v.id }))
+          : parts.map((part) => ({ kind: "channel" as const, part }))),
+      );
       break;
   }
   return choices;

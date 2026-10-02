@@ -8,6 +8,11 @@ import type { StoredRoom } from "../room-types.js";
 export function applyScenario(room: StoredRoom, scenario: TestScenario, now: number) {
   if (scenario === "fresh") return;
   startMatch(room.state);
+  if (scenario === "rivalry") {
+    room.state.depth = 2;
+    room.state.seed = 1;
+    offerRooms(room.state);
+  }
   if (scenario === "final") {
     room.state.depth = 5;
     for (const c of room.state.crews) {
@@ -21,11 +26,13 @@ export function applyScenario(room: StoredRoom, scenario: TestScenario, now: num
   enter(room, { kind: "route" }, now);
   for (const [index, c] of room.state.crews.entries()) {
     const target =
-      scenario === "split"
-        ? room.state.offeredRooms[index % 3]
-        : room.state.offeredRooms.find(
-            (v) => v.risk === (scenario === "critical" ? "high" : "low"),
-          );
+      scenario === "rivalry"
+        ? room.state.offeredRooms.find((v) => v.risk === (index < 2 ? "high" : "low"))
+        : scenario === "split"
+          ? room.state.offeredRooms[index % 3]
+          : room.state.offeredRooms.find(
+              (v) => v.risk === (scenario === "critical" ? "high" : "low"),
+            );
     for (const id of c.playerIds) room.state.routeVotes[id] = target?.id ?? "";
   }
   resolveRoutes(room.state);

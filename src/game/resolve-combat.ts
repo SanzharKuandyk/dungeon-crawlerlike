@@ -6,7 +6,9 @@ import { beginEvents, crewEvent, enemyEvent, finalizeEvents, lockResolution } fr
 import { applyAid, applyHeroActions, damageEnemies } from "./hero-actions.js";
 import { chooseQuestion } from "./learning.js";
 import { awardLoot } from "./loot.js";
+import { rewardMastery } from "./mastery.js";
 import { creditParticipation } from "./participation.js";
+import { applyRivalryDamage, rivalryOutcome } from "./rivalry.js";
 import { fighting } from "./routes.js";
 import { finalizeDeaths, resolveStress } from "./stress-and-death.js";
 import { applyWithdrawals } from "./withdrawal.js";
@@ -39,6 +41,7 @@ export function resolveCombat(input: MatchState) {
   applyHeroActions(s, ctx);
   applyAid(s, ctx);
   damageEnemies(s, ctx);
+  applyRivalryDamage(s, ctx);
   applyEnemyActions(s, ctx);
   resolveStress(s, ctx.fightingAtLock);
   creditParticipation(s, ctx);
@@ -48,8 +51,16 @@ export function resolveCombat(input: MatchState) {
     const remaining = s.crews.some(
       (c) => c.status === "active" && c.location.kind === "room" && c.location.roomId === e.id,
     );
-    e.status =
-      e.bodyHp === 0 ? "defeated" : !remaining ? "abandoned" : s.turn >= 4 ? "timed-out" : "active";
+    e.status = e.rivalry
+      ? rivalryOutcome(s, e)
+      : e.bodyHp === 0
+        ? "defeated"
+        : !remaining
+          ? "abandoned"
+          : s.turn >= 4
+            ? "timed-out"
+            : "active";
+    rewardMastery(s, e);
     enemyEvent(
       s,
       e,

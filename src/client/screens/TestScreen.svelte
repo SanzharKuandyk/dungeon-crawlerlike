@@ -98,6 +98,7 @@
           <option value="critical">Critical health</option>
           <option value="question">Question reward</option>
           <option value="final">Final depth</option>
+          <option value="rivalry">Lethal rivalry</option>
         </select><button
           type="button"
           disabled={test.state.busy}

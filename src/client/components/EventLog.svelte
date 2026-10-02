@@ -5,7 +5,11 @@
   import { eventMessage } from "../event-messages.js";
   import { room } from "../room.svelte.js";
 
-  let { view, cursor = Infinity }: { view: RoomView; cursor?: number } = $props();
+  let {
+    view,
+    cursor = Infinity,
+    full = false,
+  }: { view: RoomView; cursor?: number; full?: boolean } = $props();
   let earlier = $state<GameEvent[]>([]),
     expanded = $state(false),
     loading = $state(false),
@@ -16,7 +20,7 @@
     ).values(),
   ]);
   let displayed = $derived(
-    expanded
+    expanded || full
       ? entries.filter((entry) => before === null || entry.sequence < before).slice(-50)
       : entries.slice(-5),
   );
@@ -32,16 +36,18 @@
 <section class="event-log" aria-label="Expedition log">
   <div class="section-heading">
     <h2>Expedition log</h2>
-    <button
-      type="button"
-      class="quiet"
-      onclick={() => {
-        expanded = !expanded;
-        before = null;
-      }}
-    >
-      {expanded ? "Recent" : "Expand log"}
-    </button>
+    {#if !full}
+      <button
+        type="button"
+        class="quiet"
+        onclick={() => {
+          expanded = !expanded;
+          before = null;
+        }}
+      >
+        {expanded ? "Recent" : "Expand log"}
+      </button>
+    {/if}
   </div>
   {#if entries.length === 0}
     <p class="muted">No events yet.</p>
@@ -54,7 +60,7 @@
   {#if before !== null}
     <button type="button" class="quiet" onclick={() => (before = null)}>Latest events</button>
   {/if}
-  {#if expanded && (displayed[0]?.sequence ?? 1) > 1}
+  {#if (expanded || full) && (displayed[0]?.sequence ?? 1) > 1}
     <button type="button" class="quiet" disabled={loading} onclick={load}>
       {loading ? "Loading…" : "Show earlier"}
     </button>
