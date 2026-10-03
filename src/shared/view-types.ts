@@ -1,8 +1,11 @@
 import type { CampChoice, EquipmentChoice, HeroAction } from "./command-types.js";
 import type { ClassDefinition, Question, RoomDefinition } from "./content-types.js";
+import type { CrewRunView } from "./crew-run-types.js";
+import type { DuelView } from "./duel-types.js";
 import type { GameEvent } from "./event-types.js";
 import type { ArenaState, Hero, MatchState, Player } from "./game-types.js";
 import type { ExpeditionMap } from "./map-types.js";
+
 export type PublicRoomView = ArenaState & {
   role: "projector";
   id: string;
@@ -24,6 +27,14 @@ export type PublicRoomView = ArenaState & {
   before: ArenaState | null;
   winners: string[];
   learningEnabled: boolean;
+  crewRuns: CrewRunView[];
+  duels: DuelView[];
+  independent: boolean;
+  quizActive: boolean;
+  intermissionPending: boolean;
+  hostReconnectUntil: number | null;
+  closed: boolean;
+  inactivityFallback: boolean;
   deadline: number | null;
   remaining: number | null;
   phaseStartedAt: number;
@@ -31,6 +42,8 @@ export type PublicRoomView = ArenaState & {
   serverNow: number;
   speed: "normal" | "fast" | "manual";
   storageError: string | null;
+  pauseReasons: import("./host-types.js").RoomPauseReason[];
+  pvpEnabled: boolean;
   question: Omit<Question, "correctIndex" | "explanation"> | null;
   correctChoice: number | null;
   explanation: string | null;
@@ -59,10 +72,18 @@ export type PlayerRoomView = Omit<PublicRoomView, "role"> & {
   canCamp: boolean;
   winningCamp: CampChoice | null;
   answerChoice: number | null;
+  answerPact: "careful" | "blood" | null;
+  inscriptionReward: 1 | 2 | null;
   equipmentChoice: EquipmentChoice | null;
+  decisionReady: boolean;
+  rewardCharges: 1 | 2 | null;
 };
 export type HostRoomView = Omit<PublicRoomView, "role"> & {
   role: "host";
+  moderation: {
+    crews: { crewId: string; extendReason: string | null; resolveReason: string | null }[];
+  };
+  operations: { playerId: string; controlling: boolean; absentMs: number }[];
   testMode: boolean;
   readOnly: boolean;
 };

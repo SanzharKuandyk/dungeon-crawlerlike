@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { tick, untrack } from "svelte";
   import type { Crew } from "../../shared/game-types.js";
   import { type ExpeditionMap, MAP_NODE_LABELS, type MapNode } from "../../shared/map-types.js";
   import { teamColor } from "../../shared/palette.js";
@@ -47,18 +47,41 @@
     ),
   );
 
-  const x = (node: MapNode) => 128 + (node.row - 1) * 96;
-  const y = (node: MapNode) => 60 + node.lane * 74;
+  const x = (node: MapNode) => 64 + node.lane * 116;
+  const y = (node: MapNode) => 56 + (map.rows - node.row) * 104;
+  let startY = $derived(56 + (map.rows - 1) * 104 + 64);
+  let mapHeight = $derived(startY + 58);
+  let currentNodeId = $derived(crew?.mapPosition?.nodeId ?? null);
 
-  onMount(() => {
-    if (!voting || !viewport) return;
-
-    const current = map.nodes.find((node) => node.id === crew?.mapPosition?.nodeId);
-    viewport.scrollLeft = Math.max(0, (current ? x(current) : 44) - 80);
+  $effect(() => {
+    map.chapter;
+    crewId;
+    currentNodeId;
+    const element = viewport;
+    if (!element) return;
+    let canceled = false;
+    const observer = new ResizeObserver(() => untrack(focusPosition));
+    void tick().then(() => {
+      if (canceled) return;
+      untrack(focusPosition);
+      observer.observe(element);
+    });
+    return () => {
+      canceled = true;
+      observer.disconnect();
+    };
   });
 
+  function focusPosition() {
+    const node = map.nodes.find((node) => node.id === currentNodeId);
+    if (!viewport) return;
+    const bottom = node ? (viewport.clientHeight >= 220 ? 72 : 32) : 56;
+    viewport.scrollTop = (node ? y(node) : startY) - viewport.clientHeight + bottom;
+  }
+
   function routePath(from: MapNode, to: MapNode) {
-    return `M ${x(from)} ${y(from)} C ${x(from) + 48} ${y(from)}, ${x(to) - 48} ${y(to)}, ${x(to)} ${y(to)}`;
+    const middle = (y(from) + y(to)) / 2;
+    return `M ${x(from)} ${y(from)} C ${x(from)} ${middle}, ${x(to)} ${middle}, ${x(to)} ${y(to)}`;
   }
 
   function occupants(id: string | null) {
@@ -75,55 +98,51 @@
 
   function locate(id: string) {
     focusedCrew = id;
-    const position = crews.find((crew) => crew.id === id)?.mapPosition;
-    const node = map.nodes.find((node) => node.id === position?.nodeId);
-
-    if (viewport) {
-      viewport.scrollTo({ left: Math.max(0, (node ? x(node) : 44) - viewport.clientWidth / 2) });
-    }
-
+    void tick().then(focusPosition);
     oncrew?.(id);
   }
 </script>
 
 <section class="expedition-map" class:voting-map={voting} aria-label={`Chapter ${map.chapter} map`}>
-  <header class="map-toolbar">
-    <strong>Chapter {map.chapter} <span class="map-subtitle">· Endless expedition</span></strong>
-    <div class="map-pan">
-      <button
-        type="button"
-        class="quiet"
-        aria-label="Pan map left"
-        onclick={() => viewport?.scrollBy({ left: -viewport.clientWidth * 0.7 })}
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        class="quiet"
-        aria-label="Pan map right"
-        onclick={() => viewport?.scrollBy({ left: viewport.clientWidth * 0.7 })}
-      >
-        ›
-      </button>
-    </div>
-  </header>
+  {#if !voting}
+    <header class="map-toolbar">
+      <strong>Chapter {map.chapter}</strong>
+      <div class="map-pan">
+        <button
+          type="button"
+          class="quiet"
+          aria-label="Explore higher floors"
+          onclick={() => viewport?.scrollBy({ top: -viewport.clientHeight * 0.7 })}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          class="quiet"
+          aria-label="Explore lower floors"
+          onclick={() => viewport?.scrollBy({ top: viewport.clientHeight * 0.7 })}
+        >
+          ↓
+        </button>
+      </div>
+    </header>
+  {/if}
 
   <section
     class="map-viewport"
     bind:this={viewport}
-    aria-label="Branching routes; scroll to explore"
+    aria-label="Dungeon routes; climb from the start below to the guardian above"
   >
-    <div class="map-canvas">
+    <div class="map-canvas" style:height={`${mapHeight}px`}>
       <svg
         class="map-connections"
-        viewBox="0 0 1088 270"
+        viewBox={`0 0 360 ${mapHeight}`}
         preserveAspectRatio="none"
         aria-hidden="true"
       >
         {#each map.nodes.filter((node) => node.row === 1) as node}
           <path
-            d={`M 44 134 C 86 134, 86 ${y(node)}, ${x(node)} ${y(node)}`}
+            d={`M 180 ${startY} C 180 ${startY - 40}, ${x(node)} ${startY - 40}, ${x(node)} ${y(node)}`}
             class:available={voting && reachable.includes(node.id)}
           />
         {/each}
@@ -139,7 +158,7 @@
         {/each}
       </svg>
 
-      <div class="map-start" style:left={`${(44 / 1088) * 100}%`}>
+      <div class="map-start" style:top={`${(startY / mapHeight) * 100}%`}>
         <span>Start</span>
         <div class="map-markers">
           {#each occupants(null).slice(0, 4) as crew}
@@ -154,8 +173,9 @@
       {#each map.nodes as node (node.id)}
         <div
           class="map-stop"
-          style:left={`${(x(node) / 1088) * 100}%`}
-          style:top={`${(y(node) / 270) * 100}%`}
+          style:left={`${(x(node) / 360) * 100}%`}
+          style:top={`${(y(node) / mapHeight) * 100}%`}
+          data-floor={node.row}
         >
           <button
             type="button"
@@ -181,13 +201,15 @@
             {/if}
           </button>
 
-          <span class="map-node-label">{MAP_NODE_LABELS[node.kind]}</span>
+          <span class="map-node-label"
+            >{currentNodeId === node.id ? "YOU ARE HERE" : MAP_NODE_LABELS[node.kind]}</span
+          >
           <div class="map-markers">
             {#each occupants(node.id).slice(0, 4) as crew}
               <span
                 class:fallen={crew.status === "eliminated"}
                 style:--team={teamColor(crew.colorId).hex}
-                title={`${crew.name}${crew.status === "eliminated" ? " · eliminated" : ""}`}
+                title={`${crew.name} · ${crew.playerIds.length} members${crew.status === "eliminated" ? " · eliminated" : ""}`}
                 >{crew.symbol}</span
               >
             {/each}
@@ -197,8 +219,6 @@
           </div>
         </div>
       {/each}
-
-      <span class="map-next-chapter">Next<br>chapter →</span>
     </div>
   </section>
 
@@ -207,25 +227,24 @@
       <strong
         >{selectedNode.room.name}
         {#if ownVote === selectedNode.id}
-          <span> · Your vote ✓</span>
+          <span> · ✓ Voted</span>
         {/if}
-        {#if crewChoice === selectedNode.id}
+        {#if crewChoice === selectedNode.id && ownVote !== selectedNode.id}
           <span> · Crew choice</span>
         {/if}
       </strong>
       <small
-        >{selectedNode.room.description}
+        >{occupants(selectedNode.id).length
+          ? `${occupants(selectedNode.id)
+              .map((crew) => `${crew.symbol} ${crew.name} (${crew.playerIds.length})`)
+              .join(" · ")} — `
+          : ""}{selectedNode.room.description}
         {#if voting && !reachable.includes(selectedNode.id)}
-          · Not connected to your current position.
+          · Not connected
         {/if}
       </small>
     {:else}
-      <strong>{voting ? "Vote for a highlighted destination" : "Every crew’s journey"}</strong>
-      <small
-        >{voting
-          ? "Follow the connecting paths. Most votes wins; ties use the rotating crew leader."
-          : "Select a room to inspect it, or a crew to locate its position."}</small
-      >
+      <small>{voting ? "Tap a connected room" : "Select a room or locate a crew"}</small>
     {/if}
   </div>
 

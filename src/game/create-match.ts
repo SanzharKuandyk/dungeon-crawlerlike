@@ -4,6 +4,7 @@ import { createHeroes } from "./create-heroes.js";
 import { createExpeditionMap } from "./expedition-map.js";
 import { shuffled } from "./random.js";
 import { offerRooms } from "./routes.js";
+
 export function createMatch(
   id: string,
   code: string,
@@ -36,6 +37,7 @@ export function createMatch(
     campVotes: {},
     withdrawVotes: {},
     answers: {},
+    answerPacts: {},
     equipmentChoices: {},
     resolvedActions: {},
     learningEnabled: true,

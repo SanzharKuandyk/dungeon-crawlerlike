@@ -3,6 +3,7 @@ import { createCrew, joinCrew, joinPlayer } from "../handlers/lobby.js";
 import type { RoomManager } from "../room-manager.js";
 import { findSession } from "../sessions.js";
 import { applyScenario } from "./scenarios.js";
+
 export type BootstrapInput = {
   hostSecret: string;
   scenario: TestScenario;

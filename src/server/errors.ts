@@ -1,8 +1,10 @@
 import type { ErrorCode } from "../shared/protocol.js";
+
 export class CommandError extends Error {
   constructor(
     public code: ErrorCode,
     message: string,
+    public retryAfterMs?: number,
   ) {
     super(message);
   }

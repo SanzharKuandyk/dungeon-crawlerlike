@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import type { GameEvent } from "../../shared/event-types.js";
   import type { RoomView } from "../../shared/view-types.js";
   import { readHistory } from "../connection.js";
@@ -10,13 +11,39 @@
     cursor = Infinity,
     full = false,
   }: { view: RoomView; cursor?: number; full?: boolean } = $props();
+  let now = $state(Date.now());
+  let received = $state(Date.now());
+  $effect(() => {
+    view.revision;
+    received = Date.now();
+  });
+  onMount(() => {
+    const timer = setInterval(() => (now = Date.now()), 100);
+    return () => clearInterval(timer);
+  });
+  function revealed(event: GameEvent) {
+    if (!view.independent) return true;
+    const run = view.crewRuns.find((run) => run.events.some((entry) => entry.id === event.id));
+    if (
+      !run ||
+      !["arrival", "combat-reveal", "camp-reveal", "extraction", "return"].includes(run.phase.kind)
+    )
+      return true;
+    const elapsed =
+      view.status === "paused" || run.pauseReasons.length > 0
+        ? run.clock.elapsedMs
+        : now + view.serverNow - received - run.clock.startedAt;
+    return event.at <= elapsed / run.clock.durationMs;
+  }
   let earlier = $state<GameEvent[]>([]),
     expanded = $state(false),
     loading = $state(false),
     before = $state<number | null>(null);
   let entries = $derived([
     ...new Map(
-      [...earlier, ...view.history].filter((e) => e.sequence <= cursor).map((e) => [e.id, e]),
+      [...earlier, ...view.history]
+        .filter((e) => e.sequence <= cursor && revealed(e))
+        .map((e) => [e.id, e]),
     ).values(),
   ]);
   let displayed = $derived(

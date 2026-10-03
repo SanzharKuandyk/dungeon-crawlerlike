@@ -5,6 +5,7 @@ import { enterMapRooms } from "./map-arrival.js";
 import { shuffled } from "./random.js";
 import { rivalryDoor } from "./rivalry.js";
 import { winningRoute } from "./voting.js";
+
 export function offerRooms(s: MatchState) {
   s.offeredRooms = s.expeditionMap
     ? s.expeditionMap.nodes

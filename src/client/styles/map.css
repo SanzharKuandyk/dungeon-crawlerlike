@@ -26,7 +26,25 @@
 }
 
 .route-vote-heading h2 {
-  font-size: 18px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.route-floor {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.route-vote-heading button {
+  padding: 0 8px;
+  min-height: 44px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.route-vote-heading {
+  border-bottom: 1px solid var(--border);
 }
 
 .expedition-map {
@@ -52,12 +70,6 @@
   font-size: 15px;
 }
 
-.map-subtitle {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 400;
-}
-
 .map-pan {
   display: flex;
   gap: 4px;
@@ -71,24 +83,27 @@
 }
 
 .map-viewport {
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   overflow-anchor: none;
-  min-height: 120px;
-  background: radial-gradient(circle, var(--border) 1px, transparent 1px);
-  background-size: 20px 20px;
+  min-height: 0;
+  background: var(--surface);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--surface);
 }
 
 .map-canvas {
-  min-width: 1088px;
-  height: 270px;
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
   position: relative;
 }
 
 .map-connections {
   position: absolute;
   width: 100%;
-  height: 270px;
+  height: 100%;
 }
 
 .map-connections path {
@@ -160,6 +175,11 @@
   border-color: var(--text);
 }
 
+.map-node.own-vote:hover:not(:disabled) {
+  background: var(--text);
+  color: var(--surface);
+}
+
 .map-node.guardian {
   border-radius: 12px;
 }
@@ -199,14 +219,16 @@
 
 .map-markers {
   position: absolute;
-  left: 47px;
-  top: 0;
-  display: grid;
-  grid-template-columns: repeat(2, 20px);
+  left: 50%;
+  top: 64px;
+  transform: translateX(-50%);
+  display: flex;
   gap: 2px;
 }
 
 .map-markers > span {
+  border: 1px solid white;
+  outline: 1px solid var(--team);
   width: 20px;
   height: 20px;
   background: var(--team);
@@ -229,38 +251,43 @@
 
 .map-start {
   position: absolute;
-  top: 49.63%;
+  left: 50%;
   transform: translate(-50%, -50%);
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: 8px;
-  padding: 12px 8px;
+  padding: 6px 12px;
   font-size: 12px;
 }
 
-.map-next-chapter {
-  position: absolute;
-  left: 96%;
-  top: 49.63%;
-  transform: translateY(-50%);
-  font-size: 12px;
-  color: var(--muted);
+.map-start .map-markers {
+  top: 32px;
 }
 
 .map-inspection {
-  height: 80px;
-  padding: 10px 12px;
+  height: 60px;
+  padding: 8px 12px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   overflow: auto;
 }
 
 .map-inspection strong {
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .map-inspection strong span {
-  font-size: 12px;
+  font-size: 11px;
+}
+
+.map-inspection small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.map-inspection > small:only-child {
+  line-height: 42px;
 }
 
 .voting-map .map-viewport {
@@ -314,12 +341,6 @@
   min-height: 0;
 }
 
-.map-board-panel .map-canvas,
-.map-board-panel .map-connections {
-  height: 100%;
-  min-height: 216px;
-}
-
 .map-board-panel .map-inspection {
   height: 60px;
 }
@@ -338,40 +359,33 @@
   flex-shrink: 0;
 }
 
-@media (orientation: landscape) and (max-height: 500px) and (max-width: 1100px) {
-  .route-vote-heading h2,
-  .map-toolbar strong {
-    font-size: 12px;
-  }
-
-  .map-toolbar {
-    min-height: 44px;
-  }
-
-  .map-route-picker .map-toolbar {
-    display: none;
-  }
-
-  .map-route-picker .map-canvas,
-  .map-route-picker .map-connections {
-    height: 216px;
-  }
-
-  .map-subtitle {
-    display: none;
-  }
-
-  .map-inspection {
-    height: 50px;
-    padding: 4px 8px;
-  }
-
-  .map-inspection strong,
-  .map-inspection small {
-    font-size: 11px;
-  }
-
-  .map-route-picker .map-viewport {
-    min-height: 96px;
-  }
+.map-node {
+  background: #fff;
+  color: #34323a;
+}
+.map-node.visited {
+  background: #e5eee9;
+  border-color: #46765e;
+}
+.map-node.current-node {
+  background: var(--team, #25242b);
+  color: white;
+  border-color: white;
+  box-shadow:
+    0 0 0 3px var(--team, #25242b),
+    0 0 0 7px white;
+}
+.map-stop:has(.current-node) .map-node-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--team, #25242b);
+}
+.map-connections .traveled {
+  stroke: #46765e;
+}
+.map-connections path:not(.available):not(.traveled) {
+  stroke: #b1afba;
+}
+.map-inspection small {
+  color: var(--text);
 }

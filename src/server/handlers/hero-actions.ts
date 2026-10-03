@@ -4,6 +4,7 @@ import type { HeroAction } from "../../shared/command-types.js";
 import type { PhaseKind } from "../../shared/game-types.js";
 import { reject } from "../errors.js";
 import type { StoredRoom } from "../room-types.js";
+
 export function requirePhase(room: StoredRoom, kind: PhaseKind, now: number) {
   if (room.state.status !== "running" || room.state.phase.kind !== kind)
     reject("CLOSED", "That decision is not open.");

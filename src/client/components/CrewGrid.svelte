@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ArenaState } from "../../shared/game-types.js";
   import type { RoomView } from "../../shared/view-types.js";
+  import CrewHostMenu from "./CrewHostMenu.svelte";
   import CrewStage from "./CrewStage.svelte";
 
   let {
@@ -10,6 +11,8 @@
     selected = null,
     onselect,
     crewIds = null,
+    hostController = null,
+    onrecover = () => {},
   }: {
     view: RoomView;
     arena: ArenaState;
@@ -17,11 +20,18 @@
     selected?: string | null;
     onselect: (id: string) => void;
     crewIds?: string[] | null;
+    hostController?: import("../host-controller.js").HostController | null;
+    onrecover?: (id: string) => void;
   } = $props();
 </script>
 <section class="crew-grid" aria-label="Crew expeditions">
   {#each arena.crews.filter((c) => crewIds === null || crewIds.includes(c.id)) as crew (crew.id)}
-    <CrewStage {view} {arena} {crew} {actor} selected={selected === crew.id} {onselect} />
+    <div class="host-crew-tile">
+      {#if hostController && view.role === "host"}
+        <CrewHostMenu {view} crewId={crew.id} controller={hostController} {onrecover} />
+      {/if}
+      <CrewStage {view} {arena} {crew} {actor} selected={selected === crew.id} {onselect} />
+    </div>
   {/each}
   {#if !arena.crews.length}
     <section class="empty-crews">

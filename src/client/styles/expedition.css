@@ -1,152 +1,3 @@
-.crew-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
-  gap: 18px;
-}
-.crew-stage {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--surface);
-  min-width: 0;
-}
-.crew-stage.own {
-  border-color: var(--team);
-}
-.crew-stage.selected {
-  outline: 2px solid var(--team);
-}
-.crew-stage header {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 12px;
-}
-.crew-stage .team-badge {
-  min-width: 26px;
-  height: 26px;
-  border-radius: 5px;
-  font-size: 12px;
-}
-.crew-title {
-  border: 0;
-  padding: 0;
-  min-height: 44px;
-  font-size: 16px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  text-align: left;
-  color: var(--team);
-  background: transparent;
-}
-.crew-state {
-  margin-left: auto;
-  font-size: 11px;
-  max-width: 40%;
-  text-align: right;
-  color: var(--muted);
-}
-.crew-battle {
-  position: relative;
-  min-height: 215px;
-  display: grid;
-  align-content: end;
-  gap: 12px;
-  padding: 34px 12px 14px;
-  isolation: isolate;
-}
-.battle-backdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: -1;
-}
-.crew-party {
-  display: grid;
-  grid-template-columns: repeat(var(--party-size, 4), minmax(0, 1fr));
-  align-items: end;
-  gap: 8px;
-  min-width: 0;
-}
-.party-character {
-  display: grid;
-  justify-items: center;
-  gap: 3px;
-  min-width: 0;
-}
-.hero-model {
-  width: 100%;
-  height: 112px;
-  max-width: 110px;
-  filter: drop-shadow(0 4px 1px #18181b18);
-}
-.hero-model.fallen {
-  opacity: 0.3;
-}
-.party-character strong {
-  font-size: 12px;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.party-character span {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-.party-character meter {
-  width: 100%;
-  height: 6px;
-}
-.party-character .party-stress {
-  color: var(--muted);
-  font-size: 10px;
-}
-.party-character.acting {
-  outline: 2px solid var(--team);
-  outline-offset: 4px;
-  border-radius: 5px;
-}
-.party-enemy {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-}
-.party-enemy img {
-  width: 48px;
-  height: 56px;
-  object-fit: contain;
-}
-.party-enemy span {
-  font-size: 12px;
-}
-.enemy-vitals {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-.party-enemy meter {
-  width: 100%;
-  height: 6px;
-}
-.crew-stage footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-top: 1px solid var(--border);
-  font-size: 11px;
-}
-.crew-stage .eliminated .battle-backdrop {
-  opacity: 0.5;
-}
 .expedition-heading {
   display: flex;
   align-items: center;
@@ -264,36 +115,7 @@
   border: 1px dashed var(--border);
   border-radius: 12px;
 }
-.phone-panel > .crew-stage {
-  margin-bottom: 16px;
-}
-.phone-panel .crew-stage header {
-  display: none;
-}
-.phone-panel .crew-battle {
-  min-height: 188px;
-}
-.phone-panel .crew-stage footer {
-  display: none;
-}
-.test-layout .crew-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-  gap: 12px;
-}
-.test-layout .crew-battle {
-  gap: 8px;
-  padding: 12px 8px;
-}
-.test-layout .party-enemy {
-  width: 100%;
-}
-.test-layout .party-enemy img {
-  width: 48px;
-}
 @media (max-width: 760px) {
-  .crew-grid {
-    grid-template-columns: 1fr;
-  }
   .host-bar {
     gap: 8px;
   }
@@ -310,26 +132,6 @@
   .inscription-panel .answers {
     grid-template-columns: 1fr;
   }
-  .party-character .hero-model {
-    height: 100px;
-  }
-  .party-character strong {
-    font-size: 11px;
-  }
-  .party-enemy {
-    width: 100%;
-  }
-  .party-enemy img {
-    width: 48px;
-  }
-}
-
-.battle-intent {
-  position: absolute;
-  left: 12px;
-  top: 9px;
-  font-size: 11px;
-  color: var(--muted);
 }
 
 .board-tabs {
@@ -349,9 +151,6 @@
   grid-template-columns: 44px minmax(0, 1fr) 44px;
   gap: 12px;
   align-items: center;
-}
-.crew-pages .crew-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .crew-pages.single-page {
   grid-template-columns: minmax(0, 1fr);
@@ -449,15 +248,6 @@ main:has(> .expedition-board) {
   padding: 0 4px;
   z-index: 1;
 }
-.expedition-board .crew-battle {
-  padding-top: 12px;
-}
-.expedition-board .hero-model {
-  height: 96px;
-}
-.expedition-board .battle-intent {
-  display: none;
-}
 .mastery-label {
   color: var(--team, var(--text));
   font-weight: 700;
@@ -520,20 +310,12 @@ main:has(> .expedition-board) {
   .crew-pages {
     gap: 8px;
   }
-  .crew-pages .crew-grid {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    grid-template-columns: 1fr;
-  }
   .crew-pages .page-arrow {
     grid-row: 2;
     min-height: 44px;
   }
   .crew-pages .page-arrow:last-child {
     grid-column: 3;
-  }
-  .crew-party {
-    gap: 5px;
   }
   .encounter-detail[open] {
     padding: 12px;

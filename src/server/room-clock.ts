@@ -7,12 +7,17 @@ import { offerRooms, resolveRoutes } from "../game/routes.js";
 import { extract, finishMatch } from "../game/scoring.js";
 import { DURATIONS } from "../shared/constants.js";
 import type { Phase } from "../shared/game-types.js";
+import { clockView, newClock } from "./clocks.js";
 import type { StoredRoom } from "./room-types.js";
+
 export function setDeadline(room: StoredRoom, now: number) {
-  room.phaseDuration = DURATIONS[room.speed === "fast" ? "fast" : "normal"][room.state.phase.kind];
-  room.phaseStartedAt = now;
-  room.deadline =
-    room.speed === "manual" || room.state.status !== "running" ? null : now + room.phaseDuration;
+  const duration = DURATIONS[room.speed === "fast" ? "fast" : "normal"][room.state.phase.kind];
+  room.timer = newClock(
+    duration,
+    now,
+    room.speed !== "manual" && room.state.status === "running" && !room.pauseReasons.length,
+  );
+  Object.assign(room, clockView(room.timer));
 }
 export function enter(room: StoredRoom, phase: Phase, now: number) {
   room.state.phase = phase;

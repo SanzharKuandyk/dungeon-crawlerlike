@@ -2,6 +2,7 @@ import type { GameEvent } from "../shared/event-types.js";
 import type { MatchState } from "../shared/game-types.js";
 import { heroEvent, heroName, lockResolution, storyEvent } from "./events.js";
 import { priority } from "./voting.js";
+
 export function activeQuestion(s: MatchState) {
   return s.content.questions.find((q) => q.id === s.quizQuestionId) ?? null;
 }
@@ -35,6 +36,7 @@ export function chooseQuestion(s: MatchState) {
   s.quizLocked = false;
   s.quizGranted = false;
   s.answers = {};
+  s.answerPacts = {};
   s.equipmentChoices = {};
   s.quizResults = [];
   storyEvent(s, s.quizCause, 0.97, "discovery", event.actor, event.roomId);
@@ -44,6 +46,10 @@ export function lockQuiz(s: MatchState) {
   const q = activeQuestion(s);
   if (!q) throw new Error("Missing question.");
   s.quizLocked = true;
+  for (const hero of s.heroes) {
+    if (s.answerPacts[hero.playerId] === "blood" && hero.status === "alive")
+      hero.hp = Math.max(1, hero.hp - hero.power);
+  }
   s.quizResults = s.crews.map((c) => {
     const members = s.players.filter((p) => p.crewId === c.id);
     const correct = members.filter((p) => s.answers[p.id] === q.correctIndex).length;
@@ -65,11 +71,11 @@ export function grantEquipment(s: MatchState) {
   if (s.quizGranted) throw new Error("Rewards already granted.");
   s.quizGranted = true;
   for (const h of s.heroes.filter((h) => h.status === "alive")) {
-    const result = s.quizResults.find((r) => r.crewId === h.crewId);
-    if (!result || result.tier === "none") continue;
+    const charges = personalReward(s, h.playerId);
+    if (!charges) continue;
     const choice = s.equipmentChoices[h.playerId] ?? (h.equipment ? "keep" : "ward");
     if (choice !== "keep") {
-      h.equipment = { kind: choice, charges: result.tier === "perfect" ? 2 : 1 };
+      h.equipment = { kind: choice, charges };
       h.equipmentActiveFromTurn = s.globalTurn + 1;
     }
     heroEvent(
@@ -80,4 +86,17 @@ export function grantEquipment(s: MatchState) {
       "question-reward",
     );
   }
+}
+
+export function personalReward(s: MatchState, playerId: string): 1 | 2 | null {
+  if (!s.quizLocked) return null;
+  const pact = s.answerPacts[playerId];
+  if (pact) {
+    const correct = s.answers[playerId] === activeQuestion(s)?.correctIndex;
+    return pact === "blood" ? (correct ? 2 : 1) : correct ? 1 : null;
+  }
+  if (s.rulesVersion === "dungeon-v2") return null;
+  const crewId = s.players.find((player) => player.id === playerId)?.crewId;
+  const tier = s.quizResults.find((result) => result.crewId === crewId)?.tier;
+  return tier === "perfect" ? 2 : tier === "partial" ? 1 : null;
 }

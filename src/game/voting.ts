@@ -2,6 +2,7 @@ import type { CampChoice } from "../shared/command-types.js";
 import type { MatchState } from "../shared/game-types.js";
 import { reachableNodes } from "./expedition-map.js";
 import { shuffled } from "./random.js";
+
 export function livingMembers(s: MatchState, crewId: string) {
   return s.players.filter(
     (p) => p.crewId === crewId && s.heroes.some((h) => h.playerId === p.id && h.status === "alive"),

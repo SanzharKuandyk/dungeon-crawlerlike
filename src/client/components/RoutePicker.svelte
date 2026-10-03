@@ -19,9 +19,20 @@
 {#if view.expeditionMap}
   <section class="map-route-picker">
     <header class="route-vote-heading">
-      <h2>Choose your next route</h2>
-      <button type="button" class="quiet" popovertarget={`route-votes-${view.self.id}`}>
-        Crew votes · {votes.length}/{voters.length}
+      <h2>
+        <span class="route-floor"
+          >Floor {((view.depth - 1) % view.expeditionMap.rows) + 1}/{view.expeditionMap.rows}</span
+        >
+        · Choose a room
+      </h2>
+      <button
+        type="button"
+        class="quiet"
+        popovertarget={`route-votes-${view.self.id}`}
+        aria-label={`Crew votes: ${votes.length} of ${voters.length}`}
+      >
+        {votes.length}/{voters.length}
+        voted
       </button>
       <div class="tactics-content" id={`route-votes-${view.self.id}`} popover="auto">
         <ul class="vote-list">

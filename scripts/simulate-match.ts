@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import { io, type Socket } from "socket.io-client";
-import { botAction } from "../src/client/test-mode/bots.js";
+import { botAction, botRoute } from "../src/client/test-mode/bots.js";
 import { createGameServer } from "../src/server/app.js";
 import { fileStorage } from "../src/server/storage.js";
 import type {
@@ -66,7 +66,7 @@ async function simulate(count: number) {
       }, 30000);
       send((r) => {
         clearTimeout(timer);
-        resolve(r);
+        setTimeout(() => resolve(r), 20);
       });
     });
     latencies.push(performance.now() - t);
@@ -110,19 +110,23 @@ async function simulate(count: number) {
     const players: {
       socket: Socket<ServerEvents, ClientEvents>;
       playerId: string;
+      token: string;
       view: RoomView | null;
     }[] = [];
     for (let i = 0; i < count; i++) {
       if (i % 16 === 0) console.log(`Joining ${i}/${count}`);
       const socket = await connect();
-      const player = { socket, playerId: "", view: null as RoomView | null };
+      const player = { socket, playerId: "", token: secret(), view: null as RoomView | null };
       socket.on("room:snapshot", (v) => {
+        player.view = v;
+      });
+      socket.on("room:closed", (v) => {
         player.view = v;
       });
       const receipt = await ack((done) =>
         socket.emit(
           "session:join",
-          { code: created.code, name: `Load ${i}`, bootstrapSecret: secret() },
+          { code: created.code, name: `Load ${i}`, bootstrapSecret: player.token },
           done,
         ),
       );
@@ -142,12 +146,35 @@ async function simulate(count: number) {
           ),
         );
     }
-    await ack((done) => host.emit("host:control", { ...envelope(), action: "start" }, done));
+    await ack((done) =>
+      host.emit("host:control", { ...envelope(), command: { kind: "start" } }, done),
+    );
     let phases = 0;
+    let reconnectCount = 0;
     while (current().state.status === "running") {
+      if (phases === 10 && reconnectCount === 0) {
+        for (const player of players) player.socket.disconnect();
+        await new Promise((done) => setTimeout(done, 50));
+        await server.manager.drain();
+        await Promise.all(
+          players.map(async (player) => {
+            const connected = new Promise<void>((done) => player.socket.once("connect", done));
+            player.socket.connect();
+            await connected;
+            await ack((done) =>
+              player.socket.emit(
+                "session:resume",
+                { code: created.code, token: player.token },
+                done,
+              ),
+            );
+            reconnectCount++;
+          }),
+        );
+      }
       const state = current().state;
       phaseLabel = `depth ${state.depth}, ${state.phase.kind}, phase ${state.phaseId}`;
-      if (phases % 5 === 0) console.log(`${count} clients: ${phaseLabel}`);
+      if (phases % 15 === 0) console.log(`${count} clients: ${phaseLabel}`);
       await Promise.all(
         players.map(async (p) => {
           const v = server.manager.snapshot({
@@ -156,20 +183,35 @@ async function simulate(count: number) {
             session: { role: "player", playerId: p.playerId },
             readOnly: false,
           }) as PlayerRoomView;
-          const env = envelope();
-          if (state.phase.kind === "route" && v.hero?.status === "alive") {
-            const destination = v.offeredRooms.find((r) => r.risk === "low");
+          const env = { ...envelope(), phaseId: v.phaseId };
+          const run = current().runs[v.hero?.crewId ?? ""];
+          if (run?.finished && !v.quizActive) return;
+          if (v.decisionReady && !v.quizActive) return;
+          if (v.phase.kind === "route" && v.hero?.status === "alive") {
+            const offered = v.offeredRooms.filter((r) => v.reachableNodeIds.includes(r.id));
+            const destination = offered.find((r) => r.id === botRoute(v)) ?? offered[0];
             if (destination)
               await ack((done) =>
                 p.socket.emit("route:vote", { ...env, roomId: destination.id }, done),
               );
-          } else if (state.phase.kind === "combat") {
+          } else if (v.phase.kind === "combat") {
             await ack((done) =>
               p.socket.emit("hero:action", { ...env, action: botAction(v) }, done),
             );
-          } else if (state.phase.kind === "camp" && v.hero?.status === "alive") {
-            await ack((done) => p.socket.emit("camp:vote", { ...env, choice: "rest" }, done));
-          } else if (state.phase.kind === "question" && v.question) {
+          } else if (v.phase.kind === "camp" && v.hero?.status === "alive") {
+            await ack((done) =>
+              p.socket.emit(
+                "camp:vote",
+                {
+                  ...env,
+                  choice: v.crews.find((c) => c.id === v.hero?.crewId)?.carriedTreasure
+                    ? "secure"
+                    : "rest",
+                },
+                done,
+              ),
+            );
+          } else if (v.phase.kind === "question" && v.question) {
             const q = state.content.questions.find((q) => q.id === v.question?.id);
             if (!q) throw new Error("Missing active question");
             await ack((done) =>
@@ -180,23 +222,31 @@ async function simulate(count: number) {
               ),
             );
           } else if (
-            state.phase.kind === "equipment" &&
+            v.phase.kind === "equipment" &&
             v.hero?.status === "alive" &&
-            v.quizResults.some((r) => r.crewId === v.hero?.crewId && r.tier !== "none")
+            (v.rewardCharges ||
+              v.quizResults.some((r) => r.crewId === v.hero?.crewId && r.tier !== "none"))
           ) {
             await ack((done) => p.socket.emit("equipment:choose", { ...env, item: "ward" }, done));
           }
         }),
       );
-      const deadline = current().deadline;
-      if (deadline === null) throw new Error("Missing automatic deadline");
+      if (current().state.status !== "running") break;
+      const deadlines = [
+        current().deadline,
+        ...Object.values(current().runs)
+          .filter((run) => !run.finished)
+          .map((run) => run.clock.deadline),
+      ].filter((value): value is number => value !== null && value >= now);
+      const deadline = Math.min(...deadlines);
+      if (!Number.isFinite(deadline)) throw new Error("Missing automatic deadline");
       now = deadline;
       await server.manager.tick(now);
-      if (++phases > 180) throw new Error("Phase loop");
+      if (++phases > 400) throw new Error("Phase loop");
     }
     await new Promise((done) => setTimeout(done, 150));
     const final = current().state;
-    if (final.depth !== 5 || !final.winners.length)
+    if (!Object.values(current().runs).every((run) => run.finished) || !final.winners.length)
       throw new Error("Expedition failed to reach extraction");
     const scores = final.crews.map((c) => c.securedTreasure);
     for (const p of players) {
@@ -208,8 +258,10 @@ async function simulate(count: number) {
     }
     return {
       clients: count,
+      reconnectCount,
+      delayedAcknowledgmentMs: 20,
       crews: count / 4,
-      depths: final.depth,
+      deepestRoom: Math.max(...Object.values(current().runs).map((run) => run.progress.depth)),
       phases,
       acknowledged,
       failedRequests: failures,
@@ -217,6 +269,8 @@ async function simulate(count: number) {
       acknowledgmentMs: timings(latencies),
       saveMs: timings(saves),
       completed: true,
+      extractedCrews: final.crews.filter((crew) => crew.status === "active").length,
+      eliminatedCrews: final.crews.filter((crew) => crew.status === "eliminated").length,
       consistentScores: true,
       winners: final.winners.length,
       scores,

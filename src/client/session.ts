@@ -1,15 +1,12 @@
 import { io, type Socket } from "socket.io-client";
-import type {
-  Ack,
-  ActionResult,
-  ClientEvents,
-  Envelope,
-  Receipt,
-  ServerEvents,
-} from "../shared/protocol.js";
+import type { Ack, ClientEvents, Envelope, ServerEvents } from "../shared/protocol.js";
 import type { RoomView } from "../shared/view-types.js";
 import { notifyError } from "./notify.js";
 import type { ConnectionStatus } from "./room.svelte.js";
+import { submitIdentity } from "./session-identity.js";
+import { createSessionRequests } from "./session-requests.js";
+import { browserStorage } from "./storage.js";
+
 export type SessionOptions = {
   code: string;
   token?: string;
@@ -26,30 +23,12 @@ export function createClientSession(options: SessionOptions) {
     authenticated = false,
     latest: RoomView | null = null,
     generation = 0;
-  const pending = new Map<
-    string,
-    { phaseId: number; finish: (result: ActionResult<Receipt>) => void }
-  >();
-  const storageKey = `siege-pending:${options.code}:${options.storageScope ?? options.role}`;
-  function persisted(): string[] {
-    try {
-      const value: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
-      return Array.isArray(value)
-        ? value.filter((id): id is string => typeof id === "string").slice(-100)
-        : [];
-    } catch {
-      return [];
-    }
-  }
-  const uncertain = new Set(persisted());
+  const requests = createSessionRequests(
+    `siege-pending:${options.code}:${options.storageScope ?? options.role}`,
+    options.onPending,
+  );
+  const { pending, uncertain, persisted, savePending } = requests;
   let syncTimer: ReturnType<typeof setTimeout> | undefined;
-  function savePending() {
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify([...new Set([...uncertain, ...pending.keys()])].slice(-100)),
-    );
-    options.onPending?.(pending.size);
-  }
   function accept(view: RoomView) {
     if (
       disposed ||
@@ -59,20 +38,13 @@ export function createClientSession(options: SessionOptions) {
       return;
     latest = view;
     options.onView(view);
-    for (const [_id, request] of pending)
-      if (request.phaseId !== view.phaseId)
-        request.finish({
-          ok: false,
-          code: "STALE",
-          message: "The phase ended. Your current choices are shown.",
-        });
     if (authenticated) {
       ready = true;
       options.onStatus("ready");
     }
   }
-  function sync() {
-    if (!socket.connected || disposed) return;
+  function sync(takeover = false) {
+    if (!socket.connected || disposed || latest?.closed) return;
     ready = false;
     authenticated = false;
     options.onStatus("resuming");
@@ -83,58 +55,95 @@ export function createClientSession(options: SessionOptions) {
       socket.disconnect();
       socket.connect();
     }, 12000);
-    socket.emit("session:resume", { code: options.code, token: options.token }, (result) => {
-      if (disposed || epoch !== generation) return;
-      if (!result.ok) {
-        clearTimeout(syncTimer);
-        authenticated = false;
-        if (result.code === "UNAUTHORIZED" && options.role === "player" && options.token) {
-          forgetPlayer();
-          notifyError("Your previous player session ended. Join the room again.");
-          sync();
-          return;
-        }
-        options.onStatus("invalid");
-        notifyError(result.message, result.code);
-        return;
-      }
-      socket.emit(
-        "session:sync",
-        { pending: [...new Set([...persisted(), ...pending.keys()])] },
-        (response) => {
-          if (disposed || epoch !== generation) return;
+    socket.emit(
+      "session:resume",
+      { code: options.code, token: options.token, takeover },
+      (result) => {
+        if (disposed || epoch !== generation) return;
+        if (!result.ok) {
           clearTimeout(syncTimer);
-          if (!response.ok) {
-            options.onStatus("invalid");
-            notifyError(response.message, response.code);
+          authenticated = false;
+          if (result.code === "UNAUTHORIZED" && options.role === "player" && options.token) {
+            forgetPlayer();
+            notifyError("Your previous player session ended. Join the room again.");
+            sync();
             return;
           }
-          authenticated = true;
-          for (const [id, receipt] of Object.entries(response.value.receipts))
-            pending.get(id)?.finish({ ok: true, value: receipt });
-          uncertain.clear();
-          accept(response.value.view);
-          savePending();
-        },
-      );
-    });
+          options.onStatus("invalid");
+          notifyError(result.message, result.code);
+          return;
+        }
+        socket.emit(
+          "session:sync",
+          { pending: [...new Set([...persisted(), ...pending.keys()])] },
+          (response) => {
+            if (disposed || epoch !== generation) return;
+            clearTimeout(syncTimer);
+            if (!response.ok) {
+              options.onStatus("invalid");
+              notifyError(response.message, response.code);
+              return;
+            }
+            authenticated = true;
+            for (const [id, receipt] of Object.entries(response.value.receipts))
+              pending.get(id)?.finish({ ok: true, value: receipt });
+            uncertain.clear();
+            accept(response.value.view);
+            for (const [id, request] of pending) {
+              if (!response.value.receipts[id] && request.phaseId !== response.value.view.phaseId)
+                request.finish({ ok: false, code: "STALE", message: "That decision has ended." });
+            }
+            savePending();
+          },
+        );
+      },
+    );
   }
-  socket.on("connect", sync);
+  socket.on("connect", () => sync());
   socket.on("disconnect", () => {
     clearTimeout(syncTimer);
     socket.sendBuffer = [];
     ready = false;
     authenticated = false;
     generation++;
-    if (!disposed) options.onStatus("reconnecting");
+    if (!disposed) options.onStatus(latest?.closed ? "invalid" : "reconnecting");
   });
   socket.on("connect_error", () => {
-    if (!disposed) options.onStatus("reconnecting");
+    if (!disposed) options.onStatus(latest?.closed ? "invalid" : "reconnecting");
+  });
+  let positionRevision = -1;
+  socket.on("room:positions", (update) => {
+    if (
+      !latest ||
+      !ready ||
+      disposed ||
+      update.matchId !== latest.id ||
+      update.revision < Math.max(latest.revision, positionRevision)
+    )
+      return;
+    positionRevision = update.revision;
+    latest = {
+      ...latest,
+      serverNow: update.serverNow,
+      crews: latest.crews.map((crew) => {
+        const position = update.crews.find((entry) => entry.id === crew.id);
+        return position ? { ...crew, ...position } : crew;
+      }),
+    };
+    options.onView(latest);
   });
   socket.on("room:snapshot", accept);
+  socket.on("room:closed", (view) => {
+    accept(view);
+    ready = false;
+    authenticated = false;
+    browserStorage.removeItem(`siege-session:${options.code}:${options.role}`);
+    options.onStatus("invalid");
+    socket.disconnect();
+  });
   function forgetPlayer() {
     options.token = undefined;
-    localStorage.removeItem(`siege-session:${options.code}:${options.role}`);
+    browserStorage.removeItem(`siege-session:${options.code}:${options.role}`);
     for (const request of pending.values())
       request.finish({
         ok: false,
@@ -171,24 +180,11 @@ export function createClientSession(options: SessionOptions) {
       ready = false;
       const epoch = generation;
       options.onStatus("resuming");
-      const result = await new Promise<ActionResult<Receipt>>((resolve) => {
-        const timer = setTimeout(
-          () =>
-            resolve({
-              ok: false,
-              code: "OFFLINE",
-              message: "Joining timed out. Retry with the same nickname.",
-            }),
-          12000,
-        );
-        socket.emit(
-          "session:join",
-          { code: options.code, name, bootstrapSecret: secret },
-          (ack) => {
-            clearTimeout(timer);
-            resolve(ack);
-          },
-        );
+      const result = await submitIdentity(socket, {
+        kind: "join",
+        code: options.code,
+        name,
+        bootstrapSecret: secret,
       });
       if (disposed || epoch !== generation) return false;
       if (!result.ok) {
@@ -198,6 +194,24 @@ export function createClientSession(options: SessionOptions) {
       }
       options.token = secret;
       authenticated = true;
+      sync();
+      return true;
+    },
+    async recover(recoveryCode: string, secret: string) {
+      if (!socket.connected || disposed) return false;
+      const epoch = generation;
+      const result = await submitIdentity(socket, {
+        kind: "recover",
+        code: options.code,
+        recoveryCode,
+        bootstrapSecret: secret,
+      });
+      if (disposed || epoch !== generation) return false;
+      if (!result.ok) {
+        notifyError(result.message, result.code);
+        return false;
+      }
+      options.token = secret;
       sync();
       return true;
     },
@@ -213,41 +227,11 @@ export function createClientSession(options: SessionOptions) {
         );
         return Promise.resolve(false);
       }
-      const env = { requestId: crypto.randomUUID(), matchId: latest.id, phaseId: latest.phaseId };
-      return new Promise((resolve) => {
-        let timer: ReturnType<typeof setTimeout> | undefined,
-          attempt = 0,
-          finished = false;
-        const finish = (result: ActionResult<Receipt>) => {
-          if (finished) return;
-          finished = true;
-          clearTimeout(timer);
-          pending.delete(env.requestId);
-          if (!result.ok && result.code === "OFFLINE") uncertain.add(env.requestId);
-          else uncertain.delete(env.requestId);
-          savePending();
-          if (!result.ok && result.code !== "STALE") notifyError(result.message, result.code);
-          resolve(result.ok);
-        };
-        pending.set(env.requestId, { phaseId: env.phaseId, finish });
-        savePending();
-        const transmit = () => {
-          if (disposed || latest?.id !== env.matchId || latest.phaseId !== env.phaseId) {
-            finish({ ok: false, code: "STALE", message: "Phase changed." });
-            return;
-          }
-          if (attempt++ >= 3) {
-            finish({
-              ok: false,
-              code: "OFFLINE",
-              message: "No confirmation received. Reconnect to check your accepted choice.",
-            });
-            return;
-          }
-          if (socket.connected && ready) send(env, finish);
-          timer = setTimeout(transmit, 4000);
-        };
-        transmit();
+      return requests.send(send, {
+        view: () => latest,
+        available: () => socket.connected && ready,
+        disposed: () => disposed,
+        sync,
       });
     },
     reconnect: sync,

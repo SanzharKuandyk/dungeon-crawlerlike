@@ -1,0 +1,147 @@
+.crew-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.crew-stage {
+  container: encounter / inline-size;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.crew-stage.own {
+  border-color: var(--team);
+}
+.crew-stage.selected {
+  outline: 2px solid var(--team);
+}
+.crew-stage header,
+.crew-stage footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+.crew-stage header {
+  border-bottom: 1px solid var(--border);
+}
+.crew-stage footer {
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+.crew-stage .team-badge {
+  height: 28px;
+  min-width: 28px;
+  font-size: 12px;
+}
+.crew-title {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  color: var(--team);
+  background: transparent;
+  justify-content: flex-start;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.crew-state {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+/* The canvas and touch targets share one battle surface. */
+.animated-battle {
+  padding: 0;
+  display: block;
+  background: white;
+  position: relative;
+  height: auto;
+  aspect-ratio: 1200 / 580;
+  min-height: 0;
+  overflow: hidden;
+}
+.animated-battle .dungeon-arena {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+.animated-battle .battle-intent {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: auto;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #777;
+  background: white;
+  font-size: 12px;
+}
+.battle-narration {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  right: 12px;
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: #18181b;
+  background: #ffffffeb;
+}
+.character-targets {
+  margin: 0;
+  min-width: 0;
+  border: 0;
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid #aaa;
+}
+.character-targets button {
+  min-height: 44px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.crew-readiness {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .animated-battle .battle-intent {
+    top: 4px;
+    left: 4px;
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  .battle-narration {
+    bottom: 3px;
+    font-size: 10px;
+  }
+}
+
+.animated-battle .dungeon-arena {
+  border: 0;
+  border-radius: 0;
+}
+.animated-battle canvas {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  object-fit: contain;
+}
+
+.combat-console .animated-battle {
+  width: 100%;
+  aspect-ratio: auto;
+}

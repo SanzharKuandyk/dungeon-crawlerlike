@@ -10,6 +10,7 @@ import {
 import { campAvailable } from "./expedition-map.js";
 import { finalizeDeaths, resolveStress } from "./stress-and-death.js";
 import { winningCamp } from "./voting.js";
+
 export function resolveCamp(s: MatchState) {
   lockResolution(s);
   beginEvents(s);

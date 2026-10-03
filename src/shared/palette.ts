@@ -1,20 +1,26 @@
 export const NEUTRALS = {
-  background: "#fafaf9",
+  background: "#ffffff",
   surface: "#ffffff",
   text: "#18181b",
   muted: "#65656b",
-  border: "#dedee2",
+  border: "#8b8b92",
   grid: "#eeeeef",
-  hover: "#f3f3f2",
+  hover: "#f4f4f4",
   primaryHover: "#343438",
   floor: "#f6f6f3",
-  selected: "#f5f5f4",
-  soft: "#f3f3ef",
-  strongBorder: "#a1a1aa",
+  selected: "#f4f4f4",
+  soft: "#ffffff",
+  strongBorder: "#3f3f46",
   pad: "#f0f0ed",
   onTeam: "#ffffff",
   overlay: "rgba(250, 250, 249, 0.8)",
   shadow: "rgba(24, 24, 27, 0.07)",
+  stoneWall: "#eeede8",
+  stoneFloor: "#e5e3db",
+  stoneLine: "#b8b6ae",
+  stoneBorder: "#d3d1c9",
+  intentSurface: "#f8f7f3",
+  contactShadow: "rgba(24, 24, 27, 0.15)",
 } as const;
 export const TEAM_COLORS = [
   { id: "blue", name: "Blue", hex: "#2563eb" },
@@ -30,3 +36,5 @@ export function teamColor(id: string) {
   return TEAM_COLORS.find((c) => c.id === id) ?? TEAM_COLORS[0];
 }
 export const colorNumber = (hex: string) => Number.parseInt(hex.slice(1), 16);
+
+export const ANSWER_COLORS = ["#275da8", "#9b5417", "#7150a0", "#147568"] as const;

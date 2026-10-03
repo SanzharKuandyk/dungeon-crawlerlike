@@ -8,6 +8,7 @@
   import ExpeditionMap from "../components/ExpeditionMap.svelte";
   import QuizCard from "../components/QuizCard.svelte";
   import RoundTimer from "../components/RoundTimer.svelte";
+  import { crewView } from "../crew-view.js";
   import { phaseInstruction, presentation } from "../event-presenter.js";
   import { preferences } from "../room.svelte.js";
   import ResultsScreen from "./ResultsScreen.svelte";
@@ -16,11 +17,19 @@
     view,
     embedded = false,
     onmanage,
-  }: { view: RoomView; embedded?: boolean; onmanage?: (id: string) => void } = $props();
+    hostController = null,
+    onrecover = () => {},
+  }: {
+    view: RoomView;
+    embedded?: boolean;
+    onmanage?: (id: string) => void;
+    hostController?: import("../host-controller.js").HostController | null;
+    onrecover?: (id: string) => void;
+  } = $props();
   let now = $state(Date.now()),
     received = $state(Date.now()),
     selected = $state<string | null>(null),
-    tab = $state<"board" | "map" | "log">("map"),
+    tab = $state<"board" | "map" | "log">("board"),
     page = $state(0),
     pageSize = $state(2),
     detail = $state<HTMLDialogElement | null>(null);
@@ -57,7 +66,11 @@
     ),
   );
   let quiz = $derived(
-    ["question-intro", "question", "explanation", "equipment", "return"].includes(view.phase.kind),
+    view.independent
+      ? view.quizActive
+      : ["question-intro", "question", "explanation", "equipment", "return"].includes(
+          view.phase.kind,
+        ),
   );
   let shownTab = $derived(
     view.status === "lobby" || view.status === "finished" || !view.expeditionMap
@@ -79,50 +92,56 @@
 </script>
 
 <section class="board-screen expedition-board">
-  <header class="expedition-heading">
-    <div>
-      <p class="eyebrow">
-        {embedded ? "" : `Room ${view.code} · `}{view.status === "lobby"
-          ? "Gather your crews"
-          : view.expeditionMap
-            ? `Chapter ${view.expeditionMap.chapter} · Room ${((view.depth - 1) % view.expeditionMap.rows) + 1}`
-            : `Depth ${view.depth} · Turn ${view.turn}`}
-      </p>
-      <h1>{phaseInstruction(view)}</h1>
-    </div>
-    <RoundTimer {view} />
-  </header>
+  <div class="board-toolbar">
+    <header class="expedition-heading">
+      <div>
+        <p class="eyebrow">
+          {embedded ? "" : `Room ${view.code} · `}{view.status === "lobby"
+            ? "Gather your crews"
+            : view.expeditionMap
+              ? view.independent
+                ? "Independent crews · secured treasure wins"
+                : `Chapter ${view.expeditionMap.chapter} · Room ${((view.depth - 1) % view.expeditionMap.rows) + 1}`
+              : `Depth ${view.depth} · Turn ${view.turn}`}
+        </p>
+        <h1>{phaseInstruction(view)}</h1>
+      </div>
+      {#if !view.independent || quiz}
+        <RoundTimer {view} />
+      {/if}
+    </header>
+    <nav class="board-tabs" aria-label="Board views">
+      {#if view.expeditionMap && view.status !== "lobby" && view.status !== "finished"}
+        <button
+          type="button"
+          class:chosen={shownTab === "map"}
+          aria-pressed={shownTab === "map"}
+          onclick={() => (tab = "map")}
+        >
+          Map
+        </button>
+      {/if}
+      <button
+        type="button"
+        class:chosen={shownTab === "board"}
+        aria-pressed={shownTab === "board"}
+        onclick={() => (tab = "board")}
+      >
+        Dungeon
+      </button>
+      <button
+        type="button"
+        class:chosen={tab === "log"}
+        aria-pressed={tab === "log"}
+        onclick={() => (tab = "log")}
+      >
+        Log
+      </button>
+    </nav>
+  </div>
   {#if view.status !== "lobby" && !view.expeditionMap}
     <DungeonProgress depth={view.depth} finished={view.status === "finished"} />
   {/if}
-  <nav class="board-tabs" aria-label="Board views">
-    {#if view.expeditionMap && view.status !== "lobby" && view.status !== "finished"}
-      <button
-        type="button"
-        class:chosen={shownTab === "map"}
-        aria-pressed={shownTab === "map"}
-        onclick={() => (tab = "map")}
-      >
-        Map
-      </button>
-    {/if}
-    <button
-      type="button"
-      class:chosen={shownTab === "board"}
-      aria-pressed={shownTab === "board"}
-      onclick={() => (tab = "board")}
-    >
-      Dungeon
-    </button>
-    <button
-      type="button"
-      class:chosen={tab === "log"}
-      aria-pressed={tab === "log"}
-      onclick={() => (tab = "log")}
-    >
-      Log
-    </button>
-  </nav>
   {#if view.expeditionMap && view.status !== "lobby" && view.status !== "finished"}
     <div hidden={shownTab !== "map"} class="board-panel map-board-panel">
       {#if quiz}
@@ -140,12 +159,14 @@
       <section class="inscription-panel">
         <QuizCard view={{ ...view, role: "projector" }} />
       </section>
-    {:else if view.status === "finished"}
+    {/if}
+    {#if view.status === "finished"}
       <ResultsScreen {view} />
-    {:else}
-      <p class="board-narration" aria-live="polite">
-        {current.message !== phaseInstruction(view) ? current.message : "\u00a0"}
-      </p>
+    {/if}
+    <div hidden={view.status === "finished"}>
+      {#if current.message !== phaseInstruction(view)}
+        <p class="board-narration" aria-live="polite">{current.message}</p>
+      {/if}
       <div class="crew-pages" class:single-page={pages === 1}>
         {#if pages > 1}
           <button
@@ -159,6 +180,8 @@
           </button>
         {/if}
         <CrewGrid
+          {hostController}
+          {onrecover}
           {view}
           arena={current.arena}
           actor={current.actor}
@@ -190,7 +213,7 @@
           of {current.arena.crews.length}
         </p>
       {/if}
-    {/if}
+    </div>
   </div>
   <div hidden={shownTab !== "log"} class="board-log">
     <EventLog {view} cursor={current.cursor} full />
@@ -206,7 +229,7 @@
       <button type="button" class="quiet" onclick={() => (selected = null)}>Close</button>
     </header>
     <DungeonArena
-      {view}
+      view={selected ? crewView(view, selected) : view}
       arena={current.arena}
       roomId={encounter?.id ?? null}
       actor={current.actor}

@@ -13,7 +13,7 @@ try {
   process.exitCode = 1;
 }
 if (server.http.listening) {
-  console.log(`Sector Siege: http://${config.host}:${config.port}`);
+  console.log(`Dungeon Crawlerlike: http://${config.host}:${config.port}`);
   if (config.testMode) console.log(`Solo playground: http://${config.host}:${config.port}/#/test`);
 }
 for (const signal of ["SIGINT", "SIGTERM"] as const)

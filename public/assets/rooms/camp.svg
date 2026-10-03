@@ -1,12 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580">
-  <title>Campfire</title>
-  <rect width="1200" height="580" fill="#f5f4ef" />
-  <g fill="none" stroke="#dedbd1" stroke-width="4">
+  <title>Original camp chamber</title>
+  <rect width="1200" height="580" fill="#fffdf7" />
+  <path d="M0 0h1200v430H0Z" fill="#f6f4ef" />
+  <g fill="none" stroke="#b8b5ac" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M35 430V150Q35 48 132 48h936q97 0 97 102v280" />
+    <path d="M58 430V161Q58 72 141 72h918q83 0 83 89v269" />
     <path
-      d="M0 400h1200M0 510h1200M50 400l-40 180M400 400l-30 180M800 400l30 180M1150 400l40 180"
+      d="M50 315h235m635 0h230M50 221h240m620 0h240M302 430V130m596 0v300"
+      stroke="#dfdcd4"
+      stroke-width="3"
     />
-    <path d="m120 395 50-240 110 240m650 0 70-270 110 270" />
+    <path d="M437 416V190Q600 13 763 190V416" fill="#e8edde" />
+    <path d="M467 417V205Q600 59 733 205V417" />
+    <path d="M550 407q-35-54 23-94q-5 47 33 64q15-30 7-52q71 48 28 82Z" fill="#e8bc6c" />
+    <path d="M532 411l126 12m-117 1 110-18" stroke="#7c6652" stroke-width="10" />
+    <path d="M143 363q60-40 120 0v33H143Z" fill="#dce4da" />
+    <path d="M0 430h1200" stroke="#77776f" />
+    <path
+      d="M0 494h1200M165 430 60 580m303-150-40 150m514-150 40 150m158-150 105 150"
+      stroke="#e2dfd5"
+      stroke-width="2"
+    />
+    <path d="M980 343q40-20 78 0v48h-78Z" fill="#e3ddd0" />
+    <path d="M969 343h99m-81 25h61" />
   </g>
-  <path d="m554 380 44-96 29 70 21-44 18 70Z" fill="#d7d1c3" stroke="#a7a296" stroke-width="3" />
-  <path d="m558 397 96-22m-96 0 96 22" stroke="#858077" stroke-width="9" />
 </svg>

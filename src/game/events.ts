@@ -1,11 +1,12 @@
-import type { GameEvent } from "../shared/event-types.js";
+import type { CombatEffect, GameEvent } from "../shared/event-types.js";
 import type { ArenaState, Crew, Hero, MatchState, RoomEncounter } from "../shared/game-types.js";
 
 type Payload =
   | { kind: "hero"; actor: string; hero: Hero }
   | { kind: "crew"; actor: string; crew: Crew }
   | { kind: "enemy"; actor: string | null; encounter: RoomEncounter }
-  | { kind: "story"; actor: string | null };
+  | { kind: "story"; actor: string | null }
+  | { kind: "effect"; actor: string; effect: CombatEffect };
 export function arenaState(s: MatchState): ArenaState {
   return structuredClone({ heroes: s.heroes, crews: s.crews, encounters: s.encounters });
 }
@@ -39,6 +40,16 @@ function append(
 }
 export function heroName(s: MatchState, h: Hero) {
   return s.players.find((p) => p.id === h.playerId)?.name ?? "Hero";
+}
+export function effectEvent(
+  s: MatchState,
+  actor: string,
+  effect: CombatEffect,
+  roomId: string | null,
+  at: number,
+  message: string,
+) {
+  append(s, { kind: "effect", actor, effect }, message, at, effect.type, roomId);
 }
 export function heroEvent(s: MatchState, h: Hero, message: string, at: number, cause = "action") {
   const c = s.crews.find((c) => c.id === h.crewId);

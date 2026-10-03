@@ -5,7 +5,9 @@ import { notifyError } from "../notify.js";
 import { type PlayerController, playerController } from "../player-controller.js";
 import { type ConnectionStatus, room } from "../room.svelte.js";
 import { type ClientSession, createClientSession } from "../session.js";
-import { botAction } from "./bots.js";
+import { browserStorage } from "../storage.js";
+import { botAction, botRoute } from "./bots.js";
+
 export type TestActor = {
   playerId: string;
   crewId: string;
@@ -63,8 +65,8 @@ export function createTestController() {
     state.busy = true;
     dispose();
     const epoch = generation;
-    if (reset) localStorage.removeItem("dungeon-test-bootstrap");
-    const stored = localStorage.getItem("dungeon-test-bootstrap");
+    if (reset) browserStorage.removeItem("dungeon-test-bootstrap");
+    const stored = browserStorage.getItem("dungeon-test-bootstrap");
     const input = stored
       ? JSON.parse(stored)
       : {
@@ -75,7 +77,7 @@ export function createTestController() {
             bootstrapSecret: secureSecret(),
           })),
         };
-    localStorage.setItem("dungeon-test-bootstrap", JSON.stringify(input));
+    browserStorage.setItem("dungeon-test-bootstrap", JSON.stringify(input));
     try {
       const response = await fetch("/api/test", {
         method: "POST",
@@ -147,23 +149,36 @@ export function createTestController() {
       const v = a.view,
         c = controllers.get(a.playerId);
       if (!a.auto || !c?.ready || !v || v.status !== "running" || a.pending) continue;
+      const offer = v.duels.find(
+        (duel) =>
+          duel.status === "offered" && duel.crewIds.includes(a.crewId) && duel.ownVote === null,
+      );
+      if (offer && v.hero?.status === "alive") {
+        void c.duelVote(offer.id, v.hero.hp >= 2 * v.hero.power);
+        continue;
+      }
       const key = `${a.playerId}:${v.phaseId}`;
       if (submitted.has(key)) continue;
       submitted.add(key);
       let task: Promise<boolean> | undefined;
       if (v.phase.kind === "route" && v.hero?.status === "alive") {
-        const offered = v.offeredRooms.filter(
-          (room) => !v.expeditionMap || v.reachableNodeIds.includes(room.id),
-        );
-        const index = state.actors
-          .filter((x, i, all) => all.findIndex((y) => y.crewId === x.crewId) === i)
-          .findIndex((x) => x.crewId === a.crewId);
-        task = c.route(
-          offered.find((r) => r.risk === ["low", "medium", "high", "low"][index])?.id ??
-            offered[0].id,
-        );
+        const destination = botRoute(v);
+        if (destination) task = c.route(destination);
       }
-      if (v.phase.kind === "combat") task = c.action(botAction(v));
+      if (v.phase.kind === "combat") {
+        const duel = v.duels.find(
+          (duel) => duel.status === "active" && duel.crewIds.includes(a.crewId),
+        );
+        if (duel) {
+          const rival = v.heroes.find(
+            (hero) => hero.crewId !== a.crewId && hero.status === "alive",
+          );
+          task = c.duelAction(
+            duel.id,
+            rival ? { kind: "strike", targetHeroId: rival.id } : { kind: "guard" },
+          );
+        } else task = c.action(botAction(v));
+      }
       if (v.phase.kind === "camp" && v.canCamp && v.hero?.status === "alive") {
         const crew = v.crews.find((x) => x.id === a.crewId);
         const wounded = v.heroes
@@ -176,7 +191,7 @@ export function createTestController() {
       if (
         v.phase.kind === "equipment" &&
         v.hero?.status === "alive" &&
-        v.quizResults.some((r) => r.crewId === a.crewId && r.tier !== "none")
+        (v.rewardCharges || v.inscriptionReward !== null)
       )
         task = c.equipment(v.hero.stress >= 3 ? "lantern" : "ward");
       if (task)
@@ -200,7 +215,19 @@ export function createTestController() {
       speed?: "normal" | "fast" | "manual",
     ) =>
       host?.command((env, ack) =>
-        host?.socket.emit("host:control", { ...env, action, speed }, ack),
+        action === "advance" || action === "speed"
+          ? host?.socket.emit(
+              "test:control",
+              {
+                ...env,
+                command:
+                  action === "advance"
+                    ? { kind: "advance" }
+                    : { kind: "speed", speed: speed ?? "normal" },
+              },
+              ack,
+            )
+          : host?.socket.emit("host:control", { ...env, command: { kind: action } }, ack),
       ),
     revealAnswer: () => {
       if (!host?.ready || !host.view) return;

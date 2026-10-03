@@ -6,7 +6,9 @@
   import type { PlayerRoomView } from "../../shared/view-types.js";
   import { actionLabel } from "../action-labels.js";
   import type { PlayerController } from "../player-controller.js";
+  import ActionIcon from "./ActionIcon.svelte";
   import CrewStage from "./CrewStage.svelte";
+  import DuelPanel from "./DuelPanel.svelte";
   import WithdrawalVote from "./WithdrawalVote.svelte";
 
   let {
@@ -70,6 +72,10 @@
     view.phaseId;
     if (pane) pane.scrollTop = 0;
   });
+  function chooseTarget(action: HeroAction) {
+    if (view.decisionReady) void controller.edit();
+    target = actionKey(action);
+  }
   let inputLocked = $derived(locked || !active);
   $effect(() => {
     if (phase !== view.phaseId || playerId !== view.self.id) {
@@ -79,11 +85,17 @@
       target = "";
     }
   });
+  let currentDuel = $derived(
+    view.duels.find(
+      (duel) => duel.status === "active" && duel.crewIds.includes(view.self.crewId ?? ""),
+    ),
+  );
 </script>
 <section
   class="combat-console stable-console"
   class:question-panel={panel === "question"}
   class:map-panel={panel === "map"}
+  class:phase-panel={panel === "phase"}
   aria-label="Expedition scene"
 >
   {#if crew}
@@ -95,10 +107,17 @@
       targetActions={active ? options : []}
       selectedAction={selected}
       locked={inputLocked}
-      onchoose={(action) => (target = actionKey(action))}
+      onchoose={chooseTarget}
     />
   {/if}
-  <div class="combat-hud" hidden={panel !== "combat"} class:awaiting-turn={!active}>
+  {#if currentDuel}
+    <DuelPanel {view} duel={currentDuel} {controller} {locked} />
+  {/if}
+  <div
+    class="combat-hud"
+    hidden={panel !== "combat" || !!currentDuel}
+    class:awaiting-turn={!active}
+  >
     <div class="action-tabs">
       {#each [attack, "brace", "loot", skill] as kind}
         <button
@@ -107,32 +126,42 @@
           aria-pressed={mode === kind}
           disabled={inputLocked || !view.legalActions.some((a) => a.kind === kind)}
           onclick={() => {
+            if (view.decisionReady) void controller.edit();
             mode = kind as HeroAction["kind"];
             target = "";
           }}
         >
-          {kind.replace("duel-", "")[0].toUpperCase() + kind.replace("duel-", "").slice(1)}
+          <ActionIcon {kind} />
+          <span
+            >{kind.replace("duel-", "")[0].toUpperCase() + kind.replace("duel-", "").slice(1)}</span
+          >
         </button>
       {/each}
     </div>
-    <p class="target-hint">
-      {!active
-        ? message
-        : options.some((a) => "targetHeroId" in a)
-          ? "Tap a highlighted hero to target."
-          : options.some((a) => "part" in a)
-            ? "Choose Body or Weak point on the enemy."
-            : mode === "brace"
-              ? "Reduce damage and stress this turn."
-              : "Compete for treasure. Collect only if you survive."}
-    </p>
+    <fieldset class="action-targets" aria-label="Enemy target">
+      {#each options.filter((action) => "part" in action) as action}
+        <button
+          type="button"
+          class:chosen={!!selected && actionKey(selected) === actionKey(action)}
+          aria-pressed={!!selected && actionKey(selected) === actionKey(action)}
+          disabled={inputLocked}
+          onclick={() => chooseTarget(action)}
+        >
+          {"part" in action && action.part === "body" ? "Body" : "Weak point"}
+        </button>
+      {/each}
+    </fieldset>
+    <p class="order-preview">{active ? actionLabel(selected, view) : message}</p>
     <button
       type="button"
       class="primary confirm-action"
-      disabled={inputLocked || !selected}
+      disabled={inputLocked || !selected || view.decisionReady}
+      aria-label={active
+        ? `Confirm · ${actionLabel(selected, view)}`
+        : "Waiting for the next choice"}
       onclick={() => selected && void controller.action(selected)}
     >
-      {active ? `Confirm · ${actionLabel(selected, view)}` : "Waiting for the next choice"}
+      <ActionIcon kind="confirm" />{view.decisionReady ? "Ready" : active ? "Confirm" : "Waiting"}
     </button>
     <div class="confirmed">
       <span
@@ -140,14 +169,18 @@
           ? "Expedition update"
           : view.selectedAction
             ? "Confirmed ✓"
-            : "Not confirmed yet"}</span
+            : "No action submitted"}</span
       ><strong aria-live="polite"
-        >{active ? actionLabel(view.selectedAction, view) : message}</strong
+        >{active
+          ? view.selectedAction
+            ? actionLabel(view.selectedAction, view)
+            : ""
+          : message}</strong
       >
     </div>
     <div class="crew-tactics">
       <button type="button" class="quiet tactics-trigger" popovertarget={`tactics-${view.self.id}`}>
-        Crew actions & withdrawal
+        <ActionIcon kind="crew" /><span>Crew</span>
       </button>
       <div class="tactics-content" id={`tactics-${view.self.id}`} popover="auto">
         <ul class="vote-list">

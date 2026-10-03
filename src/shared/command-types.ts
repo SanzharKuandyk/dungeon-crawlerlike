@@ -1,4 +1,5 @@
 import type { EquipmentKind } from "./game-types.js";
+
 export type EnemyPart = "body" | "weak-point";
 export type HeroAction =
   | { kind: "attack"; part: EnemyPart }

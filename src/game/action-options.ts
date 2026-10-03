@@ -1,6 +1,7 @@
 import type { HeroAction } from "../shared/command-types.js";
 import type { Hero, MatchState } from "../shared/game-types.js";
 import { encounterFor, fighting } from "./routes.js";
+
 export function legalActions(s: MatchState, h: Hero): HeroAction[] {
   if (!fighting(s, h))
     return [

@@ -22,6 +22,6 @@ export function readConfig(args = process.argv.slice(2)): Config {
     host,
     testMode,
     production: args.includes("--production"),
-    dataDir: option("--data-dir", "data/rules-v4"),
+    dataDir: option("--data-dir", "data/rules-v7"),
   };
 }

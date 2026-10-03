@@ -2,6 +2,7 @@ import type { Hero, MatchState } from "../shared/game-types.js";
 import type { CombatContext } from "./combat-context.js";
 import { spendCharge } from "./equipment.js";
 import { heroEvent, heroName } from "./events.js";
+
 export function absorb(s: MatchState, h: Hero, raw: number, ctx: CombatContext) {
   let remaining = raw;
   for (const barrier of ctx.barriers.get(h.id) ?? []) {

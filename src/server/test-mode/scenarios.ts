@@ -1,61 +1,74 @@
 import { startMatch } from "../../game/create-match.js";
-import { resolveCombat } from "../../game/resolve-combat.js";
+import { crewState, mergeCrewState } from "../../game/crew-state.js";
+import { reachableNodes } from "../../game/expedition-map.js";
 import { offerRooms, resolveRoutes } from "../../game/routes.js";
 import { finalizeDeaths } from "../../game/stress-and-death.js";
 import type { TestScenario } from "../../shared/protocol.js";
-import { enter } from "../room-clock.js";
+import { enterCrew, startCrews } from "../crew-clock.js";
+import { challenge, voteDuel } from "../duel-commands.js";
+import { progressDuels } from "../duel-coordinator.js";
+import { advanceQuestion, beginQuestion } from "../question-coordinator.js";
 import type { StoredRoom } from "../room-types.js";
+
 export function applyScenario(room: StoredRoom, scenario: TestScenario, now: number) {
   if (scenario === "fresh") return;
-  // These fixtures intentionally retain the original five-depth encounters.
-  delete room.state.expeditionMap;
-
+  room.speed = "manual";
   startMatch(room.state);
-  if (scenario === "rivalry") {
-    room.state.depth = 2;
-    room.state.seed = 1;
-    offerRooms(room.state);
-  }
-  if (scenario === "final") {
-    room.state.depth = 5;
-    for (const c of room.state.crews) {
-      c.securedTreasure = 20;
-      c.carriedTreasure = 5;
+  startCrews(room, now);
+  for (const run of Object.values(room.runs)) {
+    const state = crewState(room.state, run);
+    if (scenario === "final" && state.expeditionMap) {
+      state.depth = state.expeditionMap.rows;
+      const crew = state.crews[0];
+      let node = state.expeditionMap.nodes.find((entry) => entry.row === 1);
+      if (!node) throw new Error("Scenario needs a starting node");
+      const trail = [node.id];
+      while (node.row < state.depth - 1) {
+        const nextId: string = node.nextIds[0];
+        const next = state.expeditionMap.nodes.find((entry) => entry.id === nextId);
+        if (!next) throw new Error("Scenario path is disconnected");
+        node = next;
+        trail.push(node.id);
+      }
+      crew.mapPosition = { chapter: 1, nodeId: node.id, trail };
+      crew.securedTreasure = 20;
+      crew.carriedTreasure = 5;
+      offerRooms(state);
+      mergeCrewState(room.state, run, state);
+      enterCrew(room, run, { kind: "route" }, now);
+      continue;
     }
-    offerRooms(room.state);
-    enter(room, { kind: "route" }, now);
-    return;
-  }
-  enter(room, { kind: "route" }, now);
-  for (const [index, c] of room.state.crews.entries()) {
+    const reachable = reachableNodes(state, run.crewId);
     const target =
-      scenario === "rivalry"
-        ? room.state.offeredRooms.find((v) => v.risk === (index < 2 ? "high" : "low"))
-        : scenario === "split"
-          ? room.state.offeredRooms[index % 3]
-          : room.state.offeredRooms.find(
-              (v) => v.risk === (scenario === "critical" ? "high" : "low"),
-            );
-    for (const id of c.playerIds) room.state.routeVotes[id] = target?.id ?? "";
+      reachable.find((node) => node.room.risk === (scenario === "critical" ? "high" : "low")) ??
+      reachable[0];
+    for (const player of state.players) state.routeVotes[player.id] = target.id;
+    resolveRoutes(state);
+    state.before = null;
+    state.events = [];
+    if (scenario === "critical") {
+      state.heroes[0].hp = state.heroes[0].power;
+      state.heroes[0].stress = 5;
+      if (state.heroes[1]) state.heroes[1].hp = 0;
+      finalizeDeaths(state);
+    }
+    if (scenario === "treasure") state.crews[0].carriedTreasure = 5;
+    mergeCrewState(room.state, run, state);
+    enterCrew(room, run, { kind: "combat" }, now);
   }
-  resolveRoutes(room.state);
-  enter(room, { kind: "combat" }, now);
-  if (scenario === "critical") {
-    const first = room.state.heroes[0];
-    first.hp = first.power;
-    first.stress = 5;
-    const second = room.state.heroes[1];
-    second.hp = 0;
-    finalizeDeaths(room.state);
+  if (scenario === "duel") {
+    room.state.learningEnabled = false;
+    for (const run of Object.values(room.runs)) enterCrew(room, run, { kind: "return" }, now);
+    const [first, second] = room.state.crews;
+    challenge(room, first.playerIds[0], second.id, now);
+    const duel = room.duels[0];
+    for (const id of [...first.playerIds, ...second.playerIds])
+      voteDuel(room, id, duel.id, true, now);
+    progressDuels(room, now);
   }
-  if (scenario === "treasure") for (const c of room.state.crews) c.carriedTreasure = 5;
   if (scenario === "question") {
-    for (const h of room.state.heroes)
-      room.state.actions[h.playerId] = { kind: "attack", part: "weak-point" };
-    room.state = resolveCombat(room.state).state;
-    room.state.quizContinuation = "next-combat-turn";
-    const id = room.state.quizQuestionId;
-    if (!id) throw new Error("Question fixture failed.");
-    enter(room, { kind: "question", questionId: id }, now);
+    room.discovery = { cause: "A seal breaks. An inscription is revealed.", depth: 1 };
+    beginQuestion(room, now);
+    advanceQuestion(room, now);
   }
 }

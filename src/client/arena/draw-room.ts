@@ -1,6 +1,7 @@
 import type Phaser from "phaser";
 import type { RoomEncounter } from "../../shared/game-types.js";
 import { NEUTRALS } from "../../shared/palette.js";
+
 export function drawRoom(
   scene: Phaser.Scene,
   layer: Phaser.GameObjects.Container,

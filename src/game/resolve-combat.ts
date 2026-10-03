@@ -2,8 +2,9 @@ import type { MatchState } from "../shared/game-types.js";
 import { actionKey, legalActions } from "./action-options.js";
 import { combatContext } from "./combat-context.js";
 import { applyEnemyActions } from "./enemy-actions.js";
+import { damageEnemies } from "./enemy-damage.js";
 import { beginEvents, crewEvent, enemyEvent, finalizeEvents, lockResolution } from "./events.js";
-import { applyAid, applyHeroActions, damageEnemies } from "./hero-actions.js";
+import { applyAid, applyHeroActions } from "./hero-actions.js";
 import { chooseQuestion } from "./learning.js";
 import { awardLoot } from "./loot.js";
 import { rewardMastery } from "./mastery.js";
@@ -12,6 +13,7 @@ import { applyRivalryDamage, rivalryOutcome } from "./rivalry.js";
 import { fighting } from "./routes.js";
 import { finalizeDeaths, resolveStress } from "./stress-and-death.js";
 import { applyWithdrawals } from "./withdrawal.js";
+
 export function resolveCombat(input: MatchState) {
   const s = structuredClone(input);
   lockResolution(s);

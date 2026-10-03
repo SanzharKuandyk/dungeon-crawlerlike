@@ -1,116 +1,147 @@
-# Sector Siege · Dungeon Expedition
+# Dungeon Crawlerlike · Dungeon Expedition
 
-A laptop-hosted competitive dungeon game. Each student controls one character on a phone or laptop. Crews of 1–4 choose rooms together, fight shared enemies, compete for treasure, and decide what to secure. There is no fixed crew limit; see [measured verification](docs/verification.md).
+A competitive dungeon expedition for phone, tablet, and laptop. Each student controls one character. Crews contain 1–4 members; there is no hard-coded crew limit. Crews explore independently, and members fight together inside their own encounter. Most secured treasure wins.
 
-## Launch
+## Run
 
-Run from C:\Projects\salvage-heist with the pinned Node 24 runtime and npm dependencies:
+From `C:\Projects\lectures\dungeon-crawlerlike`:
 
-~~~powershell
+```powershell
 npm ci
 npm run dev
-~~~
+```
 
-Open http://localhost:3000. Create a room, invite students, and press **Start expedition** after everyone joins a crew. The host and projector show two crews at a time (one on narrow screens), with side arrows for other crews. **Dungeon** shows the board; **Log** shows narrated history. The timer and depth trail stay visible in either view. Clicking a crew opens its encounter in a dialog; Close or Escape returns to the board. **Invite** opens the QR/link; **Projector** opens the public board. The host can pause, resume, or end. All other phases advance automatically.
+Open http://localhost:3000 and click **Host a match**. It creates your room immediately, with no key or account, including when opened through a tunnel. Invite players, then start after they choose crews and classes. The host can pause, resume, or end the session. **Invite** shows the QR/link; **Projector** opens the public board. Click a crew tile for its encounter. Map, Dungeon, and Log stay separate.
 
-~~~powershell
+Production:
+
+```powershell
 npm run build
 npm start
-~~~
+```
 
-Use npm ci to restore the exact lockfile. No dependency upgrade is needed.
-
-## Developer playground
-
-~~~powershell
-npm.cmd run dev -- --test
-npm.cmd run dev -- --test --port 3001
-npm.cmd start -- --test
-~~~
-
-Open the displayed /#/test URL, click **Join test match**, then **Start**. Four crews contain 1, 2, 3, and 4 characters. Every identity has its own authenticated connection and pending requests. Crew/member buttons control anyone, including spirits. Selecting a character takes manual control; **Auto** returns it to a deterministic bot. Other sessions remain connected.
-
-Choose classes in the lobby. During play, use the normal controls for rooms, actions, withdrawal votes, answers, equipment, and camp decisions. The collapsed **Test debugger** contains normal/fast/manual speed, Next phase, disconnect/reconnect, answer inspection, and scenarios: Fresh expedition, Split rooms, Treasure contest, Critical health, Question reward, Final depth, Lethal rivalry. Manual mode never advances automatically. Reset creates a fresh in-memory match.
-
-PowerShell may consume arguments through npm.ps1; use npm.cmd with --test, --host, or --port. npm test runs automated verification; --test enables interactive play. Test routes and controls are absent in normal mode. Test mode refuses non-loopback binding.
+Use the pinned dependencies and Node 24 runtime. PowerShell users should use `npm.cmd` when passing arguments. For LAN access: `npm.cmd run dev -- --host 0.0.0.0`. An Invite join-base URL changes generated links only. This project does not configure tunnels.
 
 ## Play
 
-New expeditions use an endless branching map. Each chapter has ten room positions across three connected lanes, converging at a guardian. Crews start together, vote for a connected destination, and keep their own position and traveled route. The player scene becomes the map during route voting, with reachable destinations, personal votes, vote counts, and the leading crew choice. Future nodes can be inspected without voting. Missing votes abstain; ties rotate among living members. With no votes, the crew prefers a reachable camp, then a low-risk destination, then the first connected node.
+One chapter has ten ascending room positions and connected route choices. The same seeded map gives crews the same opportunities. Battles, elites, caches, mysteries, camps, and a final guardian offer different risks. Surviving crews automatically secure their remaining treasure after room ten; there is no endless score farming. Finished crews wait for the remaining crews. Eliminated crews keep secured treasure; ties share the win.
 
-The teacher's **Map** tab shows every crew's symbol and position; select a crew in the legend to locate it and highlight its trail. **Dungeon** retains the encounter views, and **Log** retains event history. Map movement stays inside its own viewport. Crews choose different branches and fight separate enemies even when they visit the same map node. Classroom phases still share a timer.
+Members confirm route votes, personal combat actions, camp votes, and equipment choices. All living members ready means immediate resolution. A member can edit before the crew locks; that removes their readiness. There is no speed score. The optional classroom fallback locks idle decisions after 60 seconds. An absent member receives a safe default after 15 seconds while teammates remain connected. A fully disconnected crew suspends at its next decision. Spirits can submit aid but never block living teammates from proceeding.
 
-Map rooms include normal battles, tougher elites, camps, treasure caches, mystery chambers, and chapter guardians. Caches grant carried treasure and equipment to unequipped survivors. Mystery chambers deterministically reveal a cache, healing shrine, or ambush. Camp choices are available only to crews that reached a camp, plus surviving crews at the guardian checkpoint. After the checkpoint another chapter opens, preserving heroes, injuries, gear, mastery, and treasure. Enemy health increases each chapter, with additional damage every third chapter. There is no automatic final extraction: the teacher ends the expedition, or it ends when every crew is eliminated. Only secured treasure scores.
+Attack the body to kill; attack the weak point to remove the announced modifier. Breaking a Sentinel seal on its heavy-strike turn interrupts that strike. Brace or Protect absorbs damage. Loot sacrifices damage for carried treasure; Devourers punish looters while their weak point survives. Mend, Hex, Pilfer, Skirmish, and Channel give classes distinct choices. Encounters last at most four turns. Withdrawal requires a living-member majority and preserves carried treasure, but gives no victory purse.
 
-Existing saved expeditions without the `branching-v1` map retain the original five-depth rules. Their authored doors can share encounters and trigger the existing rivalry rules. Classic debugger scenarios also retain those rules; **Fresh expedition** previews the new map.
+Crews start with equal total health and basic attack strength regardless of size. Power and class eligibility freeze at start. Healing, actual damage protection, and attacks earn participation toward victory purses. Loot alone does not. Surviving victors gain up to two mastery ranks and choose equipment after a victory: one charge normally, two after an elite or guardian. Ward blocks damage, Salve heals a wounded survivor, and Lantern reduces dangerous stress. Charges spend only when useful.
 
-Each character chooses Attack, Brace, Loot, or a class skill. Enemy intent and its weak-point modifier are announced before choices. Breaking the weak point disables that modifier immediately; destroying the body cancels the attack. Rooms last at most four combat turns. Missing fighting actions become Brace. Attacks resolve simultaneously.
+At camp, Secure banks carried treasure, Rest heals and calms the crew, or Bargain trades stress for damage next room. Six stress causes panic damage. Individual deaths are permanent: spirits may Ward living fighters in their own crew. Losing the last member discards carried treasure. An eliminated student can still answer shared questions; eliminating a crew early can leave that crew waiting, which remains a classroom playtest concern.
 
-| Class | Skill |
-|---|---|
-| Knight | Protect a living character in the same room |
-| Physician | Mend a living character in the same room |
-| Occultist | Hex an enemy part; gain stress |
-| Scavenger | Pilfer: damage the body and claim treasure |
-| Wanderer | Skirmish: damage, self barrier, and stress; crews of 1–2 |
-| Exorcist | Channel: damage, self healing, and stress removal; crews of 1–2 |
+Actual weak-point breaks, victories, or treasure discoveries can reveal up to three shared inscriptions before final extraction. The class pauses at a safe decision boundary, after active reveals finish. Every student, including spirits, answers privately. Answers lock when everyone has answered or after 35 seconds. Solutions are never sent early. Choose an explicit pact before answering: Study gives one charge for a correct answer and has no health cost. Blood pays your displayed power in HP at answer lock, gives one charge regardless of correctness, and a second for a correct answer. Blood requires enough health to pay without dying. Missing answers cost nothing and earn nothing. Each living character chooses their own equipment. Crew correctness remains visible for learning, but does not override personal pacts. Saved crew choices resume afterward. Learning can be disabled in the lobby.
 
-Crew sizes have equal starting totals: 48 health and 24 basic attack damage. Each student makes their own choice. Numbers freeze at start; death/disconnect never rescales them. Joining a third member resets restricted classes to Knight with a visible notice.
+Combat uses one persistent Phaser renderer for player views, host tiles, and encounter details. Reveals lasting 6.8 seconds (8 seconds for deaths or interrupts) show windup, movement/projectiles, hits, protection, healing, panic, and death. Displayed health and scores change at event impact. Reconnection seeks the current timeline. Reduced motion retains the same information and timing.
 
-New expeditions add two mastery ranks. Surviving members of a crew that qualifies for a victory purse gain one rank after a successful encounter, up to two. Each rank adds a power-scaled bonus to attacks, healing and living barriers; base power, class and maximum health stay frozen. Mastery starts working at the next combat choice. The depth trail and mastery stars show progress.
+## Developer playground
 
-In classic expeditions, one seeded depth among 2–4 marks the high-risk door for a possible lethal rivalry. The warning appears before voting. If exactly two crews enter that door, they fight each other instead of an enemy; otherwise the usual encounter spawns. Rival attacks target living opponents and resolve simultaneously, with the normal class skills, protection, equipment, spirit aid and withdrawal rules. A qualifying surviving victor earns 10 + depth carried treasure. Mutual elimination, withdrawal and four-turn timeouts grant no rivalry purse. Secured scores survive defeat. The new branching map uses separate crew encounters instead of automatic rivalries.
+```powershell
+npm.cmd run dev -- --test
+npm.cmd run dev -- --test --port 3001
+npm.cmd start -- --test
+```
 
-Treasure bundles reward the strongest surviving claims, with rotating ties and at most one bundle per crew per turn. Loot sacrifices an attack; Devourers punish treasure hunters until their weak point breaks. Meaningful damage, healing, and absorbed living barriers build a participation meter for victory purses. Loot-only and spirit aid earn no participation credit.
+Open the displayed `/#/test` URL, join, then Start. Four crews contain 1, 2, 3, and 4 characters. Every player has a separate authenticated session. Switch crew/member to control anyone, including spirits; Auto returns that player to a bot. Other connections stay alive. Bots submit through the same validated Socket.IO events as humans.
 
-Death is permanent. Fallen students become spirits and can Ward living fighters anywhere. Completed or withdrawn crews can send aid while waiting at camp. Strictly more than half of living members must vote to withdraw; it adds stress, preserves carried treasure, and earns no victory purse.
+The collapsed debugger provides normal/fast/manual pacing, phase advance, disconnect/reconnect, answer inspection, and fresh/split/treasure/critical/question/final/duel scenarios. Nonfresh fixtures start in manual mode so they remain inspectable. Manual mode advances only through the debugger. Reset creates a new in-memory match. Classroom saves are never used by fixtures. Test routes are absent in normal mode; test mode refuses non-loopback binding.
 
-At map camps and guardian checkpoints, crews choose **Secure** (bank treasure), **Rest** (heal and reduce stress), or **Bargain** (gain stress for extra damage next room). Stress reaching six causes barrier-ignoring panic damage and resets to three. Losing the last living member discards carried treasure; secured treasure remains. Classic expeditions instead offer camp after depths 1–4 and automatic extraction after depth 5. Highest secured treasure wins; ties share victory. Ending an expedition counts secured treasure only.
+`npm test` runs automated tests. `--test` starts the interactive playground.
 
-## Inscriptions and equipment
+## Optional crew duels
 
-An actual weak-point break, enemy defeat, or treasure discovery can reveal one inscription per depth at depths 1–4. Its cause is narrated before the question appears over the existing board. The original 15 Week 4 questions retain topic and slide references; the deck shuffles once and never repeats. Solutions stay server-only until answers lock.
+After an encounter, challenge another crew still at the same normal or elite battle node.
+Challenges appear in the crew-meeting section. A strict majority of living members in each
+crew must agree; anyone can decline. Every living fighter must have at least half health at entry. Offers expire after 30 seconds (paused during a host
+pause or shared question). Leaving the node cancels an offer. A duel starts only when both
+crews finish their encounter and equipment decision. Other crews continue exploring.
 
-Every registered student, including spirits, answers privately once. Perfect crews earn two charges; partly correct crews earn one; missing answers count as incorrect. Each living member chooses Ward, Salve, Lantern, or Keep current. Ward absorbs damage after barriers, Salve heals a surviving wounded hero, Lantern lowers dangerous stress before panic. Charges are spent only when useful; rewards activate at the next combat decision. First treasure bundles also grant Ward to surviving unequipped members. Questions grant no score. Learning can be disabled before starting.
+Each crew wagers up to three carried treasure. There are three simultaneous exchanges:
+Strike deals twice your power, Guard blocks twice your power in total, and Feint deals your
+power while ignoring Guard. Each student selects a rival or guards. Missing actions guard
+after 45 seconds. Dungeon equipment and class skills are reserved for dungeon encounters.
+Health cannot fall below one; the crew removing the larger fraction of the rival crew’s starting expendable health wins the stakes. Attack overflow reaches other rivals, so a solo hero does not waste its crew-sized damage. Draws
+return them. Secured treasure cannot be wagered. Both saved dungeon continuations resume.
 
-Normal phases: route 25s, arrival 4s, combat 45s, reveal 10s, recap 3s, floor result 6s, camp 25s, camp reveal 6s, extraction 10s. Inscriptions add 2s introduction, 35s answering, 8s explanation, 20s equipment, 2s return. Map caches and shrines skip combat; crews outside camp nodes do not receive camp choices. Endless expeditions have no fixed duration; pause or end from the teacher controls when needed. The original five-depth expedition targets 24–29 minutes.
+Each pair can receive only one challenge per expedition. A crew may participate in at most
+two offers total, including declined offers. After a completed duel, two further rooms are
+protected. Camps, caches, mysteries and the guardian cannot host challenges. These bounds
+make this a deliberately small consent-based PvP prototype, not a forced ambush system.
 
-## Hosting and recovery
+## Original art and inscriptions
 
-One Node process serves Vite during development or built files in production, plus Socket.IO. Loopback is default. For LAN access:
+Enemy silhouettes, chamber motifs, and equipment/seal icons use original simple curves and
+geometric strokes. No downloaded artwork or commercial-game assets were introduced. Answer
+colors consistently identify A/B/C/D; they do not signal correctness. Reduced motion disables
+the theatrical transitions without changing result timing. The map distinguishes current,
+visited and reachable nodes; public position updates keep other crews visible between your
+own actions. Inspect a node for crew names and member counts.
 
-~~~powershell
-npm.cmd run dev -- --host 0.0.0.0
-~~~
+The 15 questions are newly authored applied game-development scenarios: input ownership,
+control clarity, prototyping, feedback, authority, performance, accessible controls, balance,
+state management, production, fairness, data definitions, request recovery, risk/reward, and
+playtesting. They are labelled original course practice. No claim of exact Week 4 slide
+alignment is made: the lecture source files were not available at the inspected project paths.
+Review their curricular coverage before using them for assessment.
 
-Set **Invite → Join base URL** to the laptop's reachable origin if needed. This sets links only; no hosting or tunnel configuration is included.
+## Sessions and storage
 
-Separate host/player credentials stay in browser storage and are hashed server-side. Reconnection restores accepted inputs. Latest authenticated tab controls an identity; previous tabs become read-only. Host disconnection does not stop the class. Offline gameplay actions are not buffered. Requests use match/phase/request IDs, bounded same-phase retries, and durable receipts; changed payloads cannot reuse IDs.
+Host and player tokens stay in separate browser storage and are hashed server-side. A second tab is read-only until explicit takeover. Accepted inputs survive reconnection; offline gameplay is not buffered. Requests contain match, phase, and request IDs; payload-changing ID reuse is rejected. Lost acknowledgments recover from durable receipts, including when the action already advanced the phase.
 
-Schema 4 / dungeon-v1 saves live in ignored data/rules-v4/. Earlier saves and the existing backup are untouched and never reinterpreted. Matches freeze content. Atomic writes and per-room queues serialize mutations; successful acknowledgments follow saves. Restart restores active expeditions paused. Save failure pauses its room and displays an error. Never run two servers against one save directory.
+Explicit End closes mutation authority and scores already secured treasure; results remain viewable. If the controlling host disconnects, students continue for 90 seconds, then the expedition pauses with all progress preserved. Reconnect and press Resume. Restart restores active expeditions paused at their last durable save, including accepted inputs, question state, duel stakes and elapsed reveals. Offline wall-clock time does not consume phases. Host reconnection never automatically resumes a paused room.
 
-## Architecture and checks
+New saves use schema 7, `dungeon-v2`, and ignored `data/rules-v7/`. Older save directories remain untouched. Content is frozen into each room. The per-room queue orders mutations, batches queued writes, and atomically saves state plus receipts before acknowledging. Failed saves pause only the affected room and show a persistent error. Do not run two servers against the same save directory.
 
-src/shared defines contracts, validation, and palette. src/game contains deterministic rules/projections. src/server owns authentication, deadlines, queues, persistence. src/client contains scoped player controllers and Svelte screens; Phaser renders presented outcomes. Crew tiles use original SVG characters/rooms, with no copied commercial game assets.
+## Hosting and moderation
 
-Reveals use a fixed timeline, presentation start frame, and typed events. Health, treasure, narration, and history seek to server time on reconnect. Private inputs stay out of rival/projector projections. Reduced motion preserves outcome timing. Earlier event pages remain readable without forced scrolling.
+**Host a match** creates a room in one click. Anyone with the game URL can create their own
+room; each room's host controls require its private session token. Joining an existing room
+does not grant host rights. Creation retries use the same saved bootstrap secret.
 
-~~~powershell
-npm run format
+The separate private key in `data/host-access.key` is only for recovering host access if browser
+storage is lost. Normal hosting and refresh do not need it. Never put it in a join URL.
+
+The host toolbar has Pause/Resume, Invite, and More. More contains lobby learning/pacing
+settings, new-PvP policy, question skipping before answers lock, and confirmed End.
+Each crew tile's three-dot menu offers crew pause/resume, +30 seconds on timed decisions,
+forced missing-choice defaults, duel cancellation before settlement, and device recovery.
+A duel pause affects both crews. Cancellation refunds stakes once and retains committed
+health damage. Completed question costs/rewards cannot be rewritten. Interventions appear
+once in the shared log.
+
+For a replacement student device, select the student in the crew menu and generate a private
+12-character code. The student opens the room, expands **Reconnect on a replacement device**,
+and enters it within five minutes. The existing character and choices return; the previous
+device loses authority. Codes are hashed in saves and absent from projector snapshots.
+
+If host browser storage is lost, expand **Recover a hosted room** on the home screen. Enter the
+room code and the recovery key from `Get-Content .\data\host-access.key` on the server laptop.
+This rotates host access and leaves play paused until Resume.
+Read-only tabs do not count as controlling presence. The Connections panel shows offline
+players; save failures stay in persistent banners.
+
+Gameplay uses a 20-request burst/10 per second per identity. Authentication allows five attempts
+per ten seconds per socket; recovery allows five attempts per minute per socket and twenty per
+room. This server allows five new rooms per minute. Pending room work is
+capped at 512 commands. Successful duplicate receipts bypass gameplay throttling.
+
+## Development and verification
+
+`src/shared` owns contracts; `src/game` owns deterministic rules; `src/server` owns sessions, clocks, persistence, and independent crew scheduling. `src/client` owns scoped input and presentation. Phaser never decides gameplay. The implementation uses the existing libraries, without adding a state-machine framework or dependency-injection layer.
+
+```powershell
 npm run lint
 npm run check
 npm test
 npm run build
 npm run test:e2e
 npm run test:load
-~~~
+```
 
-Playwright requires Chromium (npm exec playwright install chromium if missing). The load harness uses real clients and temporary atomic saves, advancing an injected server clock after commands finish. Reports/screenshots go to ignored test-results/. .Codex/ is ignored temporary development planning; it is not imported, served, built, or required by the application.
+`npm run format` applies Biome. Playwright needs Chromium, or set `$env:HEIST_BROWSER_CHANNEL = "msedge"` for installed Edge. The load harness uses real clients, temporary atomic saves, an injected clock, and deterministic choices. It includes a simultaneous student reconnect burst and a 20ms client-side ACK-delivery delay, and reports measured latency rather than claiming unlimited capacity. See [verification](docs/verification.md).
 
-To run browser checks with an already installed Microsoft Edge instead of downloading Chromium:
-
-~~~powershell
-$env:HEIST_BROWSER_CHANNEL = "msedge"
-npm.cmd run test:e2e
-~~~
-
+`.Codex/` contains ignored temporary planning only. It is not imported, served, built, or required at runtime. Screenshots and measurement reports are in ignored `test-results/`.

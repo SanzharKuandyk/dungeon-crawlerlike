@@ -4,8 +4,11 @@
   import { NEUTRALS } from "../../shared/palette.js";
   import type { HostRoomView } from "../../shared/view-types.js";
   import HostRoster from "../components/HostRoster.svelte";
-  import { hostControl } from "../connection.js";
+  import HostStatusPanel from "../components/HostStatusPanel.svelte";
+  import HostToolbar from "../components/HostToolbar.svelte";
+  import PlayerRecoveryDialog from "../components/PlayerRecoveryDialog.svelte";
   import { room } from "../room.svelte.js";
+  import { browserStorage } from "../storage.js";
   import ProjectorScreen from "./ProjectorScreen.svelte";
 
   let { view }: { view: HostRoomView } = $props();
@@ -14,6 +17,8 @@
   let joinUrl = $derived(`${base.replace(/\/$/, "")}/#/room/${view.code}`);
   let locked = $derived(room.status !== "ready" || view.readOnly || room.pending > 0);
   let waiting = $derived(view.players.filter((p) => !p.crewId));
+  let recoveryPlayer = $state<string | null>(null);
+  let controller = $derived(room.hostController);
   let rosterOpen = $state(false),
     rosterCrew = $state<string | null>(null);
   $effect(() => {
@@ -33,7 +38,7 @@
       cancelled = true;
     };
   });
-  onMount(() => (base = localStorage.getItem(`siege-join-base:${view.code}`) ?? location.origin));
+  onMount(() => (base = browserStorage.getItem(`siege-join-base:${view.code}`) ?? location.origin));
 </script>
 <section class="host-screen">
   <div class="host-bar">
@@ -53,23 +58,16 @@
           id="join-base"
           type="url"
           bind:value={base}
-          onchange={() => localStorage.setItem(`siege-join-base:${view.code}`, base)}
+          onchange={() => browserStorage.setItem(`siege-join-base:${view.code}`, base)}
         >
       </section>
     </details>
+    {#if controller}
+      <HostToolbar {view} {controller} {locked} />
+    {/if}
     {#if view.status === "lobby"}
       <a class="button" href={`#/room/${view.code}`} target="_blank" rel="noopener"
         >Join as player ↗</a
-      >
-    {/if}
-    {#if view.status === "lobby"}
-      <label class="checkbox"
-        ><input
-          type="checkbox"
-          checked={view.learningEnabled}
-          disabled={locked}
-          onchange={(e) => void hostControl("learning", { enabled: e.currentTarget.checked })}
-        >Inscriptions</label
       >
       <button
         type="button"
@@ -81,47 +79,29 @@
       >
         Manage crews
       </button>
-      <button
-        type="button"
-        class="primary"
-        disabled={locked || !view.crews.length || waiting.length > 0}
-        onclick={() => void hostControl("start")}
-      >
-        Start expedition
-      </button>
-    {:else if view.status === "running"}
-      <button type="button" disabled={locked} onclick={() => void hostControl("pause")}>
-        Pause
-      </button>
-    {:else if view.status === "paused"}
-      <button
-        type="button"
-        class="primary"
-        disabled={locked}
-        onclick={() => void hostControl("resume")}
-      >
-        Resume
-      </button>
-    {/if}
-    {#if view.status === "running" || view.status === "paused"}
-      <details class="end-menu">
-        <summary>End</summary>
-        <button type="button" disabled={locked} onclick={() => void hostControl("end")}>
-          End expedition · secured scores only
-        </button>
-      </details>
     {/if}
   </div>
   {#if waiting.length}
     <p class="waiting-crews">{waiting.map((p) => p.name).join(", ")} · choosing a crew</p>
   {/if}
+  <HostStatusPanel {view} />
   <ProjectorScreen
     {view}
     embedded
+    hostController={controller}
+    onrecover={(id) => (recoveryPlayer = id)}
     onmanage={(id) => {
       rosterCrew = id;
       rosterOpen = true;
     }}
   />
+  {#if recoveryPlayer && controller}
+    <PlayerRecoveryDialog
+      playerId={recoveryPlayer}
+      name={view.players.find((p) => p.id === recoveryPlayer)?.name ?? "Player"}
+      {controller}
+      onclose={() => (recoveryPlayer = null)}
+    />
+  {/if}
   <HostRoster {view} bind:open={rosterOpen} crewId={rosterCrew} {locked} />
 </section>

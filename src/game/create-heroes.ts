@@ -1,5 +1,6 @@
 import { POWER } from "../shared/constants.js";
 import type { MatchState } from "../shared/game-types.js";
+
 export function createHeroes(s: MatchState) {
   s.heroes = [];
   for (const c of s.crews) {

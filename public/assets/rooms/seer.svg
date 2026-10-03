@@ -1,76 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580">
-  <title>seer dungeon</title>
-  <rect width="1200" height="580" fill="#f4f3ef" />
-  <path d="M0 0h1200v430H0z" fill="#eae8e1" />
-  <g stroke="#d3d1c9" stroke-width="2" fill="none">
-    <path d="M0 60h1200" />
-    <path d="M0 125h1200" />
-    <path d="M0 190h1200" />
-    <path d="M0 255h1200" />
-    <path d="M0 320h1200" />
-    <path d="M0 385h1200" />
-    <path d="M90 60v65" />
-    <path d="M260 60v65" />
-    <path d="M430 60v65" />
-    <path d="M770 60v65" />
-    <path d="M940 60v65" />
-    <path d="M1110 60v65" />
-    <path d="M90 190v65" />
-    <path d="M260 190v65" />
-    <path d="M430 190v65" />
-    <path d="M770 190v65" />
-    <path d="M940 190v65" />
-    <path d="M1110 190v65" />
-    <path d="M90 320v65" />
-    <path d="M260 320v65" />
-    <path d="M430 320v65" />
-    <path d="M770 320v65" />
-    <path d="M940 320v65" />
-    <path d="M1110 320v65" />
-    <path d="M0 125v65" />
-    <path d="M175 125v65" />
-    <path d="M345 125v65" />
-    <path d="M855 125v65" />
-    <path d="M1025 125v65" />
-    <path d="M1190 125v65" />
-    <path d="M0 255v65" />
-    <path d="M175 255v65" />
-    <path d="M345 255v65" />
-    <path d="M855 255v65" />
-    <path d="M1025 255v65" />
-    <path d="M1190 255v65" />
-  </g>
-  <path
-    d="M195 430V153q0-119 110-119t110 119v277m370 0V153q0-119 110-119t110 119v277"
-    stroke="#b9b7b0"
-    stroke-width="28"
-    fill="#f4f3ef"
-  />
-  <g stroke="#a5a39c" stroke-width="3" fill="none">
-    <path d="M200 410V150q0-110 105-110t105 110v260M790 410V150q0-110 105-110t105 110v260" />
+  <title>Original seer chamber</title>
+  <rect width="1200" height="580" fill="#fffdf7" />
+  <path d="M0 0h1200v430H0Z" fill="#f6f4ef" />
+  <g fill="none" stroke="#b8b5ac" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M35 430V150Q35 48 132 48h936q97 0 97 102v280" />
+    <path d="M58 430V161Q58 72 141 72h918q83 0 83 89v269" />
     <path
-      d="M0 430h1200M0 510h1200M210 430l-90 150M420 430l-35 150M780 430l35 150M990 430l90 150"
+      d="M50 315h235m635 0h230M50 221h240m620 0h240M302 430V130m596 0v300"
+      stroke="#dfdcd4"
+      stroke-width="3"
     />
-    <circle cx="600" cy="240" r="80" />
-    <circle cx="600" cy="240" r="55" />
-    <path d="m550 240 50-33 50 33-50 33Z" />
-    <circle cx="600" cy="240" r="12" />
-    <path d="M600 140v-35m-100 135h-35m235 0h35m-135 100v35" />
-  </g>
-  <path d="M0 440h1200v140H0z" fill="#efeee8" />
-  <g stroke="#d3d1c9" fill="none">
-    <path d="M0 465h1200M0 520h1200" />
-    <path d="m130 420 -30 100" />
-    <path d="m310 420 -30 100" />
-    <path d="m890 420 -30 100" />
-    <path d="m1070 420 -30 100" />
-  </g>
-  <path d="M85 225v180h50V225m930 0v180h50V225" fill="#b9b7b0" />
-  <path d="M80 226h60m920 0h60" stroke="#77776e" stroke-width="8" />
-  <g stroke="#b3b1a9" stroke-width="2">
+    <circle cx="600" cy="233" r="137" fill="#e8e4f1" />
+    <circle cx="600" cy="233" r="108" />
+    <path d="M495 233Q600 125 705 233Q600 340 495 233Z" fill="#fffdf7" />
+    <ellipse cx="600" cy="233" rx="25" ry="53" fill="#858094" />
+    <path d="M600 70V35m0 365v-35M437 233h-35m361 0h35M150 150q50-60 100 0v195H150Z" />
+    <path d="M0 430h1200" stroke="#77776f" />
     <path
-      d="m31 398 14-21 25 18m1060-284 20 16 12-23M321 201l18 19-13 18m427 45 22 21-12 27"
-      fill="none"
+      d="M0 494h1200M165 430 60 580m303-150-40 150m514-150 40 150m158-150 105 150"
+      stroke="#e2dfd5"
+      stroke-width="2"
     />
+    <path d="M980 343q40-20 78 0v48h-78Z" fill="#e3ddd0" />
+    <path d="M969 343h99m-81 25h61" />
   </g>
 </svg>

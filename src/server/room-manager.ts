@@ -1,18 +1,34 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { createMatch } from "../game/create-match.js";
+import { mergeCrewState } from "../game/crew-state.js";
 import { assertInvariants } from "../game/invariants.js";
-import { projectRoom, type ViewOptions } from "../game/projections.js";
 import type { DungeonContent } from "../shared/content-types.js";
 import type { ActionResult, Envelope, Receipt } from "../shared/protocol.js";
-import { cloneRoom } from "./clone-room.js";
+import { newClock } from "./clocks.js";
+import { crewCommandRoom, playerRun } from "./crew-decisions.js";
 import { reject } from "./errors.js";
+import { expeditionDue, progressExpedition } from "./expedition-scheduler.js";
+import { questionActive } from "./question-coordinator.js";
+import { createLimits } from "./request-limits.js";
 import { advancePhase } from "./room-clock.js";
+import { hostExpired, pauseRoom, requireLiveRoom } from "./room-lifecycle.js";
+import { createRoomProjector } from "./room-projection.js";
+import { createRoomQueue, type Publisher } from "./room-queue.js";
 import type { Binding, StoredRoom } from "./room-types.js";
 import { createSession, hashToken, newToken } from "./sessions.js";
 import type { Storage } from "./storage.js";
+
 export function emptyRoom(state: StoredRoom["state"], testMode = false): StoredRoom {
   return {
-    schemaVersion: 4,
+    schemaVersion: 7,
+    savedAt: 0,
+    absentSince: {},
+    timer: newClock(0, 0, false),
+    pauseReasons: [],
+    pvpEnabled: true,
+    recovery: [],
+    duels: [],
+    creationKeyHash: "",
     state,
     sessions: {},
     deadline: null,
@@ -23,6 +39,11 @@ export function emptyRoom(state: StoredRoom["state"], testMode = false): StoredR
     storageError: null,
     testMode,
     processed: {},
+    runs: {},
+    decisionSerial: state.phaseId,
+    inactivityFallback: true,
+    discovery: null,
+    lifecycle: { kind: "live", hostDisconnectedAt: null },
   };
 }
 export function createRoomManager(
@@ -31,87 +52,70 @@ export function createRoomManager(
   clock: () => number = Date.now,
 ) {
   const rooms = new Map<string, StoredRoom>();
-  const publicViews = new WeakMap<
-    StoredRoom["state"],
-    { revision: number; view: import("../shared/view-types.js").PublicRoomView }
-  >();
-  const queues = new Map<string, Promise<unknown>>();
-  let publish: (code: string, immediate: boolean) => void = () => {};
+  const limits = createLimits();
+  const snapshot = createRoomProjector(rooms, clock);
+  let publish: Publisher = () => {};
   let creating: Promise<unknown> = Promise.resolve();
-  async function transaction<T>(
-    code: string,
-    edit: (room: StoredRoom) => T | Promise<T>,
-    reuse?: (room: StoredRoom) => T | undefined,
-  ) {
-    const previous = queues.get(code) ?? Promise.resolve();
-    const task = previous
-      .catch(() => {})
-      .then(async () => {
-        const old = rooms.get(code);
-        if (!old) reject("NOT_FOUND", "Room not found. Check the code.");
-        const reused = reuse?.(old);
-        if (reused !== undefined) return reused;
-        const draft = cloneRoom(old);
-        const result = await edit(draft);
-        assertInvariants(draft.state);
-        draft.state.revision = old.state.revision + 1;
-        draft.storageError = null;
-        try {
-          await storage.save(draft);
-        } catch {
-          old.remaining = old.deadline === null ? null : Math.max(0, old.deadline - clock());
-          if (old.state.status === "running") old.state.status = "paused";
-          old.deadline = null;
-          old.storageError =
-            "Cannot save this room. Check disk space and save-folder permissions, then resume.";
-          old.state.revision++;
-          publish(code, true);
-          reject("SAVE_FAILED", old.storageError);
-        }
-        rooms.set(code, draft);
-        publish(
-          code,
-          old.state.phaseId !== draft.state.phaseId || old.state.status !== draft.state.status,
-        );
-        return result;
-      });
-    queues.set(code, task);
-    try {
-      return await task;
-    } finally {
-      if (queues.get(code) === task) queues.delete(code);
-    }
-  }
+  const { transaction, drain } = createRoomQueue(rooms, storage, clock, (code, immediate, crews) =>
+    publish(code, immediate, crews),
+  );
   return {
     rooms,
     transaction,
-    async drain() {
-      while (queues.size) await Promise.allSettled([...queues.values()]);
-    },
+    drain,
     setPublisher(callback: typeof publish) {
       publish = callback;
     },
     async restore() {
       for (const room of await storage.load()) {
         assertInvariants(room.state);
+        if (
+          room.state.rulesVersion === "dungeon-v2" &&
+          room.lifecycle.kind === "live" &&
+          ["running", "paused"].includes(room.state.status)
+        ) {
+          pauseRoom(room, "server-restart", room.savedAt);
+          for (const player of room.state.players) player.connected = false;
+          if (room.lifecycle.kind === "live") room.lifecycle.hostDisconnectedAt = clock();
+          room.savedAt = clock();
+          try {
+            await storage.save(room);
+          } catch {
+            pauseRoom(room, "save-failed", clock());
+            room.storageError =
+              "Cannot save restored room. Check disk space and save-folder permissions, then resume.";
+          }
+        }
         rooms.set(room.state.code, room);
       }
     },
-    async create(secret = newToken(), testMode = false) {
+    async create(
+      secret = newToken(),
+      testMode = false,
+      rulesVersion: "dungeon-v1" | "dungeon-v2" = "dungeon-v2",
+    ) {
       const task = creating
         .catch(() => {})
         .then(async () => {
           const tokenHash = hashToken(secret);
-          const existing = [...rooms.values()].find((r) => r.sessions[tokenHash]?.role === "host");
-          if (existing) return { code: existing.state.code, hostToken: secret };
+          const existing = [...rooms.values()].find((r) => r.creationKeyHash === tokenHash);
+          if (existing) {
+            requireLiveRoom(existing, clock());
+            return { code: existing.state.code, hostToken: secret };
+          }
           let code: string;
           do {
             code = randomBytes(3).toString("hex").toUpperCase();
           } while (rooms.has(code));
           const seed = randomBytes(4).readUInt32LE();
           const state = createMatch(randomUUID(), code, content, seed);
+          state.rulesVersion = rulesVersion;
           const room = emptyRoom(state, testMode);
+          room.creationKeyHash = tokenHash;
+          if (room.lifecycle.kind === "live") room.lifecycle.hostDisconnectedAt = clock();
+          room.savedAt = clock();
           createSession(room.sessions, { role: "host", playerId: null }, secret);
+          room.savedAt = clock();
           await storage.save(room);
           rooms.set(code, room);
           return { code, hostToken: secret };
@@ -119,40 +123,13 @@ export function createRoomManager(
       creating = task;
       return task;
     },
-    snapshot(binding: Binding) {
-      const room = rooms.get(binding.code);
-      if (!room) reject("NOT_FOUND", "Room not found.");
-      const options: ViewOptions = {
-        deadline: room.deadline,
-        remaining: room.remaining,
-        phaseStartedAt: room.phaseStartedAt,
-        phaseDuration: room.phaseDuration,
-        serverNow: clock(),
-        speed: room.speed,
-        storageError: room.storageError,
-        testMode: room.testMode,
-        readOnly: binding.readOnly,
-      };
-      let cached = publicViews.get(room.state);
-      if (!cached || cached.revision !== room.state.revision) {
-        const view = projectRoom(room.state, null, false, options);
-        if (view.role !== "projector") throw new Error("Invalid public projection");
-        cached = { revision: room.state.revision, view };
-        publicViews.set(room.state, cached);
-      }
-      return projectRoom(
-        room.state,
-        binding.session?.playerId ?? null,
-        binding.session?.role === "host",
-        options,
-        cached.view,
-      );
-    },
+    snapshot,
     async command(
       binding: Binding,
       env: Envelope,
       payload: unknown,
       edit: (room: StoredRoom) => void,
+      decision?: "confirm" | "edit" | "withdraw" | "social",
     ) {
       if (!binding.tokenHash || !binding.session) reject("UNAUTHORIZED", "Join this room first.");
       if (binding.readOnly)
@@ -160,6 +137,7 @@ export function createRoomManager(
       const cacheKey = `${binding.tokenHash}:${env.requestId}`;
       const fingerprint = JSON.stringify(payload);
       const receipt = (room: StoredRoom): ActionResult<Receipt> | undefined => {
+        requireLiveRoom(room, clock());
         if (!binding.tokenHash || !room.sessions[binding.tokenHash])
           reject("UNAUTHORIZED", "This player was removed. Join again.");
         if (binding.readOnly) reject("READ_ONLY", "A newer tab controls this identity.");
@@ -173,23 +151,62 @@ export function createRoomManager(
       return transaction(
         binding.code,
         (room): ActionResult<Receipt> => {
-          if (room.state.phaseId !== env.phaseId)
+          limits.consume(`${binding.code}:${binding.tokenHash}`, 20, 0.01, clock());
+          const run =
+            decision && binding.session?.role === "player" && !questionActive(room)
+              ? playerRun(room, binding.session.playerId)
+              : undefined;
+          if (decision && room.state.status === "paused")
+            reject("PAUSED", "The expedition is paused.");
+          if (decision && run?.pauseReasons.length) reject("PAUSED", "Your crew is paused.");
+          if ((run?.progress.phaseId ?? room.state.phaseId) !== env.phaseId)
             reject("STALE", "That phase has ended. Choose for the current phase.");
-          edit(room);
+          const deadline = run?.clock.deadline ?? room.deadline;
+          if (decision && deadline !== null && clock() >= deadline)
+            reject("CLOSED", "The decision deadline has passed.");
+          if (decision === "social") edit(room);
+          else if (run) {
+            if (
+              room.duels.some(
+                (duel) => duel.status === "active" && duel.crewIds.includes(run.crewId),
+              )
+            )
+              reject("CLOSED", "Choose a duel action instead.");
+            if (run.finished) reject("CLOSED", "Your expedition has ended.");
+            const scoped = crewCommandRoom(room, run);
+            edit(scoped);
+            mergeCrewState(room.state, run, scoped.state);
+            const playerId = binding.session?.playerId ?? "";
+            if (decision === "confirm" && !run.ready.includes(playerId)) run.ready.push(playerId);
+            if (decision === "edit") run.ready = run.ready.filter((id) => id !== playerId);
+          } else edit(room);
+          if (room.state.rulesVersion === "dungeon-v2") progressExpedition(room, clock());
           const value = { revision: room.state.revision + 1 };
           room.processed[cacheKey] = { fingerprint, receipt: value };
           return { ok: true, value };
         },
         receipt,
+        binding.session.playerId ?? undefined,
       );
     },
     async tick(now: number) {
       await Promise.allSettled(
         [...rooms.values()]
-          .filter((r) => r.state.status === "running" && r.deadline !== null && r.deadline <= now)
+          .filter((r) =>
+            r.state.rulesVersion === "dungeon-v2"
+              ? hostExpired(r, now) || expeditionDue(r, now)
+              : r.state.status === "running" && r.deadline !== null && r.deadline <= now,
+          )
           .map((r) =>
             transaction(r.state.code, (room) => {
-              if (room.state.status === "running" && room.deadline !== null && room.deadline <= now)
+              if (room.state.rulesVersion === "dungeon-v2") {
+                if (hostExpired(room, now)) pauseRoom(room, "host-offline", now);
+                else progressExpedition(room, now);
+              } else if (
+                room.state.status === "running" &&
+                room.deadline !== null &&
+                room.deadline <= now
+              )
                 advancePhase(room, now);
             }),
           ),

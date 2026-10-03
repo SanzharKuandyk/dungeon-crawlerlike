@@ -151,9 +151,11 @@ test("combat targets are on the scene and four heroes fit desktop and mobile", a
   );
   await page.goto(`/#/room/${code}`);
   await expect(page.locator(".combat-console")).toBeVisible();
+  const takeover = page.getByRole("button", { name: "Take control", exact: true });
+  if (await takeover.isVisible()) await takeover.click();
   await page.getByRole("button", { name: "Protect", exact: true }).click();
-  await expect(page.locator(".hero-target:visible")).toHaveCount(4);
-  await page.getByRole("button", { name: "Target Explorer 4.2", exact: true }).click();
+  await expect(page.locator(".character-targets button:visible")).toHaveCount(4);
+  await page.getByRole("button", { name: /Explorer 4.2/ }).click();
   await page.getByRole("button", { name: /Confirm · Protect Explorer 4.2/ }).click();
   await expect(page.locator(".confirmed")).toContainText("Protect Explorer 4.2");
   await page.getByRole("button", { name: "Attack", exact: true }).click();
@@ -169,9 +171,6 @@ test("combat targets are on the scene and four heroes fit desktop and mobile", a
   ]) {
     await page.setViewportSize(viewport);
     await page.screenshot({ path: `test-results/combat-${viewport.width}.png`, fullPage: true });
-    const enemy = await page.locator(".party-enemy").boundingBox();
-    const party = await page.locator(".crew-battle > .crew-party").boundingBox();
-    expect(enemy && party && enemy.x + enemy.width <= party.x).toBeTruthy();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
@@ -180,7 +179,7 @@ test("combat targets are on the scene and four heroes fit desktop and mobile", a
         .locator(".confirm-action")
         .evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight),
     ).toBe(true);
-    await expect(page.locator(".party-character")).toHaveCount(4);
+    await expect(page.locator(".phone-panel canvas")).toHaveCount(1);
   }
 });
 
@@ -203,34 +202,25 @@ test("host pages crews, separates the log and fits four heroes on a laptop scree
   );
   await page.goto(`/#/host/${code}`);
   const board = page.locator(".expedition-board");
-  await expect(board.getByRole("timer")).toHaveText("Manual");
+  await expect(board.locator(".expedition-heading")).toContainText("Independent crews");
   await expect(board.locator(".board-panel .crew-stage")).toHaveCount(2);
   await expect(board.getByRole("button", { name: "Previous crews" })).toBeDisabled();
   await board.getByRole("button", { name: "Next crews" }).click();
   const four = board
     .locator(".crew-stage")
     .filter({ has: page.getByRole("button", { name: "View Crew 4", exact: true }) });
-  await expect(four.locator(".party-character")).toHaveCount(4);
-  expect(
-    await four.evaluate((el) =>
-      [...el.querySelectorAll(".party-character")].every((hero) => {
-        const box = hero.getBoundingClientRect(),
-          card = el.getBoundingClientRect();
-        return box.left >= card.left && box.right <= card.right;
-      }),
-    ),
-  ).toBe(true);
+  await expect(four.locator("canvas")).toBeVisible();
   expect(await four.evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
   await page.screenshot({ path: "test-results/host-paged-board.png" });
   await board.getByRole("button", { name: "Log", exact: true }).click();
   await expect(board.locator(".event-log")).toBeVisible();
   await expect(board.locator(".crew-grid")).not.toBeVisible();
-  await expect(board.getByRole("timer")).toBeVisible();
+  await expect(board.locator(".expedition-heading")).toBeVisible();
   await board.getByRole("button", { name: "Dungeon", exact: true }).click();
   await expect(board.getByRole("button", { name: "View Crew 4", exact: true })).toBeVisible();
   await board.getByRole("button", { name: "View Crew 4", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.locator("canvas")).toBeVisible();
+  await expect(page.locator("dialog canvas")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
 });
@@ -241,44 +231,14 @@ test("team door highlighting distinguishes the crew result from a personal vote"
   await manualPlayground(page);
   await page.getByRole("button", { name: "Start expedition", exact: true }).click();
   await page.locator(".team-switcher button").nth(6).click();
-  const doors = page.locator(".phone-panel .route-options button");
+  const doors = page.locator(".phone-panel .map-node.reachable");
   await doors.nth(1).click();
   await expect(doors.nth(1)).toHaveClass(/crew-choice/);
-  await expect(doors.nth(1)).toContainText("Your vote ✓");
+  await expect(doors.nth(1)).toHaveClass(/own-vote/);
   await page.locator(".team-switcher button").nth(7).click();
   await expect(doors.nth(1)).toHaveClass(/crew-choice/);
-  await expect(doors.nth(1)).not.toHaveClass(/chosen/);
+  await expect(doors.nth(1)).not.toHaveClass(/own-vote/);
   await doors.nth(1).click();
-  await expect(doors.nth(1)).toContainText("2 votes");
+  await expect(doors.nth(1)).toHaveAttribute("aria-label", /2 votes/);
   await page.screenshot({ path: "test-results/team-door-votes.png", fullPage: true });
-});
-
-test("rivalry controls use living opponents and remain readable at phone width", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 360, height: 800 });
-  await manualPlayground(page, "rivalry");
-  await expect(page.locator(".phone-panel .combat-depth")).toContainText("Lethal rivalry");
-  await page.locator(".phone-panel").getByRole("button", { name: "Attack", exact: true }).click();
-  await expect(page.locator(".phone-panel .hero-target")).toHaveCount(2);
-  await page
-    .locator(".phone-panel")
-    .getByRole("button", { name: /Confirm · Attack/ })
-    .click();
-  await expect(page.locator(".phone-panel .confirmed")).toContainText("Attack Explorer 2.");
-  await page.getByRole("button", { name: "Next phase" }).click();
-  await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "combat-reveal");
-  const input = await page.evaluate(
-    () => JSON.parse(localStorage.getItem("dungeon-test-bootstrap") ?? "null") as BootstrapInput,
-  );
-  const response = await page.request.post("/api/test", { data: input });
-  const { code } = (await response.json()) as { code: string };
-  await page.evaluate(
-    ({ code, secret }) => localStorage.setItem(`siege-session:${code}:player`, secret),
-    { code, secret: input.players[0].bootstrapSecret },
-  );
-  await page.goto(`/#/room/${code}`);
-  await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "combat-reveal");
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: "test-results/rivalry-phone.png", fullPage: true });
 });

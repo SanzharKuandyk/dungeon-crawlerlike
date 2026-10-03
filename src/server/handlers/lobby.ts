@@ -7,6 +7,7 @@ import { nameSchema } from "../../shared/validation.js";
 import { reject } from "../errors.js";
 import type { StoredRoom } from "../room-types.js";
 import { createSession, findSession } from "../sessions.js";
+
 export function joinPlayer(room: StoredRoom, name: string, secret: string) {
   const existing = findSession(room.sessions, secret);
   if (existing) {

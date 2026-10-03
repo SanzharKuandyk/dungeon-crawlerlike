@@ -36,13 +36,6 @@
   .panel {
     padding: 18px;
   }
-  .home {
-    margin: 5vh auto;
-  }
-  .home > p:not(.eyebrow) {
-    font-size: 17px;
-  }
-
   .timer {
     font-size: 24px;
   }

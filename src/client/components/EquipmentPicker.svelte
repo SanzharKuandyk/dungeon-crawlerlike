@@ -2,6 +2,7 @@
   import type { EquipmentKind } from "../../shared/game-types.js";
   import type { PlayerRoomView } from "../../shared/view-types.js";
   import type { PlayerController } from "../player-controller.js";
+  import ItemIcon from "./ItemIcon.svelte";
 
   let {
     view,
@@ -21,6 +22,7 @@
       disabled={locked}
       onclick={() => void controller.equipment(item.id as EquipmentKind)}
     >
+      <ItemIcon kind={item.id as EquipmentKind} />
       <strong>{item.id[0].toUpperCase() + item.id.slice(1)}</strong
       ><small>{item.description}</small>
     </button>

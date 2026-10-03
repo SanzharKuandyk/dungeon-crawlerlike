@@ -1,8 +1,5 @@
 import Phaser from "phaser";
-import type { ClassId, EnemyFamily } from "../../shared/content-types.js";
-
-const points = (...pairs: [number, number][]) =>
-  pairs.map(([x, y]) => new Phaser.Math.Vector2(x, y));
+import type { ClassId } from "../../shared/content-types.js";
 
 export function heroModel(scene: Phaser.Scene, classId: ClassId, color: number) {
   const g = scene.add.graphics();
@@ -10,7 +7,12 @@ export function heroModel(scene: Phaser.Scene, classId: ClassId, color: number) 
   g.fillStyle(0x333337);
   g.fillRect(-19, 23, 14, 24).fillRect(6, 23, 14, 24);
   g.fillStyle(color);
-  const coat = points([-17, -16], [16, -16], [24, 26], [-24, 26]);
+  const coat = new Phaser.Curves.Path(-17, -16)
+    .quadraticBezierTo(16, -16, 0, -21)
+    .quadraticBezierTo(24, 26, 20, 5)
+    .quadraticBezierTo(-24, 26, 0, 33)
+    .closePath()
+    .getPoints(12);
   g.fillPoints(coat, true).strokePoints(coat, true);
   g.fillStyle(0xfffaf0).fillCircle(0, -32, 15);
   g.strokeCircle(0, -32, 15);
@@ -48,39 +50,4 @@ export function heroModel(scene: Phaser.Scene, classId: ClassId, color: number) 
   return g;
 }
 
-export function enemyModel(scene: Phaser.Scene, family: EnemyFamily) {
-  const g = scene.add.graphics().lineStyle(4, 0x18181b).fillStyle(0x18181b);
-  if (family === "sentinel") {
-    g.fillTriangle(-80, 80, 0, -110, 80, 80);
-    g.fillRoundedRect(-40, -100, 80, 95, 8);
-    g.lineStyle(5, 0xfafaf9).lineBetween(-26, -68, 26, -68).lineBetween(0, -90, 0, -32);
-    g.lineStyle(8, 0x18181b).lineBetween(-100, -65, -100, 95);
-    g.fillRect(-121, -83, 42, 30);
-  } else if (family === "seer") {
-    g.fillEllipse(0, -10, 170, 180).fillTriangle(-80, 85, 0, -100, 80, 85);
-    g.fillStyle(0xfafaf9).fillEllipse(0, -30, 88, 36);
-    g.fillStyle(0x18181b).fillCircle(0, -30, 14);
-  } else {
-    g.fillPoints(
-      points(
-        [-95, 80],
-        [-110, -20],
-        [-75, -100],
-        [-25, -65],
-        [0, -115],
-        [25, -65],
-        [75, -100],
-        [110, -20],
-        [95, 80],
-      ),
-      true,
-    );
-    g.fillStyle(0xfafaf9).fillEllipse(0, 0, 148, 102);
-    g.fillStyle(0x18181b);
-    for (let x = -55; x <= 55; x += 22) {
-      g.fillTriangle(x - 9, -37, x + 9, -37, x, -4);
-      g.fillTriangle(x - 9, 37, x + 9, 37, x, 5);
-    }
-  }
-  return g;
-}
+export { enemyModel } from "./enemy-model.js";

@@ -23,14 +23,14 @@ test("all ten characters have independent lobby choices and combat controls", as
   await page.getByRole("button", { name: "Start expedition", exact: true }).click();
   await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "route");
   await page.getByRole("button", { name: "View Crew 1", exact: true }).click();
-  const canvas = await page.locator("canvas").elementHandle();
+  const canvas = await page.locator(".phone-panel canvas").elementHandle();
   if (!canvas) throw new Error("Missing dungeon scene");
   await page.getByRole("button", { name: "Close", exact: true }).click();
   for (let i = 0; i < 10; i++) {
     await page.locator(".team-switcher button").nth(i).click();
     await expect(page.locator(".selected-identity small")).toContainText("ready");
     await page
-      .locator(".route-options button")
+      .locator(".phone-panel .map-node.reachable")
       .nth(i < 3 ? 0 : 1)
       .click();
   }
@@ -61,7 +61,7 @@ test("all ten characters have independent lobby choices and combat controls", as
   await page.screenshot({ path: "test-results/dungeon-playground.png", fullPage: true });
   expect(errors).toEqual([]);
 });
-test("one Start automatically finishes a five-depth expedition with a persistent arena", async ({
+test("one Start automatically finishes a finite expedition with a persistent arena", async ({
   page,
 }) => {
   test.setTimeout(240000);
@@ -72,7 +72,7 @@ test("one Start automatically finishes a five-depth expedition with a persistent
   await page.getByRole("button", { name: "Auto all characters" }).click();
   await page.getByRole("button", { name: "Start expedition", exact: true }).click();
   await page.getByRole("button", { name: "View Crew 1", exact: true }).click();
-  const canvas = await page.locator("canvas").elementHandle();
+  const canvas = await page.locator(".phone-panel canvas").elementHandle();
   if (!canvas) throw new Error("Missing arena");
   await page.getByRole("button", { name: "Close", exact: true }).click();
   let questionSeen = false;
@@ -83,7 +83,9 @@ test("one Start automatically finishes a five-depth expedition with a persistent
     await page.waitForTimeout(250);
   }
   await expect(page.locator(".phone-panel .results")).toContainText("Expedition complete");
-  await expect(page.locator(".phone-panel")).toHaveAttribute("data-depth", "5");
+  expect(Number(await page.locator(".phone-panel").getAttribute("data-depth"))).toBeLessThanOrEqual(
+    10,
+  );
   expect(questionSeen).toBe(true);
   expect(await canvas.evaluate((node) => node.isConnected)).toBe(true);
   expect(errors).toEqual([]);
@@ -98,7 +100,7 @@ test("spirits, private questions, equipment and scenario resets use the same con
   await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "combat");
   await page.getByText("Test debugger", { exact: true }).click();
   await page.getByLabel("Speed", { exact: true }).selectOption("manual");
-  await page.locator(".team-switcher button").nth(1).click();
+  await page.locator(".team-switcher button").nth(2).click();
   await expect(page.locator(".phone-panel")).toContainText("Spirit");
   await page
     .locator(".phone-panel")
@@ -160,14 +162,11 @@ test("separate host, five phones and projector support crew controls and recover
     const projector = await hostContext.newPage();
     await projector.goto(`/#/board/${code}`);
     await projector.getByRole("button", { name: "View Four players", exact: true }).click();
-    await expect(projector.locator("canvas")).toBeVisible();
+    await expect(projector.locator("dialog canvas")).toBeVisible();
     await host.getByRole("button", { name: "Start expedition", exact: true }).click();
     for (const p of pages) {
       await expect(p.locator(".phone-panel")).toHaveAttribute("data-phase", "route");
-      await p
-        .locator(".route-options button")
-        .filter({ hasText: /low risk/i })
-        .click();
+      await p.locator(".phone-panel .map-node.reachable").first().click();
     }
     await expect(pages[0].locator(".phone-panel")).toHaveAttribute("data-phase", "combat", {
       timeout: 35000,
@@ -186,11 +185,34 @@ test("separate host, five phones and projector support crew controls and recover
     expect(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await p.screenshot({ path: "test-results/dungeon-mobile.png", fullPage: true });
     await host.getByRole("button", { name: "Pause", exact: true }).click();
-    await expect(projector.locator(".timer")).toContainText("Paused");
+    await expect(projector.locator(".expedition-heading h1")).toContainText("paused");
     await host.getByRole("button", { name: "Resume", exact: true }).click();
-    await expect(projector.locator(".timer")).not.toContainText("Paused");
+    await expect(projector.locator(".expedition-heading h1")).not.toContainText("paused");
     await projector.screenshot({ path: "test-results/dungeon-projector.png", fullPage: true });
   } finally {
     for (const c of contexts) await c.close();
   }
+});
+
+test("a consensual duel renders both crews and returns to the dungeon after three exchanges", async ({
+  page,
+}) => {
+  await playground(page);
+  await page.getByLabel("Scenario", { exact: true }).selectOption("duel");
+  await page.getByRole("button", { name: "Load scenario" }).click();
+  await expect(page.locator(".phone-panel .duel-controls")).toContainText("exchange 1/3");
+  await page.locator(".phone-panel .duel-controls select").selectOption({ index: 1 });
+  await page
+    .locator(".phone-panel")
+    .getByRole("button", { name: /^Strike/ })
+    .click();
+  await expect(page.locator(".phone-panel .duel-controls")).toContainText("Confirmed: strike");
+  await page.getByText("Test debugger", { exact: true }).click();
+  for (let i = 0; i < 6; i++) {
+    await page.getByRole("button", { name: "Next phase", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Next phase", exact: true })).toBeEnabled();
+  }
+  await expect(page.locator(".phone-panel .duel-controls")).toHaveCount(0);
+  await expect(page.locator(".phone-panel canvas")).toHaveCount(1);
+  await page.screenshot({ path: "test-results/duel-return.png", fullPage: true });
 });

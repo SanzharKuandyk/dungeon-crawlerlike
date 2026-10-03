@@ -1,212 +1,212 @@
 [
   {
     "id": "ui-priority",
-    "topic": "Week 4 · UI and gameplay input",
-    "prompt": "Tapping Pause also fires the weapon. Which fix prevents the conflict?",
+    "topic": "Input ownership",
+    "prompt": "A Pause tap also fires your weapon. What should the engine do?",
     "choices": [
-      "Make the weapon fire more slowly",
-      "Give UI touches priority and prevent them reaching gameplay",
-      "Use a smaller Pause button",
-      "Disable all touch input"
+      "Slow the weapon down",
+      "Let UI consume its input before gameplay",
+      "Shrink Pause",
+      "Ignore all touches"
     ],
     "correctIndex": 1,
-    "explanation": "A touch claimed by a UI button should not also fire a gameplay action. Separate UI ownership from world input.",
-    "source": "MGD_4_week.pptx · slide 17: UI and gameplay input"
+    "explanation": "UI must own the event it handles; the same tap should not also activate the world.",
+    "source": "Original course practice \u00b7 Input ownership"
   },
   {
     "id": "swipe-axis",
-    "topic": "Week 4 · Swipe recognition",
-    "prompt": "A diagonal swipe makes a runner change lane and jump. Which rule produces one clear command?",
+    "topic": "Control clarity",
+    "prompt": "A diagonal swipe causes both a jump and lane change. What makes the control predictable?",
     "choices": [
-      "Trigger both axes whenever they move",
+      "Always do both",
       "Require three fingers",
-      "Lock the dominant axis after a threshold and accept one command",
-      "Wait until the next level"
+      "Use a threshold and commit to one dominant direction",
+      "Wait for the next level"
     ],
     "correctIndex": 2,
-    "explanation": "A runner needs one clear directional command per accepted swipe. Use a movement threshold, choose the dominant direction, and commit once.",
-    "source": "MGD_4_week.pptx · slide 21: Swipe recognition"
+    "explanation": "A clear gesture produces one deliberate command. A threshold filters accidental movement.",
+    "source": "Original course practice \u00b7 Control clarity"
   },
   {
-    "id": "drag-preview",
-    "topic": "Week 4 · Drag controls",
-    "prompt": "You drag a tower onto an invalid tile. What should happen when you release?",
+    "id": "prototype",
+    "topic": "Prototyping",
+    "prompt": "Your crew has one day to test whether a grapple mechanic is fun. What do you build first?",
     "choices": [
-      "Build it anyway",
-      "Hide the tower permanently",
-      "Spend currency before checking the tile",
-      "Show invalid placement and return or cancel the drag"
+      "A polished trailer",
+      "Every level",
+      "A store page",
+      "A small playable grapple room"
     ],
     "correctIndex": 3,
-    "explanation": "Preview snapping, range and valid placement while dragging. Commit on a valid area; otherwise return or cancel clearly.",
-    "source": "MGD_4_week.pptx · slide 22: Drag controls"
+    "explanation": "A focused playable prototype tests the uncertain mechanic before expensive production.",
+    "source": "Original course practice \u00b7 Prototyping"
   },
   {
-    "id": "hold-feedback",
-    "topic": "Week 4 · Hold controls",
-    "prompt": "A button charges an attack while held. What makes the wait understandable?",
+    "id": "feedback",
+    "topic": "Player experience",
+    "prompt": "Players cannot tell whether their attack connected. What helps most?",
     "choices": [
-      "Visible charge progress and a clear release rule",
-      "No feedback until release",
-      "Random charge duration",
-      "A smaller button"
+      "A visible impact and target reaction",
+      "A longer manual",
+      "More enemy health",
+      "Smaller damage numbers"
     ],
     "correctIndex": 0,
-    "explanation": "Hold needs visible progress and a predictable release or cancellation rule. Otherwise charging can feel like input delay.",
-    "source": "MGD_4_week.pptx · slide 20: Hold controls"
+    "explanation": "Feedback connects the chosen action to its result without forcing players to read a log.",
+    "source": "Original course practice \u00b7 Player experience"
   },
   {
-    "id": "scroll-tap",
-    "topic": "Week 4 · Resolving gesture conflicts",
-    "prompt": "A list item activates while the player starts scrolling. What is the best fix?",
+    "id": "authority",
+    "topic": "Multiplayer state",
+    "prompt": "Two phones disagree about who collected treasure. Who should decide the result?",
     "choices": [
-      "Activate every item immediately",
-      "Delay activation until the movement stays within tap tolerance",
-      "Disable scrolling",
-      "Require a double tap for every gesture"
-    ],
-    "correctIndex": 1,
-    "explanation": "Let movement distinguish a tap from a scroll. The scroll view can claim the drag before the item commits.",
-    "source": "MGD_4_week.pptx · slide 28: Resolving gesture conflicts"
-  },
-  {
-    "id": "cancel-input",
-    "topic": "Week 4 · Interruption and cancellation",
-    "prompt": "The app loses focus while a player is dragging. What should the input system do?",
-    "choices": [
-      "Keep the finger active forever",
-      "Commit the drag at a random position",
-      "Clear active ownership and previews safely",
-      "Trigger the held action again"
+      "The fastest phone",
+      "Each phone independently",
+      "The authoritative game server",
+      "A random spectator"
     ],
     "correctIndex": 2,
-    "explanation": "Focus loss, system cancellation and scene changes need a cancellation path that leaves the game in a valid state.",
-    "source": "MGD_4_week.pptx · slide 28: Interruption and cancellation"
+    "explanation": "A shared authority validates actions and publishes one consistent result.",
+    "source": "Original course practice \u00b7 Multiplayer state"
   },
   {
-    "id": "named-actions",
-    "topic": "Week 4 · From gesture to game action",
-    "prompt": "You want Dodge to work from a swipe, keyboard and gamepad. Where should gameplay receive input?",
+    "id": "performance",
+    "topic": "Performance tradeoffs",
+    "prompt": "A mobile build stutters. What is the best first step?",
     "choices": [
-      "In separate gameplay code for each device",
-      "Directly from raw finger coordinates everywhere",
-      "Only from the touchscreen",
-      "From a named Dodge action shared by the control schemes"
+      "Rewrite everything",
+      "Measure frame time and profile the slow work",
+      "Remove all art",
+      "Buy a new computer"
+    ],
+    "correctIndex": 1,
+    "explanation": "Measure the bottleneck before changing systems. Guessing can waste effort or reduce quality unnecessarily.",
+    "source": "Original course practice \u00b7 Performance tradeoffs"
+  },
+  {
+    "id": "touch-target",
+    "topic": "Accessible controls",
+    "prompt": "A vital button looks beautiful but players often miss it. What is the useful fix?",
+    "choices": [
+      "Punish missed taps",
+      "Hide its label",
+      "Add more nearby buttons",
+      "Increase its touch area and separation"
     ],
     "correctIndex": 3,
-    "explanation": "Map different device inputs onto a named game action. This keeps the mechanic independent of the control scheme.",
-    "source": "MGD_4_week.pptx · slide 25: From gesture to game action"
+    "explanation": "Comfortable touch targets and separation improve control without changing game difficulty.",
+    "source": "Original course practice \u00b7 Accessible controls"
   },
   {
-    "id": "safe-area",
-    "topic": "Week 4 · Safe areas and display cutouts",
-    "prompt": "A phone cutout hides the health display. Which layout rule fixes it?",
+    "id": "difficulty",
+    "topic": "Game balance",
+    "prompt": "A new enemy defeats nearly every beginner. What should you inspect first?",
     "choices": [
-      "Anchor critical HUD elements inside the safe area",
-      "Move every element to the screen center",
-      "Shrink all text until it fits",
-      "Ignore the cutout in landscape"
+      "Whether its danger is telegraphed and counterplay is learnable",
+      "How expensive its model was",
+      "The title screen font",
+      "How long its name is"
     ],
     "correctIndex": 0,
-    "explanation": "Keep critical HUD and touch targets inside safe anchors. Background art may extend beyond them; test both orientations.",
-    "source": "MGD_4_week.pptx · slide 31: Safe areas and display cutouts"
+    "explanation": "Difficulty works best when players can understand the danger and make a meaningful response.",
+    "source": "Original course practice \u00b7 Game balance"
   },
   {
-    "id": "thumb-reach",
-    "topic": "Week 4 · One-thumb and two-thumb play",
-    "prompt": "Which layout suits a portrait game intended for one-thumb play?",
+    "id": "state-machine",
+    "topic": "Gameplay systems",
+    "prompt": "Opening inventory sometimes leaves the hero attacking behind it. What helps prevent this?",
     "choices": [
-      "Movement and aim must be simultaneous on opposite sides",
-      "Frequent actions inside one reachable region",
-      "Every action requires two fingers",
-      "Tiny buttons along the top edge"
+      "A bigger inventory",
+      "Explicit game states and permitted transitions",
+      "Faster attacks",
+      "A different cursor"
     ],
     "correctIndex": 1,
-    "explanation": "One-thumb play needs frequent actions in a reachable region. Avoid assuming two simultaneous controls.",
-    "source": "MGD_4_week.pptx · slide 14: One-thumb and two-thumb play"
+    "explanation": "Explicit states make it clear which inputs and systems are active, reducing accidental overlap.",
+    "source": "Original course practice \u00b7 Gameplay systems"
   },
   {
-    "id": "continuous",
-    "topic": "Week 4 · Touch control families",
-    "prompt": "Which gesture best suits moving an object continuously with your finger?",
+    "id": "production",
+    "topic": "Production scope",
+    "prompt": "A tiny team has too many unfinished features. What should it prioritize?",
     "choices": [
-      "A one-time tap",
-      "A directional swipe with one command",
-      "A drag that shows the object following the finger",
-      "A long press with no visual response"
+      "Add another game mode",
+      "Make every feature larger",
+      "Finish and test the core loop",
+      "Start a new project every day"
     ],
     "correctIndex": 2,
-    "explanation": "Drag is direct manipulation: the object or camera follows the finger continuously. Preserve a stable finger-to-object offset.",
-    "source": "MGD_4_week.pptx · slide 13: Touch control families"
+    "explanation": "A coherent playable loop provides evidence and value; many unfinished features do not.",
+    "source": "Original course practice \u00b7 Production scope"
   },
   {
-    "id": "device-evidence",
-    "topic": "Week 4 · Editor success is incomplete evidence",
-    "prompt": "The prototype works with a mouse in the editor. What still needs real-device testing?",
+    "id": "fairness",
+    "topic": "Competitive design",
+    "prompt": "A quiz gives extra score to the fastest connection. What makes it fairer?",
     "choices": [
-      "Nothing; the editor proves touch works",
-      "Only the title screen text",
-      "Only the level count",
-      "Touch identity, display layout, runtime and performance"
+      "Increase network traffic",
+      "Hide the timer",
+      "Only allow new phones",
+      "Use a shared deadline without latency-based bonuses"
     ],
     "correctIndex": 3,
-    "explanation": "Mouse success does not prove multi-touch comfort, safe-area layout, packaging behavior or frame pacing on a phone.",
-    "source": "MGD_4_week.pptx · slide 3: Editor success is incomplete evidence"
+    "explanation": "Rewarding knowledge rather than connection speed avoids an irrelevant competitive advantage.",
+    "source": "Original course practice \u00b7 Competitive design"
   },
   {
-    "id": "build-loop",
-    "topic": "Week 4 · The deployment loop",
-    "prompt": "Which loop gives useful mobile prototype evidence?",
+    "id": "data-driven",
+    "topic": "Engine architecture",
+    "prompt": "Designers need to tune potion strength frequently. Where should that value live?",
     "choices": [
-      "Edit, build, install, run, observe, fix",
-      "Only edit until the project is finished",
-      "Build once at the end of the course",
-      "Watch another team play a different build"
+      "In validated item data used by the rules",
+      "Copied into every screen",
+      "Only in an animation",
+      "Inside a translated label"
     ],
     "correctIndex": 0,
-    "explanation": "Short device loops expose defects early. Record device, build version, reproduction steps and the expected result.",
-    "source": "MGD_4_week.pptx · slide 7: The deployment loop"
+    "explanation": "One validated definition keeps rules and presentation consistent and makes iteration safer.",
+    "source": "Original course practice \u00b7 Engine architecture"
   },
   {
-    "id": "app-identity",
-    "topic": "Week 4 · Android and iOS build paths",
-    "prompt": "Why keep the package name or bundle identifier stable during development?",
+    "id": "save",
+    "topic": "Reliability",
+    "prompt": "A player refreshes just after confirming a purchase. What prevents a duplicate charge?",
     "choices": [
-      "It increases frame rate automatically",
-      "It preserves the app identity across development builds",
-      "It removes the need for touch testing",
-      "It changes the device orientation"
-    ],
-    "correctIndex": 1,
-    "explanation": "The package or bundle identifier defines the app identity. Keep it stable so development builds can replace earlier installations predictably.",
-    "source": "MGD_4_week.pptx · slide 9: Android and iOS build paths"
-  },
-  {
-    "id": "test-matrix",
-    "topic": "Week 4 · A minimum device test matrix",
-    "prompt": "Your game works on one phone. What is the most useful next test?",
-    "choices": [
-      "Repeat only the same title screen",
-      "Stop testing until release",
-      "Use a contrasting screen and test interruptions",
-      "Remove all platform logging"
+      "Disable refreshing",
+      "Repeat the purchase with a new ID",
+      "Use a stable request ID and stored receipt",
+      "Trust whichever tab loads first"
     ],
     "correctIndex": 2,
-    "explanation": "A contrasting screen exposes HUD assumptions. Backgrounding, orientation changes and rapid touch sequences reveal common defects.",
-    "source": "MGD_4_week.pptx · slide 11: A minimum device test matrix"
+    "explanation": "Idempotent requests allow recovery without applying the same transaction twice.",
+    "source": "Original course practice \u00b7 Reliability"
   },
   {
-    "id": "input-feedback",
-    "topic": "Week 4 · Feedback, latency and forgiveness",
-    "prompt": "A gesture needs time to classify. How can the interface still feel responsive?",
+    "id": "risk-reward",
+    "topic": "Game design",
+    "prompt": "An optional risky path gives the same reward as a safe path. What is missing?",
     "choices": [
-      "Commit every gesture immediately before validation",
-      "Ignore the finger until classification finishes",
-      "Skip visual feedback entirely",
-      "Acknowledge the touch immediately, then confirm the validated action"
+      "More instructions",
+      "A reason to accept the extra risk",
+      "A darker background",
+      "A smaller character"
+    ],
+    "correctIndex": 1,
+    "explanation": "Meaningful risk needs a visible potential benefit; otherwise the choice is usually dominated.",
+    "source": "Original course practice \u00b7 Game design"
+  },
+  {
+    "id": "playtest",
+    "topic": "Playtesting",
+    "prompt": "Your team understands the tutorial, but new players are lost. What evidence helps most?",
+    "choices": [
+      "Add lore immediately",
+      "Assume players are careless",
+      "Only ask the developers",
+      "Watch new players attempt the task without coaching"
     ],
     "correctIndex": 3,
-    "explanation": "Show a press state or contact marker on begin, then give distinct feedback when the command commits. Acknowledgement and commitment can be separate.",
-    "source": "MGD_4_week.pptx · slide 29: Feedback, latency and forgiveness"
+    "explanation": "Observation reveals unclear controls and expectations that experienced developers may overlook.",
+    "source": "Original course practice \u00b7 Playtesting"
   }
 ]

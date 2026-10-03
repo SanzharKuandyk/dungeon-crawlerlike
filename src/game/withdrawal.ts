@@ -2,6 +2,7 @@ import type { MatchState } from "../shared/game-types.js";
 import type { CombatContext } from "./combat-context.js";
 import { crewEvent, heroEvent, heroName } from "./events.js";
 import { livingMembers } from "./voting.js";
+
 export function applyWithdrawals(s: MatchState, ctx: CombatContext) {
   for (const c of s.crews.filter((c) => c.status === "active" && c.location.kind === "room")) {
     const members = livingMembers(s, c.id);

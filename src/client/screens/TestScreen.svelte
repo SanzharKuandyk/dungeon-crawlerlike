@@ -97,8 +97,8 @@
           <option value="treasure">Treasure contest</option>
           <option value="critical">Critical health</option>
           <option value="question">Question reward</option>
+          <option value="duel">Consensual crew duel</option>
           <option value="final">Final depth</option>
-          <option value="rivalry">Lethal rivalry</option>
         </select><button
           type="button"
           disabled={test.state.busy}

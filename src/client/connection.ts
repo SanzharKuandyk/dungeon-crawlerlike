@@ -1,9 +1,11 @@
-import type { HostInput, RosterChange } from "../shared/protocol.js";
+import type { RosterChange } from "../shared/protocol.js";
+import { hostController } from "./host-controller.js";
 import { navigate } from "./navigation.js";
 import { notifyError } from "./notify.js";
 import { playerController } from "./player-controller.js";
 import { room } from "./room.svelte.js";
 import { type ClientSession, createClientSession } from "./session.js";
+import { browserStorage } from "./storage.js";
 
 let player: ClientSession | null = null,
   routeGeneration = 0;
@@ -19,6 +21,7 @@ export function closeRoom() {
   room.view = null;
   room.pending = 0;
   room.controller = null;
+  room.hostController = null;
 }
 export function openRoom(code: string, role: "host" | "projector" | "player") {
   closeRoom();
@@ -26,7 +29,7 @@ export function openRoom(code: string, role: "host" | "projector" | "player") {
   room.status = "connecting";
   room.error = null;
   const token =
-    role === "projector" ? undefined : (localStorage.getItem(key(code, role)) ?? undefined);
+    role === "projector" ? undefined : (browserStorage.getItem(key(code, role)) ?? undefined);
   player = createClientSession({
     code,
     role,
@@ -44,6 +47,7 @@ export function openRoom(code: string, role: "host" | "projector" | "player") {
     },
   });
   room.controller = playerController(player);
+  room.hostController = role === "host" ? hostController(player) : null;
 }
 export async function checkHealth() {
   try {
@@ -64,7 +68,11 @@ async function post(path: string, body: unknown) {
       signal: controller.signal,
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message ?? "Request failed.");
+    if (!response.ok) {
+      if (["ROOM_CLOSED", "SESSION_EXPIRED"].includes(data.code))
+        browserStorage.removeItem("siege-create-key");
+      throw new Error(data.message ?? "Request failed.");
+    }
     return data as { code: string; hostToken: string };
   } catch (error) {
     notifyError(error instanceof Error ? error.message : "Cannot reach the server.");
@@ -75,20 +83,32 @@ async function post(path: string, body: unknown) {
 }
 export async function createRoom() {
   const storageKey = "siege-create-key";
-  const secret = localStorage.getItem(storageKey) ?? secureSecret();
-  localStorage.setItem(storageKey, secret);
+  const secret = browserStorage.getItem(storageKey) ?? secureSecret();
+  if (!browserStorage.setItem(storageKey, secret)) return;
   const created = await post("/api/rooms", { bootstrapSecret: secret });
   if (!created) return;
-  localStorage.setItem(key(created.code, "host"), secret);
-  localStorage.removeItem(storageKey);
+  browserStorage.setItem(key(created.code, "host"), secret);
+  browserStorage.removeItem(storageKey);
   navigate("host", created.code);
 }
 export async function joinPlayer(name: string) {
   if (!player || !room.view) return;
   const storageKey = key(room.view.code, "player");
-  const secret = localStorage.getItem(storageKey) ?? secureSecret();
-  localStorage.setItem(storageKey, secret);
+  const secret = browserStorage.getItem(storageKey) ?? secureSecret();
+  if (!browserStorage.setItem(storageKey, secret)) return;
   await player.join(name, secret);
+}
+export async function recoverPlayer(recoveryCode: string) {
+  if (!player || !room.view) return false;
+  const storageKey = `dungeon-player-recover:${room.view.code}:${recoveryCode}`;
+  const secret = browserStorage.getItem(storageKey) ?? secureSecret();
+  if (!browserStorage.setItem(storageKey, secret)) return false;
+  const accepted = await player.recover(recoveryCode, secret);
+  if (accepted) {
+    browserStorage.setItem(key(room.view.code, "player"), secret);
+    browserStorage.removeItem(storageKey);
+  }
+  return accepted;
 }
 export const createCrew = (name: string) =>
   player?.command((env, ack) => player?.socket.emit("crew:create", { ...env, name }, ack));
@@ -96,15 +116,6 @@ export const joinCrew = (crewId: string) =>
   player?.command((env, ack) => player?.socket.emit("crew:join", { ...env, crewId }, ack));
 export const changeRoster = (change: RosterChange) =>
   player?.command((env, ack) => player?.socket.emit("host:roster", { ...env, ...change }, ack));
-export function hostControl(
-  action: HostInput["action"],
-  extra: Pick<HostInput, "enabled" | "speed"> = {},
-) {
-  const active = player;
-  return active?.command((env, ack) =>
-    active.socket.emit("host:control", { ...env, action, ...extra }, ack),
-  );
-}
 export function reconnect() {
   player?.reconnect();
 }

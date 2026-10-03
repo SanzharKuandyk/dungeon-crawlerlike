@@ -1,4 +1,5 @@
 import type { HeroAction } from "../shared/command-types.js";
+
 export type Barrier = { source: string; amount: number };
 export type Attack = { actor: string; roomId: string; part: "body" | "weak-point"; amount: number };
 export type CombatContext = {
@@ -10,6 +11,7 @@ export type CombatContext = {
   claims: Map<string, number>;
   meaningful: Set<string>;
   fightingAtLock: Set<string>;
+  interrupted: Set<string>;
 };
 export function combatContext(
   actions: Record<string, HeroAction>,
@@ -18,6 +20,7 @@ export function combatContext(
   return {
     actions,
     fightingAtLock,
+    interrupted: new Set(),
     barriers: new Map(),
     aid: new Map(),
     attacks: [],

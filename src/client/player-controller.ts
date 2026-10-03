@@ -1,7 +1,9 @@
 import type { CampChoice, EquipmentChoice, HeroAction } from "../shared/command-types.js";
 import type { ClassId } from "../shared/content-types.js";
+import type { DuelAction } from "../shared/duel-types.js";
 import type { GameEvent } from "../shared/event-types.js";
 import type { ClientSession } from "./session.js";
+
 export function playerController(session: ClientSession) {
   return {
     get ready() {
@@ -16,10 +18,23 @@ export function playerController(session: ClientSession) {
           resolve(result.ok ? result.value : []);
         });
       }),
-    reconnect: () => {
+    reconnect: (takeover = false) => {
       if (!session.socket.connected) session.socket.connect();
-      else session.reconnect();
+      else session.reconnect(takeover);
     },
+    challenge: (targetCrewId: string) =>
+      session.command((env, ack) =>
+        session.socket.emit("pvp:challenge", { ...env, targetCrewId }, ack),
+      ),
+    duelVote: (duelId: string, accept: boolean) =>
+      session.command((env, ack) =>
+        session.socket.emit("pvp:vote", { ...env, duelId, accept }, ack),
+      ),
+    duelAction: (duelId: string, action: DuelAction) =>
+      session.command((env, ack) =>
+        session.socket.emit("pvp:action", { ...env, duelId, action }, ack),
+      ),
+    edit: () => session.command((env, ack) => session.socket.emit("decision:edit", env, ack)),
     chooseClass: (classId: ClassId) =>
       session.command((env, ack) => session.socket.emit("hero:class", { ...env, classId }, ack)),
     route: (roomId: string) =>
@@ -32,9 +47,9 @@ export function playerController(session: ClientSession) {
       ),
     camp: (choice: CampChoice) =>
       session.command((env, ack) => session.socket.emit("camp:vote", { ...env, choice }, ack)),
-    answer: (questionId: string, choice: number) =>
+    answer: (questionId: string, choice: number, pact: "careful" | "blood" = "careful") =>
       session.command((env, ack) =>
-        session.socket.emit("learning:answer", { ...env, questionId, choice }, ack),
+        session.socket.emit("learning:answer", { ...env, questionId, choice, pact }, ack),
       ),
     equipment: (item: EquipmentChoice) =>
       session.command((env, ack) => session.socket.emit("equipment:choose", { ...env, item }, ack)),

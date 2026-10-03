@@ -3,6 +3,7 @@ import type { ArenaState, Hero } from "../../shared/game-types.js";
 import { colorNumber, NEUTRALS, teamColor } from "../../shared/palette.js";
 import type { RoomView } from "../../shared/view-types.js";
 import { heroModel } from "./draw-model.js";
+
 export function drawHeroes(
   scene: Phaser.Scene,
   layer: Phaser.GameObjects.Container,

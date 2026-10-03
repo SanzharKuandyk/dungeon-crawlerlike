@@ -97,3 +97,41 @@
   gap: 7px;
   font-size: 12px;
 }
+
+.duel-controls {
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  border-left: 1px solid var(--border);
+}
+.duel-controls small {
+  font-size: 11px;
+}
+.duel-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.duel-actions button {
+  font-size: 12px;
+  flex: 1;
+}
+.crew-meeting {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+.crew-meeting summary {
+  min-height: 44px;
+  font-size: 12px;
+}
+.crew-meeting p,
+.crew-meeting small {
+  font-size: 12px;
+  display: block;
+  margin: 4px 0;
+}
+.crew-meeting button {
+  font-size: 12px;
+  margin: 4px;
+}

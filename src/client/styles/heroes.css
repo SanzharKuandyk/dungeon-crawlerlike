@@ -1,0 +1,118 @@
+.party-character {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--figure-height) 20px 18px 6px;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  margin-bottom: -56px;
+  background: transparent;
+}
+.hero-target,
+.hero-inspect {
+  grid-row: 1;
+  position: relative;
+  height: var(--figure-height);
+  width: 100%;
+  min-width: 0;
+}
+.hero-target,
+.hero-inspect summary {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  height: var(--figure-height);
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  list-style: none;
+  min-width: 0;
+  width: 100%;
+}
+.hero-target::before,
+.hero-inspect summary::before,
+.enemy-figure::before {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 20%;
+  width: 60%;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--contact-shadow);
+  z-index: -1;
+}
+.hero-model {
+  width: 100%;
+  height: var(--figure-height);
+  max-width: 108px;
+  min-width: 0;
+  filter: none;
+}
+.hero-model.fallen {
+  opacity: 0.35;
+}
+.hero-target .hero-model {
+  pointer-events: none;
+}
+.hero-target {
+  outline: 1px dashed var(--team);
+}
+.party-character.target-selected .hero-target,
+.party-character.acting .hero-model {
+  outline: 2px solid var(--team);
+  outline-offset: 2px;
+}
+.party-character > strong,
+.party-character > span {
+  max-width: 100%;
+  font-size: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rival-party > strong {
+  position: absolute;
+  bottom: calc(100% + 16px);
+  font-size: 12px;
+}
+.party-character.own-hero > strong {
+  color: var(--team);
+}
+.party-character > meter {
+  width: 72px;
+  max-width: 100%;
+  height: 6px;
+}
+.hero-inspect summary::-webkit-details-marker,
+.equipment-slot summary::-webkit-details-marker {
+  display: none;
+}
+.hero-inspect > div {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  width: 200px;
+  max-width: 85vw;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px var(--shadow);
+  pointer-events: none;
+}
+.hero-inspect > div span {
+  white-space: normal;
+}

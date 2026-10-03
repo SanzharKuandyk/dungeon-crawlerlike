@@ -1,9 +1,10 @@
 import type { MatchState } from "../shared/game-types.js";
 import type { CombatContext } from "./combat-context.js";
-import { enemyEvent, heroEvent, heroName, storyEvent } from "./events.js";
+import { effectEvent, heroEvent, heroName, storyEvent } from "./events.js";
 import { masteryBonus } from "./mastery.js";
 import { encounterFor, fighting } from "./routes.js";
 import { priority } from "./voting.js";
+
 export function applyHeroActions(s: MatchState, ctx: CombatContext) {
   for (const h of priority(s, s.heroes)) {
     if (!fighting(s, h)) continue;
@@ -11,14 +12,31 @@ export function applyHeroActions(s: MatchState, ctx: CombatContext) {
       e = encounterFor(s, h);
     if (!a || !e) continue;
     const mastery = masteryBonus(h, s.globalTurn);
-    const barrier = (id: string, amount: number) =>
+    const barrier = (id: string, amount: number) => {
       ctx.barriers.set(id, [...(ctx.barriers.get(id) ?? []), { source: h.id, amount }]);
+      effectEvent(
+        s,
+        h.id,
+        { type: "barrier", target: id, amount },
+        e.id,
+        0.15,
+        `${heroName(s, h)} grants ${amount} barrier.`,
+      );
+    };
     const heal = (id: string, amount: number) => {
       const target = s.heroes.find((v) => v.id === id && v.status === "alive");
       if (!target) return;
       const healed = Math.min(amount, target.maxHp - target.hp);
       target.hp += healed;
       if (healed > 0) {
+        effectEvent(
+          s,
+          h.id,
+          { type: "heal", target: id, amount: healed },
+          e.id,
+          0.15,
+          `${heroName(s, h)} restores ${healed} health to ${heroName(s, target)}.`,
+        );
         ctx.meaningful.add(h.id);
         heroEvent(
           s,
@@ -151,6 +169,14 @@ export function applyAid(s: MatchState, ctx: CombatContext) {
     );
     if (amount > 0) {
       ctx.aid.set(target.id, (ctx.aid.get(target.id) ?? 0) + amount);
+      effectEvent(
+        s,
+        source.id,
+        { type: "ward", target: target.id, amount },
+        encounterFor(s, target)?.id ?? null,
+        0.15,
+        `${heroName(s, source)} wards ${heroName(s, target)}.`,
+      );
       storyEvent(
         s,
         `${heroName(s, source)} wards ${heroName(s, target)} for ${amount}.`,
@@ -160,41 +186,5 @@ export function applyAid(s: MatchState, ctx: CombatContext) {
         encounterFor(s, target)?.id ?? null,
       );
     }
-  }
-}
-export function damageEnemies(s: MatchState, ctx: CombatContext) {
-  for (const e of s.encounters.filter((e) => e.status === "active" && !e.rivalry)) {
-    const attacks = ctx.attacks.filter((a) => a.roomId === e.id);
-    const oldWeak = e.weakHp;
-    const oldBody = e.bodyHp;
-    e.weakHp = Math.max(
-      0,
-      e.weakHp - attacks.filter((a) => a.part === "weak-point").reduce((n, a) => n + a.amount, 0),
-    );
-    e.bodyHp = Math.max(
-      0,
-      e.bodyHp - attacks.filter((a) => a.part === "body").reduce((n, a) => n + a.amount, 0),
-    );
-    const actor = (attacks.find((a) => a.part === "weak-point") ?? attacks[0])?.actor ?? null;
-    if (oldWeak > 0 && e.weakHp === 0) {
-      enemyEvent(s, e, `${e.definition.name}: the weak point breaks.`, 0.4, "weak-point", actor);
-    } else if (oldWeak !== e.weakHp || oldBody !== e.bodyHp)
-      enemyEvent(
-        s,
-        e,
-        `${e.definition.name}: ${oldBody - e.bodyHp} body damage, ${oldWeak - e.weakHp} weak-point damage.`,
-        0.4,
-        "damage",
-        actor,
-      );
-    if (e.bodyHp === 0)
-      enemyEvent(
-        s,
-        e,
-        `${e.definition.name}: the ${e.definition.family} falls.`,
-        0.45,
-        "victory",
-        actor,
-      );
   }
 }

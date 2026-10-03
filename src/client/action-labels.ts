@@ -1,6 +1,7 @@
 import { masteryBonus } from "../game/mastery.js";
 import type { HeroAction } from "../shared/command-types.js";
 import type { PlayerRoomView } from "../shared/view-types.js";
+
 export function actionLabel(a: HeroAction | null, view: PlayerRoomView) {
   if (!a) return "Not chosen";
   const h = view.hero,

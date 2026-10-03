@@ -5,9 +5,12 @@ import { createMatch, startMatch } from "../../src/game/create-match.js";
 import { resolveRoutes } from "../../src/game/routes.js";
 import type { DungeonContent } from "../../src/shared/content-types.js";
 import type { MatchState } from "../../src/shared/game-types.js";
+
 export const content = { classes, rooms, questions } as DungeonContent;
 export function fixture(count = 2, sizes: number[] = []): MatchState {
   const s = createMatch("match", "ABC123", content, 3);
+  // These fixtures exercise the original shared-room rules.
+  delete s.expeditionMap;
   for (let i = 0; i < count; i++) {
     const size = sizes[i] ?? 1;
     const ids = Array.from({ length: size }, (_, j) => `p${i}-${j}`);

@@ -13,7 +13,14 @@
     fallen?: boolean;
   } = $props();
 </script>
-<svg class="hero-model" class:fallen={fallen} viewBox="0 0 100 130" role="img" aria-label={name}>
+<svg
+  class="hero-model"
+  class:fallen={fallen}
+  viewBox="0 0 100 120"
+  preserveAspectRatio="xMidYMax meet"
+  role="img"
+  aria-label={name}
+>
   <title>{name} · {classId}</title>
   <g stroke="#18181b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
     <path d="M37 92 31 117h15l7-27m6 0 4 27h15L66 91" fill="#333337" />

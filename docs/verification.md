@@ -1,78 +1,75 @@
-# Verification · 2026-10-02
+# Verification · 2026-10-03
 
-The conversion uses the original pinned dependencies. No package or lockfile upgrades.
+## Reliable connections and host moderation
+
+New rooms use schema 7, dungeon-v2, and data/rules-v7. Older directories remain untouched.
+Existing gameplay, original art, pinned dependencies, and independent crew progress remain.
+Host absence allows 90 seconds of continued play, then preserves the expedition paused.
+Restarts restore clocks at savedAt, retain identities/receipts/continuations, and require
+explicit Resume. Global, crew, offline, and shared-question blockers compose.
+
+Host session tokens protect existing rooms; the private key protects host recovery. Creation
+is now one click, including through tunnels, per the simplified-hosting request. Replacement-device
+codes expire after five minutes and rotate student authority without changing their hero.
+Saves and receipt fingerprints contain code hashes only. Public snapshots exclude credentials.
+Read-only tabs do not count as controlling presence. Request limits and a 512-command queue
+bound incoming work without a crew cap or class-wide IP throttle.
+
+Host controls cover crew pause/resume, timed extension, missing-choice defaults, new-PvP
+policy, pre-settlement duel cancellation, and unlocked question skipping. Each durable
+intervention appears once in the public log. Test stepping uses a separate test-only event.
 
 ## Automated checks
 
-70 Vitest tests pass across game, server, client session, recovery and HTTP privacy checks.
-Svelte/TypeScript report zero errors and warnings; Biome lint passes.
-Production client/server builds pass. Phaser is loaded on demand; its 1.38 MB chunk still
-produces Vite's size warning (about 360 KB compressed).
+- Biome lint passes; TypeScript and Svelte checks report zero errors/warnings.
+- 132 Vitest tests pass across 17 files. Coverage includes nested clocks, 90-second grace,
+  all-phase restart, restore save failure, authority, receipts, throttling, queue overflow,
+  private recovery, token rotation, duel refunds, and question skipping without pact costs.
+- Production client/server build passes. The lazy Phaser chunk remains about 1.38 MB
+  (361 KB gzip), producing the existing Vite size warning.
+- All 18 Playwright scenarios passed after the simplified-hosting correction, including
+  one-click creation, student code entry, host recovery, and responsive home layouts.
 
-Seven Playwright scenarios pass in installed Microsoft Edge: independent controls for all ten developer characters;
-automatic five-depth extraction after one Start; spirits/questions/equipment/scenario resets;
-separate host/projector/four-member/solo sessions with mobile reconnect and refresh;
-paged host crews with a separate log and a four-hero laptop layout; personal versus crew
-door highlights; and rivalry targeting on the normal phone screen.
-The suite takes about 3.5 minutes, including 2.6 minutes of accelerated automatic play.
-Screenshots were inspected at 360px phone width and 1366×768 desktop/projector size.
-The phone has no horizontal overflow. The Phaser scene stays mounted, and the original
-crew-colored vector models render correctly in both crew tiles and expanded encounters.
+Browser coverage includes separate host/student/projector contexts, refresh and takeover,
+private replacement-device recovery, host reclaim with explicit resume, crew-only pauses,
+duel cancellation, and the existing automatic expedition/question/equipment/spirit flows.
+Layout coverage includes 360px phones, landscape phones, tablets, and 1366×768 desktop.
+The host crew menu now scrolls within the screen and leaves room beside its label.
+The home screen separates hosting and joining into aligned cards, with equal spacing and
+collapsed recovery. Hosting requires no installation key; the server still limits room
+creation to five per minute, deduplicates retries, and protects existing rooms with tokens.
+Tests simulate tunnel headers during creation and reject unauthorized host recovery.
 
-Recovery fixtures cover all 14 phases, stored question continuations, rivalry results and
-pending mastery, once-only resolution,
-duplicate/changed-payload requests, stale input, latest-tab ownership, rejected targets,
-host disconnection and save-failure rollback. Development HTTP refuses content files,
-server source, Git internals and temporary notes. Runtime saves and test helpers are not public.
+## Measured network simulations
 
-## Previous conversion network measurements
+Real Socket.IO clients, temporary persisted rooms, atomic writes, and injected clock progress.
+Every student reconnects once mid-expedition. ACK delivery includes a 20ms client-side delay.
+Measurements are local Windows loopback, not school Wi-Fi or tunnel capacity claims.
 
-Real Socket.IO clients, temporary atomic JSON saves, all five depths and 89 phases.
-An injected server clock advances deadlines after submissions; these are accelerated
-throughput checks, not 25-minute real-time classroom sessions. Both runs completed with
-zero failed requests and identical final scores across clients. Bots used projected information.
-
-| Measurement | 32 clients / 8 crews | 128 clients / 32 crews |
+| Metric | 32 clients / 8 crews | 128 clients / 32 crews |
 |---|---:|---:|
-| Acknowledged requests | 1,090 | 4,354 |
-| Run elapsed | 6.83 s | 188.86 s |
-| Median acknowledgment | 55.59 ms | 1,929.45 ms |
-| p95 acknowledgment | 175.00 ms | 6,790.74 ms |
-| Maximum acknowledgment | 255.63 ms | 10,162.62 ms |
-| Median save | 3.30 ms | 13.67 ms |
-| p95 save | 14.34 ms | 148.36 ms |
-| Maximum save | 50.26 ms | 223.18 ms |
+| Gameplay elapsed | 6.51 s | 32.75 s |
+| Reconnected identities | 32 | 128 |
+| Acknowledged mutations | 1,026 | 4,098 |
+| Failed/rejected requests | 0 | 0 |
+| ACK median | 68.98 ms | 423.02 ms |
+| ACK p95 | 98.91 ms | 829.80 ms |
+| ACK maximum | 106.05 ms | 927.46 ms |
+| Save median | 2.05 ms | 1.45 ms |
+| Save p95 | 6.02 ms | 19.11 ms |
+| Save maximum | 33.11 ms | 202.29 ms |
+| Extracted crews | 8 | 32 |
+| Deepest room | 10 | 10 |
+| Consistent final scores | Yes | Yes |
 
-There is no application crew cap. The 128-client run shows substantial queueing on this
-laptop, so it is not a claim of smooth operation at that scale. Measurements used loopback
-clients and ran alongside browser QA; real phones, Wi-Fi and tunnels can add latency.
-The full local report is generated at ignored test-results/load-result.json.
+All crews secured 59 treasure in each run. These runs exercise legal expedition and question
+traffic with reconnect bursts, not mass concurrent duels. Flood rejection, save failure,
+moderation, and duel recovery have focused automated coverage. The load run preceded the
+final presentation/capability and restore-failure fixes; those changes were verified separately.
 
-## Board, mastery and rivalry update
+## Remaining limits
 
-The host and public board page through two crews at desktop size and one on narrow screens.
-The timer and depth trail remain visible with either Dungeon or Log selected. Encounter
-dialogs close with Escape and keep their Phaser scene mounted. Four-member crews have the
-full row for characters, with enemy vitals beneath them. Screenshots were inspected at
-1366×768 and 360px phone width; both host cards fit vertically and normal phones have no
-horizontal overflow.
-
-New expeditions earn up to two mastery ranks after qualified victories. Bonuses activate on
-the next combat turn without changing frozen class, power or maximum health. A seeded
-middle depth marks a high-risk door for a lethal rivalry when exactly two crews enter it.
-Tests cover simultaneous deaths, class/room/team targeting, barriers, equipment, withdrawal,
-timeout, banked scores, mastery timing and restart behavior. Older snapshots without the
-feature marker retain the original rules. Course content and dependency pins are unchanged.
-
-A fresh 32-client / 8-crew run completed all five depths and 89 phases with 1,090 accepted
-requests, zero failures and consistent final scores. It took 34.09s while browser checks
-were also running; acknowledgment median was 323.48ms, p95 1,134.86ms and maximum 1,452.40ms.
-This run overwrites the ignored load report; the earlier 128-client figures above are
-historical, not a fresh verification of the new features at that scale.
-
-## Preservation
-
-Schema 4 / dungeon-v1 uses data/rules-v4. Older saves and the existing sibling backup remain
-untouched. The pre-conversion Git baseline is recoverable from the ignored local bundle.
-.Codex is temporary development planning only, excluded from Git and application output.
-No course materials, other projects or Cloudflare configuration were modified.
+No human classroom, school-network, or Cloudflare playtest has been performed. These local
+accelerated measurements do not establish maximum supported capacity or gameplay balance.
+The fifteen original course-practice questions still need instructor review for exact lecture
+alignment. Temporary planning and raw measurements remain ignored, never imported by source.

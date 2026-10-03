@@ -13,6 +13,7 @@
   import PlayerScreen from "./screens/PlayerScreen.svelte";
   import ProjectorScreen from "./screens/ProjectorScreen.svelte";
   import TestScreen from "./screens/TestScreen.svelte";
+  import { browserStorage } from "./storage.js";
 
   let route = $state(readRoute());
   function loadRoute() {
@@ -37,6 +38,7 @@
 <div
   class="app-shell"
   class:projector={route.screen === "board"}
+  class:host-away={room.status === "ready" && !!room.view?.hostReconnectUntil && !room.view?.closed}
   class:battle-play={route.screen === "room" &&
     room.view?.role === "player" &&
     room.view.status !== "finished" &&
@@ -48,7 +50,16 @@
   style:--border={NEUTRALS.border}
 >
   <header class="topbar">
-    <a class="brand" href="#/">Sector Siege</a>
+    {#if room.status === "ready" && room.view?.hostReconnectUntil && !room.view.closed}
+      <span
+        class="host-notice"
+        role="status"
+        title="The expedition pauses if the host does not reconnect within 90 seconds."
+        >Host reconnecting · pause after 90s</span
+      >
+    {:else}
+      <a class="brand" href="#/">Dungeon Crawlerlike</a>
+    {/if}
     <details class="preferences">
       <summary>Settings</summary>
       <div>
@@ -58,7 +69,7 @@
           onclick={() => {
             preferences.muted = !preferences.muted;
             if (!preferences.muted) enableAudio();
-            localStorage.setItem("heist-muted", String(preferences.muted));
+            browserStorage.setItem("heist-muted", String(preferences.muted));
           }}
         >
           Sound {preferences.muted ? "off" : "on"}
@@ -69,7 +80,7 @@
           aria-pressed={preferences.reducedMotion}
           onclick={() => {
             preferences.reducedMotion = !preferences.reducedMotion;
-            localStorage.setItem("heist-motion", preferences.reducedMotion ? "reduced" : "full");
+            browserStorage.setItem("heist-motion", preferences.reducedMotion ? "reduced" : "full");
           }}
         >
           Reduce motion
@@ -91,7 +102,10 @@
       {#if room.view.role === "host"}
         <HostScreen view={room.view} />
       {:else}
-        <section class="panel">Open this page in the browser that created the room.</section>
+        <section class="panel">
+          <p>Host access is needed for this room.</p>
+          <a href="#/">Recover host access from the home screen</a>
+        </section>
       {/if}
     {:else if route.screen === "board"}
       <ProjectorScreen view={room.view} />

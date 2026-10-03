@@ -1,5 +1,6 @@
 import type { MatchState } from "../shared/game-types.js";
 import { TEAM_COLORS } from "../shared/palette.js";
+
 export function assertInvariants(s: MatchState) {
   const fail = (m: string) => {
     throw new Error(`Invariant: ${m}`);
@@ -27,7 +28,7 @@ export function assertInvariants(s: MatchState) {
   unique(s.usedQuestions, "questions");
   unique(s.quizDepths.map(String), "question per depth");
   if (
-    s.rulesVersion !== "dungeon-v1" ||
+    !["dungeon-v1", "dungeon-v2"].includes(s.rulesVersion) ||
     !Number.isInteger(s.depth) ||
     s.depth < 1 ||
     (!s.expeditionMap && s.depth > 5) ||

@@ -24,7 +24,18 @@ export function botAction(view: PlayerRoomView): HeroAction {
   const room = view.encounters.find(
     (e) => e.crewIds.includes(hero.crewId) && e.status === "active",
   );
-  if (room?.weakHp && view.turn === 1)
+  const members = view.heroes.filter(
+    (member) => member.crewId === hero.crewId && member.status === "alive",
+  );
+  const breaker = members
+    .slice(0, Math.ceil(members.length / 2))
+    .some((member) => member.id === hero.id);
+  if (
+    room?.weakHp &&
+    breaker &&
+    ((room.definition.family === "sentinel" && view.turn === 2) ||
+      (room.definition.family !== "sentinel" && view.turn === 1))
+  )
     return (
       view.legalActions.find(
         (a) => "part" in a && a.part === "weak-point" && ["attack", "skirmish"].includes(a.kind),
@@ -37,4 +48,15 @@ export function botAction(view: PlayerRoomView): HeroAction {
   return (
     view.legalActions.find((a) => a.kind === "attack" && a.part === "body") ?? { kind: "brace" }
   );
+}
+
+export function botRoute(view: PlayerRoomView): string | null {
+  const reachable =
+    view.expeditionMap?.nodes.filter((node) => view.reachableNodeIds.includes(node.id)) ?? [];
+  const preferred =
+    reachable.find((node) => node.kind === "camp") ??
+    reachable.find((node) => node.kind === "treasure") ??
+    reachable.find((node) => node.room.risk === "low") ??
+    reachable[0];
+  return preferred?.id ?? view.offeredRooms.find((room) => room.risk === "low")?.id ?? null;
 }

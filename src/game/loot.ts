@@ -2,6 +2,7 @@ import type { MatchState } from "../shared/game-types.js";
 import type { CombatContext } from "./combat-context.js";
 import { crewEvent, heroEvent, heroName } from "./events.js";
 import { priority } from "./voting.js";
+
 export function awardLoot(s: MatchState, ctx: CombatContext) {
   for (const e of s.encounters.filter((e) => e.status === "active")) {
     const ranked = priority(s, s.crews)

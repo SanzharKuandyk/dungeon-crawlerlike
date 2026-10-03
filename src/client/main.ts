@@ -9,8 +9,15 @@ import "./styles/screens.css";
 import "./styles/responsive.css";
 import "./styles/dungeon.css";
 import "./styles/expedition.css";
+import "./styles/heroes.css";
+import "./styles/crew-stage.css";
+import "./styles/player-status.css";
 import "./styles/combat.css";
 import "./styles/map.css";
+import "./styles/layout.css";
+import "./styles/landscape.css";
+import "./styles/route-screen.css";
+import "./styles/inscriptions.css";
 
 for (const [name, value] of Object.entries(NEUTRALS))
   document.documentElement.style.setProperty(

@@ -85,7 +85,7 @@ export type ArenaState = { heroes: Hero[]; crews: Crew[]; encounters: RoomEncoun
 export type MatchState = ArenaState & {
   id: string;
   code: string;
-  rulesVersion: "dungeon-v1";
+  rulesVersion: "dungeon-v1" | "dungeon-v2";
   expeditionFeatures?: "rivalries-v1";
   expeditionMap?: ExpeditionMap;
   seed: number;
@@ -105,6 +105,7 @@ export type MatchState = ArenaState & {
   campVotes: Record<string, CampChoice>;
   withdrawVotes: Record<string, boolean>;
   answers: Record<string, number>;
+  answerPacts: Record<string, "careful" | "blood">;
   equipmentChoices: Record<string, EquipmentChoice>;
   resolvedActions: Record<string, HeroAction>;
   learningEnabled: boolean;

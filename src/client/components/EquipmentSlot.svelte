@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Hero } from "../../shared/game-types.js";
+  import ItemIcon from "./ItemIcon.svelte";
 
   let { hero, globalTurn }: { hero: Hero; globalTurn: number } = $props();
   const descriptions = {
@@ -10,17 +11,7 @@
 </script>
 <details class="equipment-slot">
   <summary aria-label="Bag">
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.8"
-      aria-hidden="true"
-    >
-      <path d="M8 7V5a4 4 0 0 1 8 0v2M5 7h14l1 14H4L5 7Z" />
-    </svg>
+    <ItemIcon kind={hero.equipment?.kind ?? "bag"} size={24} />
     <span
       >{hero.equipment?.kind ?? "Bag"}<small
         >{hero.equipment

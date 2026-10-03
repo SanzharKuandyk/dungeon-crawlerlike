@@ -1,6 +1,7 @@
 import type { MatchState } from "../shared/game-types.js";
 import type { CombatContext } from "./combat-context.js";
 import { encounterFor } from "./routes.js";
+
 export function creditParticipation(s: MatchState, ctx: CombatContext) {
   for (const id of ctx.meaningful) {
     const h = s.heroes.find((h) => h.id === id);

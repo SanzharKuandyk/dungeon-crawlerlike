@@ -2,10 +2,13 @@ import type { MatchState } from "../shared/game-types.js";
 import type { PublicRoomView, RoomView } from "../shared/view-types.js";
 import { legalActions } from "./action-options.js";
 import { campAvailable, reachableNodes } from "./expedition-map.js";
-import { activeQuestion } from "./learning.js";
+import { activeQuestion, personalReward } from "./learning.js";
 import { rivalryDoor } from "./rivalry.js";
 import { winningCamp, winningRoute } from "./voting.js";
+
 export type ViewOptions = {
+  pauseReasons?: PublicRoomView["pauseReasons"];
+  pvpEnabled?: boolean;
   deadline: number | null;
   remaining: number | null;
   phaseStartedAt: number;
@@ -13,8 +16,20 @@ export type ViewOptions = {
   serverNow: number;
   speed: "manual" | "normal" | "fast";
   storageError: string | null;
+  moderation?: import("../shared/view-types.js").HostRoomView["moderation"];
+  operations?: import("../shared/view-types.js").HostRoomView["operations"];
   testMode: boolean;
   readOnly: boolean;
+  duels?: PublicRoomView["duels"];
+  crewRuns?: PublicRoomView["crewRuns"];
+  independent?: boolean;
+  quizActive?: boolean;
+  intermissionPending?: boolean;
+  hostReconnectUntil?: number | null;
+  closed?: boolean;
+  inactivityFallback?: boolean;
+  readyPlayers?: string[];
+  rewardCharges?: 1 | 2 | null;
 };
 export function projectRoom(
   s: MatchState,
@@ -23,7 +38,8 @@ export function projectRoom(
   options: ViewOptions,
   sharedView?: PublicRoomView,
 ): RoomView {
-  const { testMode, readOnly, ...clock } = options;
+  const { testMode, readOnly, readyPlayers, rewardCharges, operations, moderation, ...clock } =
+    options;
   const presenting = ["arrival", "combat-reveal", "camp-reveal", "extraction", "return"].includes(
     s.phase.kind,
   );
@@ -67,6 +83,16 @@ export function projectRoom(
         before: presenting ? structuredClone(s.before) : null,
         winners: [...s.winners],
         learningEnabled: s.learningEnabled,
+        pauseReasons: options.pauseReasons ?? [],
+        pvpEnabled: options.pvpEnabled ?? true,
+        crewRuns: options.crewRuns ?? [],
+        duels: options.duels ?? [],
+        independent: options.independent ?? false,
+        quizActive: options.quizActive ?? s.quizQuestionId !== null,
+        intermissionPending: options.intermissionPending ?? false,
+        hostReconnectUntil: options.hostReconnectUntil ?? null,
+        closed: options.closed ?? false,
+        inactivityFallback: options.inactivityFallback ?? true,
         ...clock,
         question,
         correctChoice: locked && q ? q.correctIndex : null,
@@ -97,7 +123,15 @@ export function projectRoom(
           };
         }),
       };
-  if (isHost) return { ...base, role: "host", testMode, readOnly };
+  if (isHost)
+    return {
+      ...base,
+      role: "host",
+      testMode,
+      readOnly,
+      operations: operations ?? [],
+      moderation: moderation ?? { crews: [] },
+    };
   const self = s.players.find((p) => p.id === playerId);
   if (!self) return base;
   const hero = s.heroes.find((h) => h.playerId === self.id) ?? null;
@@ -125,6 +159,10 @@ export function projectRoom(
     canCamp: s.crews.some((crew) => crew.id === self.crewId && campAvailable(s, crew)),
     winningCamp: self.crewId ? winningCamp(s, self.crewId) : null,
     answerChoice: s.answers[self.id] ?? null,
+    answerPact: s.answerPacts[self.id] ?? null,
+    inscriptionReward: personalReward(s, self.id),
     equipmentChoice: s.equipmentChoices[self.id] ?? null,
+    decisionReady: readyPlayers?.includes(self.id) ?? false,
+    rewardCharges: rewardCharges ?? null,
   };
 }

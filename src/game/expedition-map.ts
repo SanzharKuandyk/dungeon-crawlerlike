@@ -44,7 +44,7 @@ export function createExpeditionMap(
         treasure: "Collect carried treasure and a fresh equipment charge without a fight.",
         event: "An unknown encounter: a hidden cache, a healing shrine, or an ambush.",
         elite: "A tougher enemy guards a larger treasure purse.",
-        boss: "Face the guardian, then rest or bank treasure before the next chapter.",
+        boss: "Face the guardian and extract with your treasure.",
         battle: template.description,
       };
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CLASS_IDS } from "./constants.js";
+
 export const classSchema = z.enum(CLASS_IDS);
 const part = z.enum(["body", "weak-point"]);
 const target = z.string().min(1).max(100);
@@ -61,16 +62,12 @@ export const envelopeSchema = z.object({
   matchId: target,
   phaseId: z.number().int().min(0),
 });
-export const hostSchema = envelopeSchema.extend({
-  action: z.enum(["start", "pause", "resume", "end", "learning", "advance", "speed"]),
-  enabled: z.boolean().optional(),
-  speed: z.enum(["manual", "normal", "fast"]).optional(),
-});
 export const rosterSchema = z.discriminatedUnion("action", [
   envelopeSchema.extend({ action: z.literal("remove-player"), playerId: target }).strict(),
   envelopeSchema.extend({ action: z.literal("delete-crew"), crewId: target }).strict(),
 ]);
 export const scenarioSchema = z.enum([
+  "duel",
   "fresh",
   "split",
   "treasure",

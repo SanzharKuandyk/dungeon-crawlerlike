@@ -1,45 +1,65 @@
 import { startMatch } from "../../game/create-match.js";
-import { finishMatch } from "../../game/scoring.js";
 import type { HostInput } from "../../shared/protocol.js";
+import { audit } from "../audit.js";
+import { startCrews } from "../crew-clock.js";
 import { reject } from "../errors.js";
-import { advancePhase, enter, setDeadline } from "../room-clock.js";
+import { enter } from "../room-clock.js";
+import { closeSession, pauseRoom, resumeRoom } from "../room-lifecycle.js";
 import type { StoredRoom } from "../room-types.js";
+import { hostCrewControl } from "./host-crews.js";
+import { hostModeration } from "./host-moderation.js";
+
 export function hostControl(room: StoredRoom, input: HostInput, now: number) {
-  const s = room.state;
-  switch (input.action) {
+  const command = input.command;
+  switch (command.kind) {
     case "start":
-      startMatch(s);
+      room.pauseReasons = [];
+      startMatch(room.state);
       enter(room, { kind: "route" }, now);
+      if (room.state.rulesVersion === "dungeon-v2") startCrews(room, now);
       break;
     case "pause":
-      if (s.status !== "running") reject("CLOSED", "The match is not running.");
-      room.remaining = room.deadline === null ? null : Math.max(0, room.deadline - now);
-      room.deadline = null;
-      s.status = "paused";
+      if (room.state.status !== "running" && room.state.status !== "paused")
+        reject("CLOSED", "Start the expedition first.");
+      pauseRoom(room, "host", now);
       break;
     case "resume":
-      if (s.status !== "paused") reject("CLOSED", "The match is not paused.");
-      s.status = "running";
-      room.deadline = room.speed === "manual" ? null : now + (room.remaining ?? room.phaseDuration);
-      room.phaseStartedAt = now - (room.phaseDuration - (room.remaining ?? room.phaseDuration));
-      room.remaining = null;
+      if (room.state.status !== "paused") reject("CLOSED", "The expedition is not paused.");
+      resumeRoom(room, now);
       break;
     case "end":
-      finishMatch(s);
-      room.deadline = null;
+      closeSession(room, now, "ended");
       break;
     case "learning":
-      if (s.status !== "lobby") reject("CLOSED", "Choose learning before starting.");
-      s.learningEnabled = input.enabled ?? true;
+    case "fallback":
+      if (room.state.status !== "lobby") reject("CLOSED", "Choose this before starting.");
+      if (command.kind === "learning") room.state.learningEnabled = command.enabled;
+      else room.inactivityFallback = command.enabled;
       break;
-    case "advance":
-      if (!room.testMode) reject("UNAUTHORIZED", "Stepping is available only in test mode.");
-      advancePhase(room, now);
+    case "pvp-policy":
+      room.pvpEnabled = command.enabled;
+      if (!command.enabled)
+        for (const duel of room.duels) if (duel.status === "offered") duel.status = "declined";
       break;
-    case "speed":
-      if (!room.testMode) reject("UNAUTHORIZED", "Speed controls are available only in test mode.");
-      room.speed = input.speed ?? "normal";
-      setDeadline(room, now);
+    case "crew-pause":
+    case "crew-resume":
+    case "crew-extend":
+    case "crew-resolve":
+      hostCrewControl(room, command, now);
+      break;
+    case "duel-cancel":
+    case "question-skip":
+      hostModeration(room, command, now);
       break;
   }
+  audit(
+    room,
+    {
+      commandId: input.requestId,
+      intervention: command.kind,
+      crewIds: "crewId" in command ? [command.crewId] : [],
+      playerId: null,
+    },
+    `Host: ${command.kind.replaceAll("-", " ")}${"crewId" in command ? ` · ${room.state.crews.find((c) => c.id === command.crewId)?.name ?? command.crewId}` : ""}.`,
+  );
 }

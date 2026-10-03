@@ -2,10 +2,11 @@
   import { teamColor } from "../../shared/palette.js";
   import type { RoomView } from "../../shared/view-types.js";
   import ClassPicker from "../components/ClassPicker.svelte";
-  import { createCrew, joinCrew, joinPlayer } from "../connection.js";
+  import { createCrew, joinCrew, joinPlayer, recoverPlayer } from "../connection.js";
   import { room } from "../room.svelte.js";
 
   let { view }: { view: RoomView } = $props();
+  let recoveryCode = $state("");
   let nickname = $state(""),
     crewName = $state(""),
     busy = $state(false),
@@ -41,6 +42,25 @@
         : `Your crew: ${ownCrew?.name}`}
   </h1>
   {#if !self}
+    <details>
+      <summary>Reconnect on a replacement device</summary>
+      <form
+        onsubmit={(e) => {
+          e.preventDefault();
+          void recoverPlayer(recoveryCode.trim().toUpperCase());
+        }}
+      >
+        <label for="player-recovery-code">Recovery code from host</label>
+        <input
+          id="player-recovery-code"
+          bind:value={recoveryCode}
+          maxlength="12"
+          autocomplete="off"
+        ><button type="submit" disabled={recoveryCode.trim().length !== 12}>
+          Recover character
+        </button>
+      </form>
+    </details>
     {#if view.status !== "lobby"}
       <p>This match has started. Reconnect using your original browser.</p>
     {:else}

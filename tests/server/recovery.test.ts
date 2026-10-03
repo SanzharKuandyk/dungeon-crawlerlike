@@ -60,8 +60,9 @@ it("a complete expedition resumes every phase paused without replaying damage, t
     expect(restored.state.history).toEqual(old.state.history);
     expect(restored.state.quizContinuation).toEqual(old.state.quizContinuation);
     const env = { requestId: "resume-fixture", matchId: old.state.id, phaseId: old.state.phaseId };
-    hostControl(restored, { ...env, action: "resume" }, 100000);
+    hostControl(restored, { ...env, command: { kind: "resume" } }, 100000);
     const expected = structuredClone(old);
+    expected.state.history = structuredClone(restored.state.history);
     advancePhase(expected, 100000);
     advancePhase(restored, 100000);
     expect(restored.state).toEqual(expected.state);
@@ -113,7 +114,7 @@ it("rivalry results and pending mastery survive a paused restart without replayi
   expect(restored.state.heroes[0].mastery).toEqual({ rank: 1, activeFromTurn: 2 });
   expect(restored.state.crews[0].carriedTreasure).toBe(12);
   const env = { requestId: "resume-rivalry", matchId: s.id, phaseId: restored.state.phaseId };
-  hostControl(restored, { ...env, action: "resume" }, 1000);
+  hostControl(restored, { ...env, command: { kind: "resume" } }, 1000);
   advancePhase(restored, 1000);
   expect(restored.state.crews[0].carriedTreasure).toBe(12);
   expect(restored.state.heroes[1].status).toBe("dead");

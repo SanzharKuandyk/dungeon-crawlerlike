@@ -5,6 +5,7 @@ import {
   questionSchema,
   roomDefinitionSchema,
 } from "../shared/validation.js";
+
 export async function loadContent(): Promise<DungeonContent> {
   const read = async (name: string): Promise<unknown> => JSON.parse(await readFile(name, "utf8"));
   const classes = classDefinitionSchema.array().parse(await read("content/dungeon/classes.json"));

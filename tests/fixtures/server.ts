@@ -3,6 +3,7 @@ import { createGameServer } from "../../src/server/app.js";
 import type { StoredRoom } from "../../src/server/room-types.js";
 import type { Storage } from "../../src/server/storage.js";
 import type { ClientEvents, ServerEvents } from "../../src/shared/protocol.js";
+
 export function memoryStorage() {
   const saved = new Map<string, StoredRoom>();
   let fail = false;

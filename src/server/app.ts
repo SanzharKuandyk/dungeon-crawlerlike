@@ -5,15 +5,24 @@ import { Server } from "socket.io";
 import type { ClientEvents, ServerEvents } from "../shared/protocol.js";
 import type { Config } from "./config.js";
 import { loadContent } from "./content.js";
+import { loadHostAccess } from "./host-access.js";
 import { attachHttp } from "./http.js";
 import { createRoomManager } from "./room-manager.js";
 import { attachSockets } from "./sockets.js";
 import { fileStorage, type Storage } from "./storage.js";
+
 export async function createGameServer(
   config: Config,
-  options: { ui?: boolean; storage?: Storage; clock?: () => number; ticking?: boolean } = {},
+  options: {
+    ui?: boolean;
+    storage?: Storage;
+    clock?: () => number;
+    ticking?: boolean;
+    installationKey?: string;
+  } = {},
 ) {
   const content = await loadContent();
+  const installationKey = options.installationKey ?? (await loadHostAccess());
   const manager = createRoomManager(
     options.storage ?? fileStorage(config.dataDir),
     content,
@@ -39,7 +48,7 @@ export async function createGameServer(
   });
   const http = createServer(app);
   const io = new Server<ClientEvents, ServerEvents>(http, { maxHttpBufferSize: 16384 });
-  attachHttp(app, manager, config);
+  attachHttp(app, manager, config, installationKey, options.clock ?? Date.now);
   attachSockets(io, manager, options.clock ?? Date.now);
   let vite: { close: () => Promise<void> } | undefined;
   if (options.ui !== false) {

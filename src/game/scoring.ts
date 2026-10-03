@@ -1,5 +1,6 @@
 import type { MatchState } from "../shared/game-types.js";
 import { beginEvents, crewEvent, finalizeEvents, lockResolution } from "./events.js";
+
 export function extract(s: MatchState) {
   lockResolution(s);
   beginEvents(s);

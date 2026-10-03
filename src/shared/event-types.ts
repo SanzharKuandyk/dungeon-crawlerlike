@@ -1,5 +1,18 @@
 import type { Crew, Hero, RoomEncounter } from "./game-types.js";
 
+export type CombatEffect =
+  | {
+      type: "hit";
+      action: string;
+      target: string;
+      part: "body" | "weak-point" | "hero";
+      attempted: number;
+      blocked: number;
+      damage: number;
+    }
+  | { type: "heal" | "barrier" | "ward"; target: string; amount: number }
+  | { type: "interrupt" | "death" | "panic" | "loot"; target: string; amount: number };
+
 type EventBase = {
   id: string;
   sequence: number;
@@ -16,5 +29,7 @@ export type GameEvent = EventBase &
     | { kind: "hero"; actor: string; hero: Hero }
     | { kind: "enemy"; actor: string | null; encounter: RoomEncounter }
     | { kind: "crew"; actor: string; crew: Crew }
+    | ({ kind: "host-intervention"; actor: null } & import("./host-types.js").HostIntervention)
     | { kind: "story"; actor: string | null }
+    | { kind: "effect"; actor: string; effect: CombatEffect }
   );

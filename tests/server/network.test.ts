@@ -12,7 +12,7 @@ async function setup() {
   const f = await serverFixture();
   fixtures.push(f);
   const secret = token(),
-    created = await f.server.manager.create(secret);
+    created = await f.server.manager.create(secret, false, "dungeon-v1");
   const host = await f.connect(),
     player = await f.connect();
   const ack = (send: (done: (r: ActionResult<Receipt>) => void) => void) =>
@@ -72,7 +72,9 @@ it("host roster deletion is authorized, durable and returns crew members to sele
   expect(
     (await f.ack((done) => f.player.emit("crew:create", { ...f.env(), name: "Again" }, done))).ok,
   ).toBe(true);
-  await f.ack((done) => f.host.emit("host:control", { ...f.env(), action: "start" }, done));
+  await f.ack((done) =>
+    f.host.emit("host:control", { ...f.env(), command: { kind: "start" } }, done),
+  );
   expect(
     await f.ack((done) =>
       f.host.emit(
@@ -130,10 +132,14 @@ it("joining and requests survive lost responses; reused IDs cannot change conten
 it("rejects stale, unauthorized, invalid targets and actions beyond deadlines", async () => {
   const f = await setup();
   expect(
-    await f.ack((done) => f.player.emit("host:control", { ...f.env(), action: "start" }, done)),
+    await f.ack((done) =>
+      f.player.emit("host:control", { ...f.env(), command: { kind: "start" } }, done),
+    ),
   ).toMatchObject({ ok: false, code: "UNAUTHORIZED" });
   const old = f.env();
-  await f.ack((done) => f.host.emit("host:control", { ...f.env(), action: "start" }, done));
+  await f.ack((done) =>
+    f.host.emit("host:control", { ...f.env(), command: { kind: "start" } }, done),
+  );
   expect(
     await f.ack((done) => f.player.emit("route:vote", { ...old, roomId: "d1-0" }, done)),
   ).toMatchObject({ ok: false, code: "STALE" });
@@ -185,25 +191,41 @@ it("latest tab controls an identity; reconnect restores its submitted action", a
 });
 it("save failures roll back commands and pause only that room", async () => {
   const f = await setup();
-  await f.ack((done) => f.host.emit("host:control", { ...f.env(), action: "start" }, done));
+  await f.ack((done) =>
+    f.host.emit("host:control", { ...f.env(), command: { kind: "start" } }, done),
+  );
   f.memory.setFail(true);
   expect(
-    await f.ack((done) => f.player.emit("route:vote", { ...f.env(), roomId: "d1-0" }, done)),
+    await f.ack((done) =>
+      f.player.emit(
+        "route:vote",
+        { ...f.env(), roomId: f.current().state.offeredRooms[0].id },
+        done,
+      ),
+    ),
   ).toMatchObject({ ok: false, code: "SAVE_FAILED" });
   expect(f.current().state.status).toBe("paused");
   expect(f.current().state.routeVotes).toEqual({});
   expect(f.current().storageError).toContain("disk space");
   f.memory.setFail(false);
   expect(
-    (await f.ack((done) => f.host.emit("host:control", { ...f.env(), action: "resume" }, done))).ok,
+    (
+      await f.ack((done) =>
+        f.host.emit("host:control", { ...f.env(), command: { kind: "resume" } }, done),
+      )
+    ).ok,
   ).toBe(true);
 });
 it("host disconnect does not interrupt automatic phases; normal rooms forbid debug controls", async () => {
   const f = await setup();
   expect(
-    await f.ack((done) => f.host.emit("host:control", { ...f.env(), action: "advance" }, done)),
+    await f.ack((done) =>
+      f.host.emit("test:control", { ...f.env(), command: { kind: "advance" } }, done),
+    ),
   ).toMatchObject({ ok: false, code: "UNAUTHORIZED" });
-  await f.ack((done) => f.host.emit("host:control", { ...f.env(), action: "start" }, done));
+  await f.ack((done) =>
+    f.host.emit("host:control", { ...f.env(), command: { kind: "start" } }, done),
+  );
   f.host.disconnect();
   await f.advance(f.current().deadline ?? 0);
   expect(f.current().state.phase.kind).toBe("arrival");
