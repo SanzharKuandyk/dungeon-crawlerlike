@@ -29,6 +29,7 @@ export function joinPlayer(room: StoredRoom, name: string, secret: string) {
   createSession(room.sessions, { role: "player", playerId: id }, secret);
   return { playerId: id };
 }
+
 function updateCrew(room: StoredRoom, id: string) {
   const s = room.state,
     c = s.crews.find((c) => c.id === id);
@@ -46,6 +47,7 @@ function updateCrew(room: StoredRoom, id: string) {
       p.classNotice = "Your crew now has more than two members. Your class changed to Knight.";
     }
 }
+
 export function joinCrew(room: StoredRoom, playerId: string, crewId: string) {
   const s = room.state;
   if (s.status !== "lobby") reject("CLOSED", "Crews are locked after starting.");
@@ -69,6 +71,7 @@ export function crewSymbol(index: number) {
   }
   return text;
 }
+
 export function createCrew(room: StoredRoom, playerId: string, name: string) {
   const s = room.state;
   if (s.status !== "lobby") reject("CLOSED", "Crews are locked after starting.");
@@ -82,13 +85,18 @@ export function createCrew(room: StoredRoom, playerId: string, name: string) {
     colorId: color.id,
     playerIds: [],
     startingSize: 1,
-    carriedTreasure: 0,
-    securedTreasure: 0,
+    economy: { gold: 24, rescueDebt: 0 },
+    bossesDefeated: 0,
+    completedNodeIds: [],
+    trialScoreUnits: 0,
+    rewardedNodeIds: [],
+    shop: null,
     status: "active",
     location: { kind: "camp" },
   });
   joinCrew(room, playerId, id);
 }
+
 export function chooseClass(room: StoredRoom, playerId: string, classId: ClassId) {
   const s = room.state;
   if (s.status !== "lobby") reject("CLOSED", "Classes are locked after starting.");
@@ -100,6 +108,7 @@ export function chooseClass(room: StoredRoom, playerId: string, classId: ClassId
   p.classId = classId;
   p.classNotice = null;
 }
+
 export function changeRoster(room: StoredRoom, change: RosterChange) {
   const s = room.state;
   if (s.status !== "lobby") reject("CLOSED", "The roster is locked after starting.");

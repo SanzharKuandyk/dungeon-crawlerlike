@@ -165,6 +165,12 @@ export function createClientSession(options: SessionOptions) {
   document.addEventListener("visibilitychange", foreground);
   socket.connect();
   return {
+    get pendingCount() {
+      return pending.size;
+    },
+    get error() {
+      return requests.error;
+    },
     socket,
     get view() {
       return latest;

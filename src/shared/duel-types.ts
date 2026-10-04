@@ -3,10 +3,11 @@ import type { Crew } from "./game-types.js";
 
 export type DuelAction = { kind: "strike" | "guard" | "feint"; targetHeroId?: string };
 export type Duel = {
+  npc?: { hp: number; maxHp: number };
   id: string;
   nodeId: string;
   crewIds: [string, string];
-  status: "offered" | "active" | "finished" | "declined";
+  status: "offered" | "active" | "finished" | "declined" | "champion-offer";
   expiresAt: number;
   remaining: number | null;
   votes: Record<string, boolean>;
@@ -19,12 +20,13 @@ export type Duel = {
   winner: string | null;
   saved: Record<
     string,
-    { progress: CrewProgress; clock: DecisionClock; location: Crew["location"] }
+    { progress: CrewProgress; clock: DecisionClock; location: Crew["location"]; ready: string[] }
   >;
 };
 export type DuelView = Pick<
   Duel,
   | "id"
+  | "npc"
   | "nodeId"
   | "crewIds"
   | "status"

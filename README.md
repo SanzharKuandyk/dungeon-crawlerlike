@@ -1,137 +1,180 @@
-# Dungeon Crawlerlike · Dungeon Expedition
+# Dungeon Crawlerlike
 
-A competitive dungeon expedition for phone, tablet, and laptop. Each student controls one character. Crews contain 1–4 members; there is no hard-coded crew limit. Crews explore independently, and members fight together inside their own encounter. Most secured treasure wins.
+A three-chapter dungeon expedition for phones, tablets and laptops. Every student controls a
+character; crews of 1–4 explore independently. There is no fixed crew limit. Three bosses,
+persistent builds, recovery and two shared Trials of Wagers lead to a ranked result.
 
-## Run
+## Launch
 
 From `C:\Projects\lectures\dungeon-crawlerlike`:
 
 ```powershell
-npm ci
+npm install
 npm run dev
 ```
 
-Open http://localhost:3000 and click **Host a match**. It creates your room immediately, with no key or account, including when opened through a tunnel. Invite players, then start after they choose crews and classes. The host can pause, resume, or end the session. **Invite** shows the QR/link; **Projector** opens the public board. Click a crew tile for its encounter. Map, Dungeon, and Log stay separate.
+Open **http://localhost:47831**, click **Host a match**, invite students, then **Start expedition**.
+No account or installation key is needed. Students join a crew and choose their own class.
+Invite provides the room link/QR. The host's crew grid shows readiness, connections and encounters;
+Map, Dungeon and Log are separate views. The host can pause, resume, moderate or end the expedition.
 
-Production:
+For production:
 
 ```powershell
 npm run build
 npm start
 ```
 
-Use the pinned dependencies and Node 24 runtime. PowerShell users should use `npm.cmd` when passing arguments. For LAN access: `npm.cmd run dev -- --host 0.0.0.0`. An Invite join-base URL changes generated links only. This project does not configure tunnels.
+Use the pinned Node 24 runtime/dependencies. Development runs `tsx watch`; production runs compiled
+JavaScript. In PowerShell, use `npm.cmd` when passing extra arguments. `--port` or `PORT` overrides
+47831. LAN binding is explicit: `npm.cmd run dev -- --host 0.0.0.0`. An invite base URL changes
+links only. Tunnel setup remains external to this project.
+Source TypeScript uses `.js` imports because the server compiles with NodeNext: TypeScript resolves
+the corresponding `.ts` source while Node loads the emitted `.js` file. Keep these import paths.
 
-## Play
+## Expedition
 
-One chapter has ten ascending room positions and connected route choices. The same seeded map gives crews the same opportunities. Battles, elites, caches, mysteries, camps, and a final guardian offer different risks. Surviving crews automatically secure their remaining treasure after room ten; there is no endless score farming. Finished crews wait for the remaining crews. Eliminated crews keep secured treasure; ties share the win.
+Each chapter has seven ascending map rows: opening battle; merchant/cache/event; battle/elite;
+convergence altar or shrine; camp/merchant/optional arena; camp/elite; boss. Three maps are generated
+once and saved. Each crew has its own chapter, location and clock. Browsing stays where you leave
+it; **Locate crew** returns to your current position.
 
-Members confirm route votes, personal combat actions, camp votes, and equipment choices. All living members ready means immediate resolution. A member can edit before the crew locks; that removes their readiness. There is no speed score. The optional classroom fallback locks idle decisions after 60 seconds. An absent member receives a safe default after 15 seconds while teammates remain connected. A fully disconnected crew suspends at its next decision. Spirits can submit aid but never block living teammates from proceeding.
+Attack the body to defeat an enemy, or break its seal to disable the shown modifier. Excess seal
+damage reaches health. Shield absorbs damage separately. Enemy intent shows the next move, damage,
+stress, Bleed and disclosed injury odds. Block, class skills and healing items provide alternatives
+to attacking. Skills are available again two turns after use. All six classes work in every crew size.
 
-Attack the body to kill; attack the weak point to remove the announced modifier. Breaking a Sentinel seal on its heavy-strike turn interrupts that strike. Brace or Protect absorbs damage. Loot sacrifices damage for carried treasure; Devourers punish looters while their weak point survives. Mend, Hex, Pilfer, Skirmish, and Channel give classes distinct choices. Encounters last at most four turns. Withdrawal requires a living-member majority and preserves carried treasure, but gives no victory purse.
+Choosing an action is a local preview. Press **Ready** to commit it; teammates immediately see the
+submitted action in the crew strip. **Change** removes readiness while the decision remains open.
+The last ready member starts the turn automatically; a solo character uses **Play turn** instead.
+Fallback is off by default for new matches. When enabled, its visible timer resolves missing
+choices at the deadline (60 seconds for results). Manual test mode requires
+**Next phase**. The turn strip follows Choose → Crew → Enemy → Outcome, and the action panel shows
+resolved effects during the reveal. Health and conditions follow those presentation events.
+**Last turn** retains a structured summary after the animation. Selecting a support target
+highlights that character in the scene. Named effect chips show injuries, Bleed damage/duration, equipped bonuses and Blessings; tap for
+details. Used encounter bonuses are marked **Used**, with their reset rule in the inspection.
 
-Crews start with equal total health and basic attack strength regardless of size. Power and class eligibility freeze at start. Healing, actual damage protection, and attacks earn participation toward victory purses. Loot alone does not. Surviving victors gain up to two mastery ranks and choose equipment after a victory: one charge normally, two after an elite or guardian. Ward blocks damage, Salve heals a wounded survivor, and Lantern reduces dangerous stress. Charges spend only when useful.
+Heroes start with equal crew-wide budgets: 48 total health and 24 basic attack damage. Power stays
+frozen after disconnects, deaths and revival. Prices, equipment, healing and barriers scale by power.
+Stress bands reduce damage before panic at ten stress. Injuries, Afflictions, equipment and up to two
+Blessings form a persistent build. Inspect compact condition badges or open **Backpack** for details.
+Health/stress bars, enemy intent and action previews use icons and numbers. Tap an indicator for its
+explanation. Backpack's **Gear** tab has three equipment slots and six item slots; select one item
+to inspect, equip, use or transfer it. **Traits** contains Blessings and lasting conditions.
+Merchants use item tiles and one purchase panel; wager cards show their multiplier and consequence.
+Map icons distinguish merchants, shrines, trials and arenas with restrained category colors.
 
-At camp, Secure banks carried treasure, Rest heals and calms the crew, or Bargain trades stress for damage next room. Six stress causes panic damage. Individual deaths are permanent: spirits may Ward living fighters in their own crew. Losing the last member discards carried treasure. An eliminated student can still answer shared questions; eliminating a crew early can leave that crew waiting, which remains a classroom playtest concern.
+After the final combat reveal, **Victory**, **Escaped** or **Defeated** stays open for your crew.
+Results show actual gold, rescue-debt repayment and character changes. Ordinary victories award
+only gold; caches, elite victories and bosses also offer each registered hero one of two equipment
+items, including spirits. Choose **Equip**, **Keep**, **Leave reward**, or **Save for later**.
+Equip moves the old item to the backpack; a full backpack requires an explicit replacement.
+**Rewards** at a later safe stop contains saved offers. Refreshes do not reroll or lose them.
 
-Actual weak-point breaks, victories, or treasure discoveries can reveal up to three shared inscriptions before final extraction. The class pauses at a safe decision boundary, after active reveals finish. Every student, including spirits, answers privately. Answers lock when everyone has answered or after 35 seconds. Solutions are never sent early. Choose an explicit pact before answering: Study gives one charge for a correct answer and has no health cost. Blood pays your displayed power in HP at answer lock, gives one charge regardless of correctness, and a second for a correct answer. Blood requires enough health to pay without dying. Missing answers cost nothing and earn nothing. Each living character chooses their own equipment. Crew correctness remains visible for learning, but does not override personal pacts. Saved crew choices resume afterward. Learning can be disabled in the lobby.
+Every member presses **Ready to travel** after resolving or saving fresh offers. The last ready
+member continues; **Change** reopens your decision before that happens. Other crews continue
+independently. An absent member's offers remain saved after the existing 15-second default;
+a crew with nobody connected stays suspended. Manual test mode always requires Next phase.
+Shared trials preserve an open result and its remaining time.
 
-Combat uses one persistent Phaser renderer for player views, host tiles, and encounter details. Reveals lasting 6.8 seconds (8 seconds for deaths or interrupts) show windup, movement/projectiles, hits, protection, healing, panic, and death. Displayed health and scores change at event impact. Reconnection seeks the current timeline. Reduced motion retains the same information and timing.
+Safe stops open one service at a time: **Supplies**, **Treatment**, **Backpack**, or the crew's
+**Rest / Leave** decision. Individual purchases and treatment require confirmation and show the
+actual committed item, price and destination. **Your budget** is your reserved share, not all crew
+gold. Shopping locks once you are ready; Change reopens it while the crew is still there. Rest shows
+its health/stress preview, then a **Rested** result before travel. Ordinary stops cannot be rested
+repeatedly. Recovery rules are unchanged.
+
+Gold buys weapon/armor/charm equipment, consumables, treatment and revival. There is no carried or
+secured treasure, banking or generic Loot action. Six backpack slots support stacks of three
+consumables. Item overflow asks Keep, Replace or Leave. Each shop visit freezes stock and reserves
+an individual allowance from the crew wallet; another member cannot spend that allowance.
+
+Fallen characters become spirits and can Ward teammates. Revival costs twice that hero's power at
+a recovery stop. Spirits can request personal rescue at the next room boundary. A full wipe loses
+half available gold, adds 24 rescue debt and returns the crew at half health/three stress. Future
+rewards pay debt first; equipment, traits and completed boss credit survive. Ordinary/elite fights
+allow four turns; bosses allow six and must be defeated before advancing. Boss retries preserve
+damage already dealt so debt/injury cannot permanently exclude a crew.
+
+Ranking is **bosses defeated → furthest completed chapter/room → normalized trial points**. Gold
+is spending money, not score. Completion and rewards are once per node; refresh/retry cannot farm
+them. Third-boss survivors finish and may still participate in a pending class trial. Ties share victory.
+35–45 minutes is a classroom playtest target, not an automatic cutoff.
+
+### Trials of Wagers
+
+The first crew reaching chapter 1/2's altar announces its trial. Other crews finish their active
+reveal, then freeze at a safe decision boundary with accepted choices, budgets and clocks preserved.
+Each trial plays three questions from a three-category, 100/200/300 board, one per value band.
+Members vote; every crew contributes one class vote, regardless of size.
+
+Before seeing the problem, each student commits Steady (1×; wrong +1 stress), Bold (2×; wrong +3
+stress), or Oath (3×; wrong adds the named Affliction). Missing stakes default to Steady. Answers are
+private and final. Crew points average all registered members including spirits, using exact integer
+units over 12. Reveal retains the question/options, marks your answer and the correct answer, and
+explains the result. Correct students earn a rank-I/II Blessing choice; tied winning crews receive
+three offers rather than two. Offers and grants survive refresh/restart without duplication.
+
+**Classroom trial content is not yet complete.** Development has 18 clearly marked fixture questions.
+Normal matches cannot enable trials until `content/learning/trials.reviewed.json` passes validation.
+Supply three categories with two reviewed variants per category/value cell, four plausible options,
+correct/distractor explanations, code under 12 lines and verified lecture file/slide references.
+Use the shape in `trials.fixture.json`, set `fixture: false` and each `reviewed: true` only after review.
+The server validates structure; a teacher must verify the citations and taught coverage.
+
+### Optional arenas
+
+An arena is consent-based and separate from knowledge trials. Crews in the same chapter may
+challenge one another; every member can decline and each crew needs a strict majority. A waiting
+crew may cancel or choose an NPC champion after 20 seconds. Each crew can complete one physical
+arena encounter. Three Strike/Guard/Feint exchanges are nonlethal. Dungeon equipment, conditions,
+Blessings and class skills are suspended, then restored unchanged; resolved health loss remains.
+Winner: 12 gold and consumables; loser/draw: 6 gold and consumables. Arena rewards never add rank points.
 
 ## Developer playground
 
 ```powershell
 npm.cmd run dev -- --test
 npm.cmd run dev -- --test --port 3001
+npm run build
 npm.cmd start -- --test
 ```
 
-Open the displayed `/#/test` URL, join, then Start. Four crews contain 1, 2, 3, and 4 characters. Every player has a separate authenticated session. Switch crew/member to control anyone, including spirits; Auto returns that player to a bot. Other connections stay alive. Bots submit through the same validated Socket.IO events as humans.
+Open the displayed `/#/test` URL and **Join test match**. Four crews contain 1, 2, 3 and 4 players,
+each with a separate authenticated session and pending-request storage. Switch among all ten
+identities, including spirits. Auto bots use normal validated client commands; Manual lets you
+choose classes, paths, actions, stakes, answers, equipment and treatment yourself.
 
-The collapsed debugger provides normal/fast/manual pacing, phase advance, disconnect/reconnect, answer inspection, and fresh/split/treasure/critical/question/final/duel scenarios. Nonfresh fixtures start in manual mode so they remain inspectable. Manual mode advances only through the debugger. Reset creates a new in-memory match. Classroom saves are never used by fixtures. Test routes are absent in normal mode; test mode refuses non-loopback binding.
+The collapsed debugger provides fast/normal/manual timing, phase advance, reset, selected-identity
+disconnect/reconnect and active-answer inspection. Scenarios cover fresh/split fights, critical
+health, injuries, panic, inventory overflow, shop contention, revival, every trial phase, boss
+thresholds, final chapter, duels, gold-only results, personal rewards and full-backpack rewards. Reset creates a new in-memory match. Manual mode never advances
+automatically. Test endpoints are unavailable on normal startup; test mode requires loopback binding.
 
-`npm test` runs automated tests. `--test` starts the interactive playground.
+The development-only `/#/gallery` shows populated shared controls, reward comparisons, pending,
+rejected, full-backpack and reconnect states. It is unavailable in normal mode.
 
-## Optional crew duels
+`npm test` runs automated tests. The `--test` launch argument starts the playable developer game.
 
-After an encounter, challenge another crew still at the same normal or elite battle node.
-Challenges appear in the crew-meeting section. A strict majority of living members in each
-crew must agree; anyone can decline. Every living fighter must have at least half health at entry. Offers expire after 30 seconds (paused during a host
-pause or shared question). Leaving the node cancels an offer. A duel starts only when both
-crews finish their encounter and equipment decision. Other crews continue exploring.
+## Recovery and persistence
 
-Each crew wagers up to three carried treasure. There are three simultaneous exchanges:
-Strike deals twice your power, Guard blocks twice your power in total, and Feint deals your
-power while ignoring Guard. Each student selects a rival or guards. Missing actions guard
-after 45 seconds. Dungeon equipment and class skills are reserved for dungeon encounters.
-Health cannot fall below one; the crew removing the larger fraction of the rival crew’s starting expendable health wins the stakes. Attack overflow reaches other rivals, so a solo hero does not waste its crew-sized damage. Draws
-return them. Secured treasure cannot be wagered. Both saved dungeon continuations resume.
+Schema **9**, rules **dungeon-v4**, saves **data/rules-v9/**. Older save directories remain untouched;
+this version does not reinterpret older expeditions. Authenticated identities, accepted commands,
+request receipts, frozen content, RNG, builds, shop budgets and reward markers are saved atomically.
+Duplicate successful requests return receipts; changed-payload request-ID reuse fails.
 
-Each pair can receive only one challenge per expedition. A crew may participate in at most
-two offers total, including declined offers. After a completed duel, two further rooms are
-protected. Camps, caches, mysteries and the guardian cannot host challenges. These bounds
-make this a deliberately small consent-based PvP prototype, not a forced ambush system.
+Host loss has a 90-second grace, then pauses and preserves play. Reconnecting or restarting restores
+access but requires explicit Resume. Offline server time never consumes the saved clocks. Pause
+reasons compose across room/crew/trial/duel. A save failure keeps the previous committed state and
+shows a persistent host banner. Read-only tabs do not count as controlling presence.
 
-## Original art and inscriptions
+Crew menus offer pause/resume, timed extension, missing-choice resolution and private device recovery.
+Host recovery uses a private recovery key for existing rooms; it does not gate ordinary room creation.
+End, forced resolution, duel cancellation and device replacement require confirmation. Public views
+and logs never contain recovery codes, session material, private answers or future solutions.
 
-Enemy silhouettes, chamber motifs, and equipment/seal icons use original simple curves and
-geometric strokes. No downloaded artwork or commercial-game assets were introduced. Answer
-colors consistently identify A/B/C/D; they do not signal correctness. Reduced motion disables
-the theatrical transitions without changing result timing. The map distinguishes current,
-visited and reachable nodes; public position updates keep other crews visible between your
-own actions. Inspect a node for crew names and member counts.
-
-The 15 questions are newly authored applied game-development scenarios: input ownership,
-control clarity, prototyping, feedback, authority, performance, accessible controls, balance,
-state management, production, fairness, data definitions, request recovery, risk/reward, and
-playtesting. They are labelled original course practice. No claim of exact Week 4 slide
-alignment is made: the lecture source files were not available at the inspected project paths.
-Review their curricular coverage before using them for assessment.
-
-## Sessions and storage
-
-Host and player tokens stay in separate browser storage and are hashed server-side. A second tab is read-only until explicit takeover. Accepted inputs survive reconnection; offline gameplay is not buffered. Requests contain match, phase, and request IDs; payload-changing ID reuse is rejected. Lost acknowledgments recover from durable receipts, including when the action already advanced the phase.
-
-Explicit End closes mutation authority and scores already secured treasure; results remain viewable. If the controlling host disconnects, students continue for 90 seconds, then the expedition pauses with all progress preserved. Reconnect and press Resume. Restart restores active expeditions paused at their last durable save, including accepted inputs, question state, duel stakes and elapsed reveals. Offline wall-clock time does not consume phases. Host reconnection never automatically resumes a paused room.
-
-New saves use schema 7, `dungeon-v2`, and ignored `data/rules-v7/`. Older save directories remain untouched. Content is frozen into each room. The per-room queue orders mutations, batches queued writes, and atomically saves state plus receipts before acknowledging. Failed saves pause only the affected room and show a persistent error. Do not run two servers against the same save directory.
-
-## Hosting and moderation
-
-**Host a match** creates a room in one click. Anyone with the game URL can create their own
-room; each room's host controls require its private session token. Joining an existing room
-does not grant host rights. Creation retries use the same saved bootstrap secret.
-
-The separate private key in `data/host-access.key` is only for recovering host access if browser
-storage is lost. Normal hosting and refresh do not need it. Never put it in a join URL.
-
-The host toolbar has Pause/Resume, Invite, and More. More contains lobby learning/pacing
-settings, new-PvP policy, question skipping before answers lock, and confirmed End.
-Each crew tile's three-dot menu offers crew pause/resume, +30 seconds on timed decisions,
-forced missing-choice defaults, duel cancellation before settlement, and device recovery.
-A duel pause affects both crews. Cancellation refunds stakes once and retains committed
-health damage. Completed question costs/rewards cannot be rewritten. Interventions appear
-once in the shared log.
-
-For a replacement student device, select the student in the crew menu and generate a private
-12-character code. The student opens the room, expands **Reconnect on a replacement device**,
-and enters it within five minutes. The existing character and choices return; the previous
-device loses authority. Codes are hashed in saves and absent from projector snapshots.
-
-If host browser storage is lost, expand **Recover a hosted room** on the home screen. Enter the
-room code and the recovery key from `Get-Content .\data\host-access.key` on the server laptop.
-This rotates host access and leaves play paused until Resume.
-Read-only tabs do not count as controlling presence. The Connections panel shows offline
-players; save failures stay in persistent banners.
-
-Gameplay uses a 20-request burst/10 per second per identity. Authentication allows five attempts
-per ten seconds per socket; recovery allows five attempts per minute per socket and twenty per
-room. This server allows five new rooms per minute. Pending room work is
-capped at 512 commands. Successful duplicate receipts bypass gameplay throttling.
-
-## Development and verification
-
-`src/shared` owns contracts; `src/game` owns deterministic rules; `src/server` owns sessions, clocks, persistence, and independent crew scheduling. `src/client` owns scoped input and presentation. Phaser never decides gameplay. The implementation uses the existing libraries, without adding a state-machine framework or dependency-injection layer.
+## Verification
 
 ```powershell
 npm run lint
@@ -140,8 +183,32 @@ npm test
 npm run build
 npm run test:e2e
 npm run test:load
+npm run test:balance
+npx.cmd tsx scripts/simulate-rewards.ts
 ```
 
-`npm run format` applies Biome. Playwright needs Chromium, or set `$env:HEIST_BROWSER_CHANNEL = "msedge"` for installed Edge. The load harness uses real clients, temporary atomic saves, an injected clock, and deterministic choices. It includes a simultaneous student reconnect burst and a 20ms client-side ACK-delivery delay, and reports measured latency rather than claiming unlimited capacity. See [verification](docs/verification.md).
+The focused `simulate-rewards.ts` run uses 60 clients in 15 crews, durable claims, duplicate
+requests and result readiness; it does not repeat the full load suite for styling changes.
 
-`.Codex/` contains ignored temporary planning only. It is not imported, served, built, or required at runtime. Screenshots and measurement reports are in ignored `test-results/`.
+Load tests use real Socket.IO clients and atomic temporary saves for 32, 60 and 128 clients. Balance
+simulations cover all six solo classes and representative 2/3/4-member crews. Reports go to ignored
+`test-results/`; Playwright clears that directory at startup, so preserve reports before another run.
+Measured results and balance adjustments are in [docs/verification.md](docs/verification.md).
+
+All art is original code/vector geometry. White surfaces, visible borders, short labels, touch
+inspection, reduced motion and a persistent Phaser scene support portrait/landscape phones and
+classroom displays. Bits UI is pinned at 2.19.5 with date peer 3.8.1; existing stack versions remain
+pinned. `.Codex/` is ignored temporary development planning and is never imported by the application.
+
+
+The trading post uses compact stock, a fixed item inspector and purchase footer. Camp focuses on
+rest, treatment and backpack; Supplies opens at trading locations. Original colored item artwork
+and semantic action/stat icons retain white surfaces. The map offers larger detail, a whole-route
+overview and Locate crew; live snapshots preserve manual browsing.
+The developer debugger's `rescue` scenario starts a wiped crew at a failed encounter so revival,
+rescue debt, retry and refreshed-session recovery can be exercised through normal controls.
+
+Character names are Knight, Healer, Mage, Thief, Fighter and Priest. Their skills are Protect,
+Heal, Blast, Steal, Hit & Block and Drain. The former Brace action is labelled Block. Saved IDs
+stay unchanged. Enemy intent sits above the enemy; an actual broken seal appears beneath it
+when the hit resolves. Tap either badge for details; displayed damage is before your protection.

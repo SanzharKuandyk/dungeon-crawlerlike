@@ -1,23 +1,19 @@
 import { mount } from "svelte";
 import { NEUTRALS } from "../shared/palette.js";
 import App from "./App.svelte";
+import "./styles/tokens.css";
 import "./styles/global.css";
-import "./styles/landing.css";
-import "./styles/arena.css";
-import "./styles/controls.css";
+import "./styles/ui.css";
 import "./styles/screens.css";
-import "./styles/responsive.css";
-import "./styles/dungeon.css";
-import "./styles/expedition.css";
-import "./styles/heroes.css";
-import "./styles/crew-stage.css";
-import "./styles/player-status.css";
-import "./styles/combat.css";
+import "./styles/host.css";
+import "./styles/developer.css";
+import "./styles/scene.css";
+import "./styles/play.css";
 import "./styles/map.css";
-import "./styles/layout.css";
-import "./styles/landscape.css";
-import "./styles/route-screen.css";
-import "./styles/inscriptions.css";
+import "./styles/inventory.css";
+import "./styles/trials.css";
+import "./styles/hero-effects.css";
+import "./styles/enemy-readout.css";
 
 for (const [name, value] of Object.entries(NEUTRALS))
   document.documentElement.style.setProperty(

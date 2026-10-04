@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PlayerRoomView } from "../../shared/view-types.js";
   import type { PlayerController } from "../player-controller.js";
+  import Button from "./ui/Button.svelte";
 
   let {
     view,
@@ -17,13 +18,13 @@
 </script>
 <details class="withdrawal">
   <summary>Withdraw to camp · {yes}/{members.length} votes</summary>
-  <p>Majority required. Everyone gains 1 stress. No victory purse.</p>
-  <button
+  <p>Majority required. Everyone gains 1 stress. No encounter reward.</p>
+  <Button
     type="button"
     disabled={locked}
-    class:chosen={own}
     onclick={() => void controller.withdraw(!own)}
+    class={`${own ? "chosen" : ""}`}
   >
     {own ? "Cancel withdrawal vote" : "Vote to withdraw"}
-  </button>
+  </Button>
 </details>

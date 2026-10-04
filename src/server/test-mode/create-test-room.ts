@@ -1,3 +1,4 @@
+import { chapterMap } from "../../game/progression/maps.js";
 import type { TestScenario } from "../../shared/protocol.js";
 import { createCrew, joinCrew, joinPlayer } from "../handlers/lobby.js";
 import type { RoomManager } from "../room-manager.js";
@@ -16,6 +17,12 @@ export async function createTestRoom(manager: RoomManager, input: BootstrapInput
   if (!current.state.players.length)
     await manager.transaction(created.code, (room) => {
       room.state.seed = 12345;
+      room.state.outcomeSeed = 98765;
+      room.state.chapterMaps = ([1, 2, 3] as const).map((c) =>
+        chapterMap(room.state.content, 12345, c),
+      );
+      room.state.expeditionMap = room.state.chapterMaps[0];
+      room.state.trialRng = 67890;
       let cursor = 0;
       for (let crewIndex = 0; crewIndex < 4; crewIndex++) {
         let crewId = "";

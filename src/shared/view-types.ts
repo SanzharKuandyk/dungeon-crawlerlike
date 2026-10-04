@@ -1,5 +1,5 @@
-import type { CampChoice, EquipmentChoice, HeroAction } from "./command-types.js";
-import type { ClassDefinition, Question, RoomDefinition } from "./content-types.js";
+import type { CampChoice, HeroAction } from "./command-types.js";
+import type { ClassDefinition, RoomDefinition } from "./content-types.js";
 import type { CrewRunView } from "./crew-run-types.js";
 import type { DuelView } from "./duel-types.js";
 import type { GameEvent } from "./event-types.js";
@@ -7,6 +7,10 @@ import type { ArenaState, Hero, MatchState, Player } from "./game-types.js";
 import type { ExpeditionMap } from "./map-types.js";
 
 export type PublicRoomView = ArenaState & {
+  chapterMaps: ExpeditionMap[];
+  trial: import("./trial-types.js").TrialView | null;
+  trialContentReady: boolean;
+  skillStress: { skirmish: number };
   role: "projector";
   id: string;
   code: string;
@@ -15,7 +19,6 @@ export type PublicRoomView = ArenaState & {
   depth: number;
   turn: number;
   globalTurn: number;
-  rivalryRoomIds: string[];
   phase: MatchState["phase"];
   phaseId: number;
   players: Pick<Player, "id" | "name" | "crewId" | "connected" | "classId">[];
@@ -44,14 +47,23 @@ export type PublicRoomView = ArenaState & {
   storageError: string | null;
   pauseReasons: import("./host-types.js").RoomPauseReason[];
   pvpEnabled: boolean;
-  question: Omit<Question, "correctIndex" | "explanation"> | null;
-  correctChoice: number | null;
-  explanation: string | null;
-  quizCause: string | null;
-  quizResults: MatchState["quizResults"];
   participation: { crewId: string; ready: number; total: number; answered: number }[];
 };
 export type PlayerRoomView = Omit<PublicRoomView, "role"> & {
+  trialInput: {
+    vote: string | null;
+    wager: import("./trial-types.js").WagerLevel | null;
+    answer: number | null;
+    offers: import("./trial-types.js").BlessingOffer[];
+    choice: string | null;
+    crewResults: import("./trial-types.js").TrialAnswerResult[];
+  };
+  result: import("./reward-types.js").CrewResult | null;
+  rewards: import("./reward-types.js").RewardOffer[];
+  lastTurn: import("./feedback-types.js").TurnSummary | null;
+  transaction: import("./feedback-types.js").TransactionFeedback | null;
+  restAvailable: boolean;
+  shop: import("./inventory-types.js").ShopVisit | null;
   role: "player";
   self: Player;
   hero: Hero | null;
@@ -60,6 +72,7 @@ export type PlayerRoomView = Omit<PublicRoomView, "role"> & {
   crewInputs: {
     playerId: string;
     name: string;
+    ready: boolean;
     action: HeroAction | null;
     route: string | null;
     camp: CampChoice | null;
@@ -69,14 +82,10 @@ export type PlayerRoomView = Omit<PublicRoomView, "role"> & {
   selectedAction: HeroAction | null;
   winningRoute: string | null;
   reachableNodeIds: string[];
+  recoveryAvailable: boolean;
   canCamp: boolean;
   winningCamp: CampChoice | null;
-  answerChoice: number | null;
-  answerPact: "careful" | "blood" | null;
-  inscriptionReward: 1 | 2 | null;
-  equipmentChoice: EquipmentChoice | null;
   decisionReady: boolean;
-  rewardCharges: 1 | 2 | null;
 };
 export type HostRoomView = Omit<PublicRoomView, "role"> & {
   role: "host";

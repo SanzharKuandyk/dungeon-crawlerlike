@@ -3,7 +3,7 @@ import { reject } from "./errors.js";
 import type { StoredRoom } from "./room-types.js";
 
 export function duelMember(room: StoredRoom, playerId: string) {
-  if (room.state.status !== "running" || room.state.quizQuestionId)
+  if (room.state.status !== "running" || room.state.trial?.id)
     reject("CLOSED", "Finish the current event first.");
   const hero = room.state.heroes.find(
     (hero) => hero.playerId === playerId && hero.status === "alive",
@@ -17,56 +17,44 @@ export function challenge(room: StoredRoom, playerId: string, targetCrewId: stri
   const own = room.state.crews.find((crew) => crew.id === hero.crewId);
   const target = room.state.crews.find((crew) => crew.id === targetCrewId);
   const nodeId = own?.mapPosition?.nodeId;
-  const node = room.state.expeditionMap?.nodes.find((node) => node.id === nodeId);
+  const ownRun = room.runs[hero.crewId];
+  const node = room.state.chapterMaps[(ownRun?.progress.chapter ?? 1) - 1].nodes.find(
+    (n) => n.id === nodeId,
+  );
+  const ids = [hero.crewId, targetCrewId];
   if (
     !target ||
     target.id === hero.crewId ||
     target.status !== "active" ||
-    !nodeId ||
-    target.mapPosition?.nodeId !== nodeId ||
     !node ||
-    !["battle", "elite"].includes(node.kind)
+    node.kind !== "arena" ||
+    room.runs[targetCrewId]?.progress.chapter !== ownRun.progress.chapter ||
+    room.runs[targetCrewId]?.progress.phase.kind !== "camp"
   )
-    reject("INVALID", "Meet an active crew in the same battle room.");
-  const ids = [hero.crewId, targetCrewId];
+    reject("INVALID", "Meet a willing crew at an arena in the same chapter.");
+  for (const waiting of room.duels)
+    if (waiting.npc && waiting.status === "offered" && ids.includes(waiting.crewIds[0]))
+      waiting.status = "declined";
+  for (const id of ids)
+    if (
+      !room.runs[id] ||
+      room.runs[id].finished ||
+      room.runs[id].progress.phase.kind !== "camp" ||
+      room.duels.some((d) => d.crewIds.includes(id) && d.status !== "declined")
+    )
+      reject("CLOSED", "Each crew may enter one arena duel per expedition.");
   if (
     room.state.heroes.some(
-      (hero) => ids.includes(hero.crewId) && hero.status === "alive" && hero.hp < 2 * hero.power,
+      (h) => ids.includes(h.crewId) && h.status === "alive" && h.hp < 2 * h.power,
     )
   )
-    reject("CLOSED", "Every fighter needs at least half health to enter a duel.");
-  if (room.duels.some((duel) => duel.crewIds.every((id) => ids.includes(id))))
-    reject("CLOSED", "This pair has already had a challenge.");
-  for (const id of ids) {
-    const run = room.runs[id];
-    const history = room.duels.filter((duel) => duel.crewIds.includes(id));
-    if (
-      !run ||
-      run.finished ||
-      history.length >= 2 ||
-      history.some((duel) => ["active", "offered"].includes(duel.status))
-    )
-      reject("CLOSED", "This crew is unavailable for a challenge.");
-    if (
-      history.some((duel) => {
-        const prior = room.state.expeditionMap?.nodes.find((node) => node.id === duel.nodeId);
-        return duel.status === "finished" && prior && node.row - prior.row < 3;
-      })
-    )
-      reject("CLOSED", "This crew has two rooms of protection after its last duel.");
-  }
-  if (
-    !["floor-result", "equipment", "return", "route"].includes(
-      room.runs[hero.crewId].progress.phase.kind,
-    )
-  )
-    reject("CLOSED", "Finish your encounter before challenging.");
+    reject("CLOSED", "Every fighter needs half health.");
   room.duels.push({
     id: `duel:${room.state.id}:${room.duels.length}`,
-    nodeId,
+    nodeId: node.id,
     crewIds: [hero.crewId, targetCrewId],
     status: "offered",
-    expiresAt: now + 30000,
+    expiresAt: now + 20000,
     remaining: null,
     votes: { [playerId]: true },
     turn: 1,
@@ -88,7 +76,11 @@ export function voteDuel(
 ) {
   const hero = duelMember(room, playerId);
   const duel = room.duels.find((duel) => duel.id === duelId);
-  if (duel?.status !== "offered" || duel.expiresAt <= now || !duel.crewIds.includes(hero.crewId))
+  if (
+    (duel?.status !== "offered" && duel?.status !== "champion-offer") ||
+    (duel.status === "offered" && duel.expiresAt <= now) ||
+    !duel.crewIds.includes(hero.crewId)
+  )
     reject("CLOSED", "This challenge is closed.");
   duel.votes[playerId] = accept;
   if (!accept) duel.status = "declined";
@@ -109,6 +101,7 @@ export function submitDuel(
     reject("CLOSED", "The duel choice has locked.");
   if (
     action.kind !== "guard" &&
+    !(duel.npc && action.targetHeroId === "champion") &&
     !room.state.heroes.some(
       (target) =>
         target.id === action.targetHeroId &&
@@ -119,4 +112,43 @@ export function submitDuel(
   )
     reject("INVALID", "Choose a living rival.");
   duel.actions[playerId] = action;
+}
+
+export function queueArena(room: StoredRoom, playerId: string, now: number) {
+  const hero = duelMember(room, playerId),
+    run = room.runs[hero.crewId];
+  const node = room.state.chapterMaps[run.progress.chapter - 1].nodes.find(
+    (n) => n.id === run.progress.nodeId,
+  );
+  if (
+    !room.pvpEnabled ||
+    run.progress.phase.kind !== "camp" ||
+    node?.kind !== "arena" ||
+    room.duels.some((d) => d.crewIds.includes(hero.crewId) && d.status !== "declined")
+  )
+    reject("CLOSED", "Wait for a challenger at an unused arena.");
+  if (
+    room.state.heroes.some(
+      (h) => h.crewId === hero.crewId && h.status === "alive" && h.hp < 2 * h.power,
+    )
+  )
+    reject("CLOSED", "Every fighter needs half health.");
+  room.duels.push({
+    id: `duel:${room.state.id}:${room.duels.length}`,
+    nodeId: node.id,
+    crewIds: [hero.crewId, "champion"],
+    npc: { hp: 48, maxHp: 48 },
+    status: "offered",
+    expiresAt: now + 20000,
+    remaining: null,
+    votes: {},
+    turn: 1,
+    phase: "choice",
+    actions: {},
+    stakes: {},
+    damage: {},
+    capacity: {},
+    winner: null,
+    saved: {},
+  });
 }

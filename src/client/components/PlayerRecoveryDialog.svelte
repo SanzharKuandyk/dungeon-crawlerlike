@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { HostController } from "../host-controller.js";
   import { newRecoveryCode } from "../recovery-client.js";
+  import Button from "./ui/Button.svelte";
+  import Dialog from "./ui/Dialog.svelte";
 
   let {
     playerId,
@@ -8,6 +10,10 @@
     controller,
     onclose,
   }: { playerId: string; name: string; controller: HostController; onclose: () => void } = $props();
+  let open = $state(true);
+  $effect(() => {
+    if (!open) onclose();
+  });
   let code = $state(newRecoveryCode()),
     issued = $state(false),
     busy = $state(false);
@@ -17,26 +23,20 @@
     busy = false;
   }
 </script>
-<div class="recovery-overlay">
-  <div
-    role="dialog"
-    tabindex="-1"
-    aria-modal="true"
-    aria-label="Reconnect player"
-    class="recovery-dialog"
-  >
-    <h2>Reconnect {name}</h2>
-    {#if issued}
-      <p>Enter this on the replacement device with the room code. Valid for 5 minutes.</p>
-      <strong class="recovery-code">{code}</strong>
-      <p>
-        Existing character and choices are preserved. The previous device loses control when this
-        code is redeemed.
-      </p>
-    {:else}
-      <p>Generate a private code for a replacement device?</p>
-      <button type="button" disabled={busy} onclick={issue}>Generate recovery code</button>
+<Dialog bind:open title={`Reconnect ${name}`}>
+  {#if issued}
+    <p>Enter this on the replacement device with the room code. Valid for 5 minutes.</p>
+    <strong class="recovery-code">{code}</strong>
+    <p>
+      Your character and choices are preserved. The previous device loses control when redeemed.
+    </p>
+  {:else}
+    <p>Generate a private code for a replacement device?</p>
+  {/if}
+  {#snippet footer()}
+    {#if !issued}
+      <Button primary pending={busy} onclick={issue}>Generate recovery code</Button>
     {/if}
-    <button type="button" onclick={onclose}>Close</button>
-  </div>
-</div>
+    <Button onclick={onclose}>Close</Button>
+  {/snippet}
+</Dialog>

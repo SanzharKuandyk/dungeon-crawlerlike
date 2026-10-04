@@ -28,7 +28,7 @@ it("displayed damage equals actual nonlethal loss and resolution cannot repeat",
     duel.actions[hero.playerId] = { kind: "feint", targetHeroId: defender.id };
   resolveDuel(state, duel);
   expect(defender.hp).toBe(1);
-  const damage = state.events.reduce(
+  const damage = state.crewProgress.c0.events.reduce(
     (sum, event) =>
       sum + (event.kind === "effect" && event.effect.type === "hit" ? event.effect.damage : 0),
     0,
@@ -73,7 +73,7 @@ it("solo strike overflow reaches other rivals and guard is consumed only once", 
     duel.actions[rival.playerId] = { kind: "strike", targetHeroId: guarded.heroes[0].id };
   resolveDuel(guarded, duel);
   expect(guarded.heroes[0].hp).toBe(48);
-  const blocked = guarded.events.reduce(
+  const blocked = guarded.crewProgress.c0.events.reduce(
     (sum, event) =>
       sum + (event.kind === "effect" && event.effect.type === "hit" ? event.effect.blocked : 0),
     0,

@@ -1,0 +1,36 @@
+.hero-effects {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.phone-panel > .hero-effects {
+  padding: 0 var(--space-3) var(--space-2);
+  flex-shrink: 0;
+}
+.effect-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.effect-chip .inspect-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2);
+  font-size: 12px;
+  text-transform: capitalize;
+  border-left: 3px solid var(--health-fill);
+  white-space: nowrap;
+}
+.effect-chip[data-tone="harm"] .inspect-trigger {
+  border-left-color: var(--stress-fill);
+}
+.effect-chip.spent .inspect-trigger {
+  border-left-style: dashed;
+  color: var(--muted);
+}
+.effect-chip strong {
+  font-size: 12px;
+}

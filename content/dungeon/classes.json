@@ -3,42 +3,42 @@
     "id": "knight",
     "name": "Knight",
     "skill": "Protect",
-    "description": "Give an ally a strong barrier.",
+    "description": "Give yourself or an ally a strong barrier.",
     "maxCrewSize": 4
   },
   {
     "id": "physician",
-    "name": "Physician",
-    "skill": "Mend",
-    "description": "Restore an ally\u2019s health.",
+    "name": "Healer",
+    "skill": "Heal",
+    "description": "Heal yourself or an ally; remove Bleed.",
     "maxCrewSize": 4
   },
   {
     "id": "occultist",
-    "name": "Occultist",
-    "skill": "Hex",
+    "name": "Mage",
+    "skill": "Blast",
     "description": "Heavy damage at the cost of stress.",
     "maxCrewSize": 4
   },
   {
     "id": "scavenger",
-    "name": "Scavenger",
-    "skill": "Pilfer",
-    "description": "Strike and compete for treasure.",
+    "name": "Thief",
+    "skill": "Steal",
+    "description": "Strike and gain gold once per encounter.",
     "maxCrewSize": 4
   },
   {
     "id": "wanderer",
-    "name": "Wanderer",
-    "skill": "Skirmish",
-    "description": "Strike and protect yourself.",
-    "maxCrewSize": 2
+    "name": "Fighter",
+    "skill": "Hit & Block",
+    "description": "Strike and protect yourself; gain 2 stress.",
+    "maxCrewSize": 4
   },
   {
     "id": "exorcist",
-    "name": "Exorcist",
-    "skill": "Channel",
+    "name": "Priest",
+    "skill": "Drain",
     "description": "Strike, heal, and calm yourself.",
-    "maxCrewSize": 2
+    "maxCrewSize": 4
   }
 ]

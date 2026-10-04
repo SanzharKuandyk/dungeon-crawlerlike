@@ -14,6 +14,17 @@ export function createHeroes(s: MatchState) {
       if (!definition || members.length > definition.maxCrewSize)
         throw new Error("Class is not available for this crew size.");
       s.heroes.push({
+        pendingBlessings: [],
+        expeditionUses: [],
+        inventory: {
+          revision: 0,
+          equipment: { weapon: null, armor: null, charm: null },
+          backpack: [{ id: `start:${p.id}`, kind: "draught", count: 1 }],
+          overflow: [],
+        },
+        conditions: { injuries: [], blessings: [], afflictions: [], combatEffects: [] },
+        skillReadyTurn: 1,
+        encounterUses: [],
         id: `hero:${p.id}`,
         playerId: p.id,
         crewId: c.id,
@@ -23,9 +34,6 @@ export function createHeroes(s: MatchState) {
         hp: 4 * power,
         stress: 0,
         status: "alive",
-        equipment: null,
-        equipmentActiveFromTurn: 0,
-        bargainDepth: null,
       });
     }
   }

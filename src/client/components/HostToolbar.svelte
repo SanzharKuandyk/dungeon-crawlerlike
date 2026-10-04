@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { HostRoomView } from "../../shared/view-types.js";
   import type { HostController } from "../host-controller.js";
+  import Button from "./ui/Button.svelte";
 
   let {
     view,
@@ -9,23 +10,23 @@
   }: { view: HostRoomView; controller: HostController; locked: boolean } = $props();
 </script>
 {#if view.status === "lobby"}
-  <button
+  <Button
     type="button"
     class="primary"
     disabled={locked || !view.crews.length || view.players.some((p) => !p.crewId)}
     onclick={() => void controller.command({ kind: "start" })}
   >
     Start expedition
-  </button>
+  </Button>
 {:else if view.status !== "finished"}
-  <button
+  <Button
     type="button"
-    class:primary={view.status === "paused"}
     disabled={locked}
     onclick={() => void controller.command({ kind: view.status === "paused" ? "resume" : "pause" })}
+    class={`${view.status === "paused" ? "primary" : ""}`}
   >
     {view.status === "paused" ? "Resume" : "Pause"}
-  </button>
+  </Button>
 {/if}
 <details class="host-options">
   <summary aria-label="Host options">More ···</summary>
@@ -38,17 +39,20 @@
           disabled={locked}
           onchange={(e) =>
             void controller.command({ kind: "fallback", enabled: e.currentTarget.checked })}
-        >60s fallback</label
+        >Decision timers</label
       >
       <label
         ><input
           type="checkbox"
           checked={view.learningEnabled}
-          disabled={locked}
+          disabled={locked || (!view.trialContentReady && !view.testMode)}
           onchange={(e) =>
             void controller.command({ kind: "learning", enabled: e.currentTarget.checked })}
-        >Inscriptions</label
+        >Trials of Wagers</label
       >
+    {/if}
+    {#if view.status === "lobby" && !view.trialContentReady}
+      <small>Trials need a reviewed course pack. Fixtures are available in developer mode.</small>
     {/if}
     <label
       ><input
@@ -60,33 +64,38 @@
       >New crew challenges</label
     >
     {#if view.quizActive}
-      <button
+      <Button
         type="button"
-        disabled={locked || !["question-intro", "question"].includes(view.phase.kind)}
-        title="Only before answers lock"
+        disabled={locked || !view.trial}
         onclick={() => {
-          if (view.question?.id || view.phase.kind === "question-intro") {
-            const id =
-              view.phase.kind === "question-intro" ? view.phase.questionId : view.question?.id;
-            if (id && confirm("Skip this inscription? No costs or rewards will apply."))
-              void controller.command({ kind: "question-skip", questionId: id });
-          }
+          const id = view.trial?.id;
+          if (
+            id &&
+            confirm(
+              "End this trial? Completed answers and rewards stay; unresolved questions award nothing.",
+            )
+          )
+            void controller.command({ kind: "question-skip", questionId: id });
         }}
       >
-        Skip inscription
-      </button>
+        End current trial
+      </Button>
     {/if}
     {#if view.status === "running" || view.status === "paused"}
-      <button
+      <Button
         type="button"
         disabled={locked}
         onclick={() => {
-          if (confirm("End this expedition? Only secured treasure scores."))
+          if (
+            confirm(
+              "End this expedition? Rank crews by bosses, completed progress, then trial points.",
+            )
+          )
             void controller.command({ kind: "end" });
         }}
       >
         End expedition
-      </button>
+      </Button>
     {/if}
   </section>
 </details>

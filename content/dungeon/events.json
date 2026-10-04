@@ -1,0 +1,30 @@
+[
+  {
+    "id": "coin-fountain",
+    "name": "Coin fountain",
+    "chance": 50,
+    "success": "Rank-I Blessing",
+    "failure": "+3 stress"
+  },
+  {
+    "id": "trapped-cache",
+    "name": "Trapped cache",
+    "chance": 75,
+    "success": "+12 gold",
+    "failure": "Arm injury"
+  },
+  {
+    "id": "sacrificial-altar",
+    "name": "Sacrificial altar",
+    "chance": 100,
+    "success": "Equipment for P health",
+    "failure": "Leave freely"
+  },
+  {
+    "id": "quiet-shrine",
+    "name": "Quiet shrine",
+    "chance": 100,
+    "success": "Heal 2P or remove 3 stress",
+    "failure": "Leave freely"
+  }
+]

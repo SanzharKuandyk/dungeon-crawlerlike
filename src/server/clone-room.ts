@@ -1,35 +1,50 @@
+import { bindProgress } from "./progress-bindings.js";
 import type { StoredRoom } from "./room-types.js";
-
 export function cloneRoom(room: StoredRoom): StoredRoom {
-  // Frozen content and archived events are never edited by a command.
-  const { history, events, content, ...state } = room.state;
-  const runs = Object.fromEntries(
-    Object.entries(room.runs).map(([id, run]) => [
-      id,
-      {
-        ...run,
-        progress: { ...run.progress, before: null, events: [] },
-      },
-    ]),
-  );
+  const {
+    history,
+    content,
+    trialPack,
+    chapterMaps,
+    expeditionMap,
+    offeredRooms,
+    crewProgress,
+    before,
+    events,
+    ...state
+  } = room.state;
   const draft = structuredClone({
     ...room,
     processed: {},
-    runs,
     state: {
       ...state,
       history: [],
+      content: { classes: [], rooms: [] },
+      trialPack: { fixture: true, categories: ["", "", ""], questions: [] },
+      chapterMaps: [],
+      expeditionMap: undefined,
+      offeredRooms: [],
+      before: null,
       events: [],
-      content: { classes: [], rooms: [], questions: [] },
+      crewProgress: Object.fromEntries(
+        Object.entries(crewProgress).map(([id, p]) => [id, { ...p, before: null, events: [] }]),
+      ),
     },
   }) as StoredRoom;
-  for (const [id, run] of Object.entries(draft.runs)) {
-    run.progress.before = room.runs[id].progress.before;
-    run.progress.events = room.runs[id].progress.events;
+  // Authored maps and published event payloads are immutable between mutations.
+  draft.state.history = [...history];
+  draft.state.content = content;
+  draft.state.trialPack = trialPack;
+  draft.state.chapterMaps = chapterMaps;
+  draft.state.expeditionMap = expeditionMap;
+  draft.state.offeredRooms = offeredRooms;
+  draft.state.before = before;
+  draft.state.events = [...events];
+  for (const [id, p] of Object.entries(crewProgress)) {
+    draft.state.crewProgress[id].before = p.before;
+    draft.state.crewProgress[id].events = [...p.events];
   }
   draft.processed = { ...room.processed };
-  draft.state.content = content;
-  draft.state.history = [...history];
-  draft.state.events = [...events];
+  bindProgress(draft);
   return draft;
 }

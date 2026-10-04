@@ -1,10 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { RoomView } from "../../shared/view-types.js";
-  import { room } from "../room.svelte.js";
 
   let { view }: { view: RoomView } = $props();
   let now = $state(Date.now());
+  let offset = $state(0);
+  $effect(() => {
+    offset = view.serverNow - Date.now();
+  });
   onMount(() => {
     const timer = setInterval(() => {
       now = Date.now();
@@ -12,9 +15,7 @@
     return () => clearInterval(timer);
   });
   let seconds = $derived(
-    view.deadline === null
-      ? null
-      : Math.max(0, Math.ceil((view.deadline - now - room.clockOffset) / 1000)),
+    view.deadline === null ? null : Math.max(0, Math.ceil((view.deadline - now - offset) / 1000)),
   );
 </script>
 <span role="timer" class="timer" aria-label="Time remaining"
@@ -25,6 +26,8 @@
       : view.status === "paused"
         ? "Paused"
         : seconds === null
-          ? "Manual"
+          ? view.speed === "manual"
+            ? "Manual"
+            : "No timer"
           : `${seconds}s`}</span
 >

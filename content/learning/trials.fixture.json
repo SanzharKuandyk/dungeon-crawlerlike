@@ -1,0 +1,454 @@
+{
+  "fixture": true,
+  "categories": ["Input", "State", "Timing"],
+  "questions": [
+    {
+      "id": "fixture-input-100-0",
+      "category": "Input",
+      "value": 100,
+      "prompt": "[DEV FIXTURE] A UI tap also fires the weapon. Which boundary should consume it?",
+      "code": null,
+      "choices": [
+        "The rendering loop",
+        "The score counter",
+        "The audio mixer",
+        "The UI input handler before gameplay dispatch"
+      ],
+      "correctIndex": 3,
+      "explanation": "Input must be consumed at the UI/gameplay boundary.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Input must be consumed at the UI/gameplay boundary."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-input-100-1",
+      "category": "Input",
+      "value": 100,
+      "prompt": "[DEV FIXTURE] A UI tap also fires the weapon. Which boundary should consume it?",
+      "code": null,
+      "choices": [
+        "The score counter",
+        "The audio mixer",
+        "The UI input handler before gameplay dispatch",
+        "The rendering loop"
+      ],
+      "correctIndex": 2,
+      "explanation": "Input must be consumed at the UI/gameplay boundary.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Input must be consumed at the UI/gameplay boundary.",
+        "This choice does not address the state boundary described in the problem."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-input-200-0",
+      "category": "Input",
+      "value": 200,
+      "prompt": "[DEV FIXTURE] What happens when the movement vector is normalized?",
+      "code": "const input = { x: 1, y: 1 };\nconst length = Math.hypot(input.x, input.y);\nconst x = input.x / length;",
+      "choices": [
+        "Both axes become zero",
+        "Diagonal speed doubles",
+        "Only horizontal speed changes",
+        "Diagonal speed matches cardinal speed"
+      ],
+      "correctIndex": 3,
+      "explanation": "Normalization makes the vector length one.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Normalization makes the vector length one."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-input-200-1",
+      "category": "Input",
+      "value": 200,
+      "prompt": "[DEV FIXTURE] What happens when the movement vector is normalized?",
+      "code": "const input = { x: 1, y: 1 };\nconst length = Math.hypot(input.x, input.y);\nconst x = input.x / length;",
+      "choices": [
+        "Diagonal speed doubles",
+        "Only horizontal speed changes",
+        "Diagonal speed matches cardinal speed",
+        "Both axes become zero"
+      ],
+      "correctIndex": 2,
+      "explanation": "Normalization makes the vector length one.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Normalization makes the vector length one.",
+        "This choice does not address the state boundary described in the problem."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-input-300-0",
+      "category": "Input",
+      "value": 300,
+      "prompt": "[DEV FIXTURE] A drag begins on UI and ends over the world. Which ownership rule avoids an accidental attack?",
+      "code": null,
+      "choices": [
+        "Reassign the gesture on every frame",
+        "Attack on any release",
+        "Make the UI invisible during drags",
+        "Keep the gesture with its starting owner until release"
+      ],
+      "correctIndex": 3,
+      "explanation": "A gesture needs stable ownership throughout its lifetime.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "A gesture needs stable ownership throughout its lifetime."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-input-300-1",
+      "category": "Input",
+      "value": 300,
+      "prompt": "[DEV FIXTURE] A drag begins on UI and ends over the world. Which ownership rule avoids an accidental attack?",
+      "code": null,
+      "choices": [
+        "Attack on any release",
+        "Make the UI invisible during drags",
+        "Keep the gesture with its starting owner until release",
+        "Reassign the gesture on every frame"
+      ],
+      "correctIndex": 2,
+      "explanation": "A gesture needs stable ownership throughout its lifetime.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "A gesture needs stable ownership throughout its lifetime.",
+        "This choice does not address the state boundary described in the problem."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-state-100-0",
+      "category": "State",
+      "value": 100,
+      "prompt": "[DEV FIXTURE] A purchase was accepted but its response was lost. What prevents charging twice?",
+      "code": null,
+      "choices": [
+        "Create a new ID",
+        "Subtract gold in the browser",
+        "Reset the wallet",
+        "Reuse the request ID and read its receipt"
+      ],
+      "correctIndex": 3,
+      "explanation": "Durable receipts make retries idempotent.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Durable receipts make retries idempotent."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-state-100-1",
+      "category": "State",
+      "value": 100,
+      "prompt": "[DEV FIXTURE] A purchase was accepted but its response was lost. What prevents charging twice?",
+      "code": null,
+      "choices": [
+        "Subtract gold in the browser",
+        "Reset the wallet",
+        "Reuse the request ID and read its receipt",
+        "Create a new ID"
+      ],
+      "correctIndex": 2,
+      "explanation": "Durable receipts make retries idempotent.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Durable receipts make retries idempotent.",
+        "This choice does not address the state boundary described in the problem."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-state-200-0",
+      "category": "State",
+      "value": 200,
+      "prompt": "[DEV FIXTURE] Which final value does the authoritative state hold?",
+      "code": "let health = 10;\nconst queued = [3, 4];\nfor (const damage of queued) health -= damage;",
+      "choices": ["7", "6", "10", "3"],
+      "correctIndex": 3,
+      "explanation": "Both damage events are applied once: 10 minus 3 minus 4.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Both damage events are applied once: 10 minus 3 minus 4."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-state-200-1",
+      "category": "State",
+      "value": 200,
+      "prompt": "[DEV FIXTURE] Which final value does the authoritative state hold?",
+      "code": "let health = 10;\nconst queued = [3, 4];\nfor (const damage of queued) health -= damage;",
+      "choices": ["6", "10", "3", "7"],
+      "correctIndex": 2,
+      "explanation": "Both damage events are applied once: 10 minus 3 minus 4.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Both damage events are applied once: 10 minus 3 minus 4.",
+        "This choice does not address the state boundary described in the problem."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-state-300-0",
+      "category": "State",
+      "value": 300,
+      "prompt": "[DEV FIXTURE] Two clients buy the last item. Which combination preserves stock and retries?",
+      "code": null,
+      "choices": [
+        "Validate only on the client",
+        "Broadcast stock before saving",
+        "Allow negative stock then correct it",
+        "Serialize stock mutation and save a receipt atomically"
+      ],
+      "correctIndex": 3,
+      "explanation": "A serialized durable mutation chooses one buyer and keeps retry outcomes stable.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "A serialized durable mutation chooses one buyer and keeps retry outcomes stable."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-state-300-1",
+      "category": "State",
+      "value": 300,
+      "prompt": "[DEV FIXTURE] Two clients buy the last item. Which combination preserves stock and retries?",
+      "code": null,
+      "choices": [
+        "Broadcast stock before saving",
+        "Allow negative stock then correct it",
+        "Serialize stock mutation and save a receipt atomically",
+        "Validate only on the client"
+      ],
+      "correctIndex": 2,
+      "explanation": "A serialized durable mutation chooses one buyer and keeps retry outcomes stable.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "A serialized durable mutation chooses one buyer and keeps retry outcomes stable.",
+        "This choice does not address the state boundary described in the problem."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-timing-100-0",
+      "category": "Timing",
+      "value": 100,
+      "prompt": "[DEV FIXTURE] A paused game loses time while offline. Which time should restart recovery use?",
+      "code": null,
+      "choices": [
+        "The new boot time",
+        "The phone clock",
+        "The first click after restart",
+        "The last durable save time"
+      ],
+      "correctIndex": 3,
+      "explanation": "Remaining time is captured at the committed save, excluding offline time.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Remaining time is captured at the committed save, excluding offline time."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-timing-100-1",
+      "category": "Timing",
+      "value": 100,
+      "prompt": "[DEV FIXTURE] A paused game loses time while offline. Which time should restart recovery use?",
+      "code": null,
+      "choices": [
+        "The phone clock",
+        "The first click after restart",
+        "The last durable save time",
+        "The new boot time"
+      ],
+      "correctIndex": 2,
+      "explanation": "Remaining time is captured at the committed save, excluding offline time.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Remaining time is captured at the committed save, excluding offline time.",
+        "This choice does not address the state boundary described in the problem."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-timing-200-0",
+      "category": "Timing",
+      "value": 200,
+      "prompt": "[DEV FIXTURE] What is the simulation distance after two fixed steps?",
+      "code": "const speed = 6;\nconst step = 0.5;\nlet position = 0;\nfor (let i = 0; i < 2; i++) position += speed * step;",
+      "choices": ["3", "12", "0.5", "6"],
+      "correctIndex": 3,
+      "explanation": "Each step adds 3; two steps add 6.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Each step adds 3; two steps add 6."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-timing-200-1",
+      "category": "Timing",
+      "value": 200,
+      "prompt": "[DEV FIXTURE] What is the simulation distance after two fixed steps?",
+      "code": "const speed = 6;\nconst step = 0.5;\nlet position = 0;\nfor (let i = 0; i < 2; i++) position += speed * step;",
+      "choices": ["12", "0.5", "6", "3"],
+      "correctIndex": 2,
+      "explanation": "Each step adds 3; two steps add 6.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Each step adds 3; two steps add 6.",
+        "This choice does not address the state boundary described in the problem."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-timing-300-0",
+      "category": "Timing",
+      "value": 300,
+      "prompt": "[DEV FIXTURE] A reveal resumes halfway through while the room is paused. Which model avoids replay and early input?",
+      "code": null,
+      "choices": [
+        "Restart animation and unlock input",
+        "Use the browser animation callback as authority",
+        "Drop accepted actions",
+        "Seek by saved elapsed time; gate input on all pause blockers"
+      ],
+      "correctIndex": 3,
+      "explanation": "Presentation progress and authoritative decision blockers must remain separate.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Presentation progress and authoritative decision blockers must remain separate."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    },
+    {
+      "id": "fixture-timing-300-1",
+      "category": "Timing",
+      "value": 300,
+      "prompt": "[DEV FIXTURE] A reveal resumes halfway through while the room is paused. Which model avoids replay and early input?",
+      "code": null,
+      "choices": [
+        "Use the browser animation callback as authority",
+        "Drop accepted actions",
+        "Seek by saved elapsed time; gate input on all pause blockers",
+        "Restart animation and unlock input"
+      ],
+      "correctIndex": 2,
+      "explanation": "Presentation progress and authoritative decision blockers must remain separate.",
+      "distractors": [
+        "This choice does not address the state boundary described in the problem.",
+        "This choice does not address the state boundary described in the problem.",
+        "Presentation progress and authoritative decision blockers must remain separate.",
+        "This choice does not address the state boundary described in the problem."
+      ],
+      "reference": {
+        "file": "Development fixture \u2014 not lecture material",
+        "slide": "unverified"
+      },
+      "reviewed": false
+    }
+  ]
+}

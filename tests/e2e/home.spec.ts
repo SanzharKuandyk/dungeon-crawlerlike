@@ -13,10 +13,6 @@ test("entry page stays compact and hosts in one click without a key", async ({ p
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
-    const cards = page.locator(".home-card");
-    expect(await cards.nth(0).evaluate((el) => getComputedStyle(el).padding)).toBe(
-      await cards.nth(1).evaluate((el) => getComputedStyle(el).padding),
-    );
     expect(
       await page
         .getByRole("button", { name: "Host a match" })

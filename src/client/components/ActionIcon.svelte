@@ -1,9 +1,25 @@
 <script lang="ts">
+  import { GAME_COLORS } from "../../shared/palette.js";
+
   let { kind }: { kind: string } = $props();
+  let color = $derived(
+    kind === "brace" || kind === "protect"
+      ? GAME_COLORS.protection
+      : kind === "mend" || kind === "channel"
+        ? GAME_COLORS.healing
+        : kind === "hex"
+          ? GAME_COLORS.magic
+          : kind === "pilfer"
+            ? GAME_COLORS.gold
+            : kind === "attack" || kind === "skirmish"
+              ? GAME_COLORS.attack
+              : undefined,
+  );
 </script>
 
 <svg
   class="action-icon"
+  style:--icon-color={color}
   viewBox="0 0 24 24"
   fill="none"
   stroke="currentColor"
@@ -21,6 +37,8 @@
     {/if}
   {:else if kind === "loot" || kind.includes("pilfer")}
     <path d="M4 9h16v11H4ZM4 9V5h16v4M10 9v4h4V9M12 5v4" />
+  {:else if kind === "use-item"}
+    <path d="M5 8h14v13H5ZM8 8V5a4 4 0 0 1 8 0v3M8 12h8v5H8Z" />
   {:else if kind === "mend"}
     <path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z" />
   {:else if kind.includes("hex")}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { HostRoomView } from "../../shared/view-types.js";
   import type { HostController } from "../host-controller.js";
+  import Button from "./ui/Button.svelte";
 
   let {
     view,
@@ -47,29 +48,29 @@
   </summary>
   <section>
     {#if run && !run.finished}
-      <button
+      <Button
         type="button"
         disabled={view.readOnly}
         onclick={() => crew(paused ? "crew-resume" : "crew-pause")}
       >
         {paused ? "Resume crew" : "Pause crew"}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         disabled={view.readOnly || !ordinary || !capability || capability.extendReason !== null}
         title={capability?.extendReason ?? "Add 30 seconds"}
         onclick={() => crew("crew-extend")}
       >
         Add 30 seconds
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         disabled={view.readOnly || !ordinary || !capability || capability.resolveReason !== null}
         title={capability?.resolveReason ?? "Use missing-choice defaults"}
         onclick={() => crew("crew-resolve")}
       >
         Resolve missing choices
-      </button>
+      </Button>
       {#if capability?.extendReason}
         <small>{capability.extendReason}</small>
       {/if}
@@ -78,7 +79,7 @@
       {/if}
     {/if}
     {#if duel}
-      <button
+      <Button
         type="button"
         disabled={view.readOnly || (duel.turn === 3 && duel.phase === "reveal")}
         onclick={() => {
@@ -92,16 +93,16 @@
         }}
       >
         Cancel duel
-      </button>
+      </Button>
     {/if}
     {#each view.players.filter((p) => p.crewId === crewId) as player}
-      <button
+      <Button
         type="button"
         disabled={view.readOnly || view.closed}
         onclick={() => onrecover(player.id)}
       >
         Reconnect {player.name} on another device
-      </button>
+      </Button>
     {/each}
   </section>
 </details>

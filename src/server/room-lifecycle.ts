@@ -20,7 +20,7 @@ export function resumeRoom(room: StoredRoom, now: number) {
   room.pauseReasons = [];
   room.storageError = null;
   room.state.status = "running";
-  if (room.state.quizQuestionId || room.state.rulesVersion === "dungeon-v1") {
+  if (room.state.trial) {
     if (room.speed !== "manual") resumeClock(room.timer, now);
     Object.assign(room, clockView(room.timer));
   } else {

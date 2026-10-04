@@ -1,7 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { afterEach, expect, it } from "vitest";
 import { extendClock, freezeClock, newClock, resumeClock } from "../../src/server/clocks.js";
+import { enterCrew } from "../../src/server/crew-clock.js";
+import { updateCrewPresence } from "../../src/server/crew-decisions.js";
 import { progressDuels } from "../../src/server/duel-coordinator.js";
+import { progressExpedition } from "../../src/server/expedition-scheduler.js";
 import { hostControl } from "../../src/server/handlers/host.js";
 import { requireHostAccess } from "../../src/server/host-access.js";
 import { beginQuestion, skipQuestion } from "../../src/server/question-coordinator.js";
@@ -19,7 +22,7 @@ const fixtures: Awaited<ReturnType<typeof serverFixture>>[] = [];
 afterEach(async () => {
   for (const f of fixtures.splice(0)) await f.close();
 });
-async function setup(scenario: "split" | "duel" = "split") {
+async function setup(scenario: "split" | "duel" | "reward" = "split") {
   const f = await serverFixture();
   fixtures.push(f);
   const input = {
@@ -34,6 +37,7 @@ async function setup(scenario: "split" | "duel" = "split") {
   const room = f.server.manager.rooms.get(data.code);
   if (!room) throw new Error("Missing room");
   room.speed = "normal";
+  room.inactivityFallback = true;
   for (const p of room.state.players) p.connected = true;
   for (const run of Object.values(room.runs)) run.clock = newClock(45000, 1000, true);
   const env = () => ({ requestId: secret(), matchId: room.state.id, phaseId: room.state.phaseId });
@@ -55,7 +59,7 @@ it("global pause and shared question cannot accidentally resume crew clocks", as
   const { room, command } = await setup();
   room.discovery = { cause: "Seal breaks", depth: 1 };
   beginQuestion(room, 2000);
-  expect(room.state.quizQuestionId).toBeTruthy();
+  expect(room.state.trial?.id).toBeTruthy();
   command({ kind: "pause" });
   command({ kind: "resume" });
   expect(Object.values(room.runs).every((r) => r.clock.deadline === null)).toBe(true);
@@ -83,35 +87,35 @@ it("forced defaults preserve accepted actions, and extension adds exactly 30 sec
   const run = Object.values(room.runs)[3];
   const hero = room.state.heroes.find((h) => h.crewId === run.crewId);
   if (!hero) throw new Error("No hero");
-  run.progress.actions[hero.playerId] = { kind: "loot" };
+  run.progress.actions[hero.playerId] = { kind: "attack", part: "body" };
   const original = run.clock.deadline;
   command({ kind: "crew-extend", crewId: run.crewId, expectedCrewPhaseId: run.progress.phaseId });
   expect(run.clock.deadline).toBe((original ?? 0) + 30000);
   command({ kind: "crew-resolve", crewId: run.crewId, expectedCrewPhaseId: run.progress.phaseId });
-  expect(run.progress.resolvedActions[hero.playerId]).toEqual({ kind: "loot" });
+  expect(run.progress.resolvedActions[hero.playerId]).toEqual({ kind: "attack", part: "body" });
   expect(run.progress.phase.kind).toBe("combat-reveal");
 });
-it("unlocked question skip consumes its entry without Blood costs or rewards", async () => {
+it("trial skip consumes the altar without wager costs or rewards", async () => {
   const { room, command } = await setup();
   room.discovery = { cause: "Inscription", depth: 1 };
   beginQuestion(room, 2000);
-  const id = room.state.quizQuestionId;
+  const id = room.state.trial?.id;
   if (!id) throw new Error("No quiz");
   const hero = room.state.heroes[0],
     hp = hero.hp;
-  room.state.answers[hero.playerId] = 0;
-  room.state.answerPacts[hero.playerId] = "blood";
+  if (room.state.trial) room.state.trial.answers[hero.playerId] = 0;
+
   command({ kind: "question-skip", questionId: id });
   expect(hero.hp).toBe(hp);
-  expect(hero.equipment).toBeNull();
-  expect(room.state.usedQuestions).toContain(id);
-  expect(room.state.quizQuestionId).toBeNull();
+  expect(hero.conditions.blessings).toEqual([]);
+  expect(room.state.completedTrials).toContain(1);
+  expect(room.state.trial).toBeNull();
 });
 it("cancelled duel refunds once, retains damage, restores both phases, and refuses settled cancellation", async () => {
   const { room, command } = await setup("duel");
   const duel = room.duels[0];
   const total =
-    room.state.crews.reduce((s, c) => s + c.carriedTreasure, 0) +
+    room.state.crews.reduce((s, c) => s + c.economy.gold, 0) +
     Object.values(duel.stakes).reduce((s, n) => s + n, 0);
   const actor = room.state.heroes.find((h) => h.crewId === duel.crewIds[0]);
   const rival = room.state.heroes.find((h) => h.crewId === duel.crewIds[1]);
@@ -122,7 +126,7 @@ it("cancelled duel refunds once, retains damage, restores both phases, and refus
   command({ kind: "duel-cancel", duelId: duel.id, expectedTurn: 1, expectedDuelPhase: "reveal" });
   expect(rival.hp).toBe(hp);
   expect(duel.status).toBe("finished");
-  expect(room.state.crews.reduce((s, c) => s + c.carriedTreasure, 0)).toBe(total);
+  expect(room.state.crews.reduce((s, c) => s + c.economy.gold, 0)).toBe(total);
   expect(() =>
     command({ kind: "duel-cancel", duelId: duel.id, expectedTurn: 1, expectedDuelPhase: "reveal" }),
   ).toThrow("settled");
@@ -232,6 +236,7 @@ it.each([
   "combat-reveal",
   "combat-recap",
   "floor-result",
+  "result",
   "question-intro",
   "question",
   "explanation",
@@ -245,7 +250,7 @@ it.each([
   room.testMode = false;
   room.savedAt = 3000;
   const run = Object.values(room.runs)[0];
-  const questionId = room.state.questionDeck[0];
+  const questionId = room.state.trialPack.questions[0].id;
   const phase =
     kind === "question-intro" ||
     kind === "question" ||
@@ -258,7 +263,7 @@ it.each([
   room.state.phase = phase;
   room.timer = newClock(10000, 1000, true);
   room.processed.saved = { fingerprint: "accepted", receipt: { revision: 7 } };
-  run.progress.actions[room.state.heroes[0].playerId] = { kind: "loot" };
+  run.progress.actions[room.state.heroes[0].playerId] = { kind: "attack", part: "body" };
   const markers = structuredClone(run.progress.resolvedPhaseIds);
   const memory = memoryStorage();
   await memory.storage.save(room);
@@ -273,4 +278,84 @@ it.each([
   expect(recovered?.processed).toEqual(room.processed);
   expect(recovered?.state.heroes).toEqual(room.state.heroes);
   expect(recovered?.state.history).toEqual(room.state.history);
+});
+
+it("an open equipment result survives a trial and nested global pause without rerolling", async () => {
+  const { room } = await setup("reward");
+  const run = Object.values(room.runs)[1];
+  enterCrew(room, run, { kind: "result" }, 1000);
+  const phaseId = run.progress.phaseId;
+  const result = structuredClone(run.progress.result);
+  const offers = structuredClone(room.state.rewardOffers);
+  expect(run.clock.durationMs).toBe(60000);
+  room.discovery = { cause: "Another crew awakened the altar", depth: 1 };
+  beginQuestion(room, 2000);
+  pauseRoom(room, "host", 3000);
+  skipQuestion(room, 4000);
+  expect(run.clock.deadline).toBeNull();
+  expect(run.progress.phaseId).toBe(phaseId);
+  expect(run.progress.result).toEqual(result);
+  expect(room.state.rewardOffers).toEqual(offers);
+  resumeRoom(room, 5000);
+  expect(run.clock.deadline).toBe(64000);
+  expect(run.progress.phase.kind).toBe("result");
+});
+it("absence and host resolution preserve unclaimed gear, while an all-offline result waits", async () => {
+  const { room, command } = await setup("reward");
+  const run = Object.values(room.runs)[1];
+  const crew = room.state.crews.find((c) => c.id === run.crewId);
+  if (!crew) throw new Error("Crew missing");
+  enterCrew(room, run, { kind: "result" }, 1000);
+  const absent = room.state.players.find((p) => p.id === crew.playerIds[1]);
+  if (!absent) throw new Error("Absent player missing");
+  absent.connected = false;
+  updateCrewPresence(room, run, 2000);
+  updateCrewPresence(room, run, 17000);
+  expect(run.ready).toContain(crew.playerIds[1]);
+  const absentHero = room.state.heroes.find((h) => h.playerId === crew.playerIds[1]);
+  expect(room.state.rewardOffers.find((o) => o.ownerHeroId === absentHero?.id)).toMatchObject({
+    status: "pending",
+    deferred: true,
+  });
+  command({ kind: "crew-resolve", crewId: run.crewId, expectedCrewPhaseId: run.progress.phaseId });
+  expect(run.progress.phase.kind).toBe("route");
+  expect(
+    room.state.rewardOffers
+      .filter((o) =>
+        crew.playerIds.some(
+          (id) => room.state.heroes.find((h) => h.playerId === id)?.id === o.ownerHeroId,
+        ),
+      )
+      .every((o) => o.status === "pending" && o.deferred),
+  ).toBe(true);
+  const solo = Object.values(room.runs)[0];
+  const soloPlayer = room.state.players.find((p) => p.crewId === solo.crewId);
+  if (!soloPlayer) throw new Error("Solo player missing");
+  soloPlayer.connected = false;
+  updateCrewPresence(room, solo, 2000);
+  progressExpedition(room, 999999);
+  expect(solo.progress.phase.kind).toBe("result");
+  expect(solo.suspended).toBe(true);
+  expect(solo.ready).toEqual([]);
+  expect(
+    room.state.rewardOffers.find(
+      (o) => o.ownerHeroId === room.state.heroes.find((h) => h.crewId === solo.crewId)?.id,
+    ),
+  ).toMatchObject({ status: "pending", deferred: false });
+});
+
+it("a connected spirit can recover at camp while living members are absent", async () => {
+  const { room } = await setup("reward");
+  const run = Object.values(room.runs)[1];
+  enterCrew(room, run, { kind: "camp" }, 1000);
+  const members = room.state.heroes.filter((h) => h.crewId === run.crewId);
+  members[0].hp = 0;
+  members[0].status = "dead";
+  const livingPlayer = room.state.players.find((p) => p.id === members[1].playerId);
+  if (!livingPlayer) throw new Error("Living player missing");
+  livingPlayer.connected = false;
+  updateCrewPresence(room, run, 2000);
+  expect(run.suspended).toBe(false);
+  expect(run.pauseReasons).not.toContain("all-offline");
+  expect(run.ready).toEqual([]);
 });

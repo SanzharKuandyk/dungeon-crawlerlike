@@ -21,7 +21,22 @@ export const NEUTRALS = {
   stoneBorder: "#d3d1c9",
   intentSurface: "#f8f7f3",
   contactShadow: "rgba(24, 24, 27, 0.15)",
+  healthFill: "#256b45",
+  stressFill: "#9d6a18",
+  sealFill: "#6d5797",
 } as const;
+export const NODE_COLORS: Record<MapNodeKind, string> = {
+  battle: "#6b493e",
+  elite: "#9c3d2e",
+  boss: "#9c3d2e",
+  arena: "#6b493e",
+  merchant: "#936d1e",
+  treasure: "#936d1e",
+  camp: "#4c7252",
+  shrine: "#4c7252",
+  altar: "#6d5797",
+  event: "#6d5797",
+};
 export const TEAM_COLORS = [
   { id: "blue", name: "Blue", hex: "#2563eb" },
   { id: "orange", name: "Orange", hex: "#c2410c" },
@@ -38,3 +53,26 @@ export function teamColor(id: string) {
 export const colorNumber = (hex: string) => Number.parseInt(hex.slice(1), 16);
 
 export const ANSWER_COLORS = ["#275da8", "#9b5417", "#7150a0", "#147568"] as const;
+
+export const GAME_COLORS = {
+  attack: "#b33e27",
+  protection: "#286e9b",
+  healing: "#23794b",
+  magic: "#7950a4",
+  gold: "#956613",
+  stress: "#a86616",
+} as const;
+
+export function iconColor(name: string): string | undefined {
+  if (["heart", "draught", "healer-charm", "revive", "field-medic", "second-breath"].includes(name))
+    return GAME_COLORS.healing;
+  if (["shield", "armor", "ward-vest", "guard-coat", "last-stand"].includes(name))
+    return GAME_COLORS.protection;
+  if (["weapon", "body-blade", "bleed", "arm", "leg", "curse"].includes(name))
+    return GAME_COLORS.attack;
+  if (["stress", "tonic", "calm-charm", "iron-nerve"].includes(name)) return GAME_COLORS.stress;
+  if (["seal", "seal-pick", "blessing", "charm"].includes(name)) return GAME_COLORS.magic;
+  if (["gold", "merchant", "boss"].includes(name)) return GAME_COLORS.gold;
+}
+
+import type { MapNodeKind } from "./map-types.js";

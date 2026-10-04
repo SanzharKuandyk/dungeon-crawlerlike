@@ -1,4 +1,4 @@
-import type { CampChoice, EquipmentChoice, HeroAction } from "../shared/command-types.js";
+import type { CampChoice, HeroAction } from "../shared/command-types.js";
 import type { ClassId } from "../shared/content-types.js";
 import type { DuelAction } from "../shared/duel-types.js";
 import type { GameEvent } from "../shared/event-types.js";
@@ -6,9 +6,57 @@ import type { ClientSession } from "./session.js";
 
 export function playerController(session: ClientSession) {
   return {
+    claimReward: (
+      claim: import("../shared/reward-types.js").RewardClaim,
+      inventoryRevision: number,
+    ) =>
+      session.command((env, ack) =>
+        session.socket.emit("reward:claim", { ...env, claim, inventoryRevision }, ack),
+      ),
+    resultReady: () => session.command((env, ack) => session.socket.emit("result:ready", env, ack)),
+    get pending() {
+      return session.pendingCount;
+    },
+    get error() {
+      return session.error;
+    },
     get ready() {
       return session.ready;
     },
+    inventory: (
+      command: import("../shared/inventory-types.js").InventoryCommand,
+      inventoryRevision: number,
+    ) =>
+      session.command((env, ack) =>
+        session.socket.emit("inventory:command", { ...env, command, inventoryRevision }, ack),
+      ),
+    buy: (offerId: string, inventoryRevision: number) =>
+      session.command((env, ack) =>
+        session.socket.emit("shop:buy", { ...env, offerId, inventoryRevision }, ack),
+      ),
+    treat: (treatment: import("../shared/inventory-types.js").Treatment) =>
+      session.command((env, ack) => session.socket.emit("camp:treat", { ...env, treatment }, ack)),
+    rescue: () => session.command((env, ack) => session.socket.emit("camp:rescue", env, ack)),
+    trialVote: (trialId: string, tileId: string) =>
+      session.command((env, ack) =>
+        session.socket.emit("trial:vote", { ...env, trialId, tileId }, ack),
+      ),
+    wager: (trialId: string, wager: import("../shared/trial-types.js").WagerLevel) =>
+      session.command((env, ack) =>
+        session.socket.emit("trial:wager", { ...env, trialId, wager }, ack),
+      ),
+    trialAnswer: (trialId: string, questionId: string, choice: number) =>
+      session.command((env, ack) =>
+        session.socket.emit("trial:answer", { ...env, trialId, questionId, choice }, ack),
+      ),
+    blessing: (
+      trialId: string,
+      offerId: string,
+      replace: import("../shared/condition-types.js").BlessingKind | null = null,
+    ) =>
+      session.command((env, ack) =>
+        session.socket.emit("trial:blessing", { ...env, trialId, offerId, replace }, ack),
+      ),
     history: (before: number) =>
       new Promise<GameEvent[]>((resolve) => {
         if (!session.ready) return resolve([]);
@@ -22,6 +70,7 @@ export function playerController(session: ClientSession) {
       if (!session.socket.connected) session.socket.connect();
       else session.reconnect(takeover);
     },
+    arenaQueue: () => session.command((env, ack) => session.socket.emit("pvp:queue", env, ack)),
     challenge: (targetCrewId: string) =>
       session.command((env, ack) =>
         session.socket.emit("pvp:challenge", { ...env, targetCrewId }, ack),
@@ -47,12 +96,6 @@ export function playerController(session: ClientSession) {
       ),
     camp: (choice: CampChoice) =>
       session.command((env, ack) => session.socket.emit("camp:vote", { ...env, choice }, ack)),
-    answer: (questionId: string, choice: number, pact: "careful" | "blood" = "careful") =>
-      session.command((env, ack) =>
-        session.socket.emit("learning:answer", { ...env, questionId, choice, pact }, ack),
-      ),
-    equipment: (item: EquipmentChoice) =>
-      session.command((env, ack) => session.socket.emit("equipment:choose", { ...env, item }, ack)),
   };
 }
 export type PlayerController = ReturnType<typeof playerController>;

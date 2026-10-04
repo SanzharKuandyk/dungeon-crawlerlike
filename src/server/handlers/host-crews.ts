@@ -14,7 +14,9 @@ export function hostCrewControl(room: StoredRoom, command: Command, now: number)
   if (run.progress.phaseId !== command.expectedCrewPhaseId)
     reject("STALE", "This crew has moved to another phase.");
   const duel = room.duels.find((d) => d.status === "active" && d.crewIds.includes(run.crewId));
-  const affected = duel ? duel.crewIds.map((id) => room.runs[id]) : [run];
+  const affected = duel
+    ? duel.crewIds.flatMap((id) => (room.runs[id] ? [room.runs[id]] : []))
+    : [run];
   if (command.kind === "crew-pause") {
     for (const entry of affected) {
       if (!entry.pauseReasons.includes("host")) entry.pauseReasons.push("host");
@@ -43,7 +45,7 @@ export function hostCrewControl(room: StoredRoom, command: Command, now: number)
               ? run.progress.routeVotes[id] !== undefined
               : phase === "camp"
                 ? run.progress.campVotes[id] !== undefined
-                : run.progress.equipmentChoices[id] !== undefined;
+                : false;
         if (!hasInput) fillMissingChoice(room, run, id);
         if (!run.ready.includes(id)) run.ready.push(id);
       }

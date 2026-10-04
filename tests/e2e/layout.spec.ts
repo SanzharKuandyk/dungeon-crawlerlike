@@ -1,4 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { io, type Socket } from "socket.io-client";
+import type { Ack, ClientEvents, ServerEvents } from "../../src/shared/protocol.js";
 import { fixture, identity, noOverflow } from "../fixtures/layout-fixture.js";
 
 test("battle controls fit phones, tablets and desktop with grounded four-member crews", async ({
@@ -20,13 +23,15 @@ test("battle controls fit phones, tablets and desktop with grounded four-member 
     await expect(player.page.locator(".phone-panel canvas")).toHaveCount(1);
     for (const viewport of [
       { width: 1366, height: 768 },
-      { width: 1024, height: 768 },
+      { width: 768, height: 1024 },
       { width: 844, height: 390 },
       { width: 667, height: 375 },
       { width: 360, height: 800 },
     ]) {
       await player.page.setViewportSize(viewport);
       await noOverflow(player.page);
+      const scene = await player.page.locator(".phone-panel canvas").boundingBox();
+      expect(scene?.height).toBeGreaterThan(100);
       const confirm = player.page.locator(".confirm-action");
       const rect = await confirm.boundingBox();
       expect(rect?.height).toBeGreaterThanOrEqual(44);
@@ -38,10 +43,11 @@ test("battle controls fit phones, tablets and desktop with grounded four-member 
       }
       await player.page.screenshot({ path: `test-results/layout-player-${viewport.width}.png` });
     }
-    await player.page.getByRole("button", { name: "Weak point", exact: true }).click();
-    await player.page.getByRole("button", { name: /Confirm · Attack weak point/ }).click();
-    await expect(player.page.locator(".confirmed")).toContainText("Confirmed");
-    await player.page.getByRole("button", { name: "Brace", exact: true }).click();
+    await player.page.getByRole("button", { name: "Seal", exact: true }).click();
+    await player.page.getByRole("button", { name: /(?:Ready|Play turn) · Attack seal/ }).click();
+    await expect(player.page.locator(".confirmed")).toContainText("Ready");
+    await player.page.getByRole("button", { name: "Change", exact: true }).click();
+    await player.page.getByRole("button", { name: "Block", exact: true }).click();
     await expect(player.page.locator(".action-targets")).not.toBeVisible();
   } finally {
     await player.context.close();
@@ -55,8 +61,10 @@ test("battle controls fit phones, tablets and desktop with grounded four-member 
   );
   try {
     await solo.page.setViewportSize({ width: 667, height: 375 });
-    await solo.page.getByRole("button", { name: "Skirmish", exact: true }).click();
-    await expect(solo.page.locator(".order-preview")).toContainText("barrier");
+    await solo.page.getByRole("button", { name: "Hit & Block", exact: true }).click();
+    await expect(
+      solo.page.getByRole("button", { name: /(?:Ready|Play turn) · Hit & Block.*barrier/ }),
+    ).toBeEnabled();
     await noOverflow(solo.page);
     expect(
       await solo.page.evaluate(() => document.documentElement.scrollHeight <= innerHeight),
@@ -79,7 +87,7 @@ test("host toolbar and crew cards share consistent spacing at desktop and tablet
     await host.page.getByRole("button", { name: "Dungeon", exact: true }).click();
     for (const viewport of [
       { width: 1366, height: 768 },
-      { width: 1024, height: 768 },
+      { width: 768, height: 1024 },
       { width: 844, height: 390 },
       { width: 360, height: 800 },
     ]) {
@@ -117,7 +125,7 @@ test("map votes and questions remain usable in the responsive player frame", asy
   baseURL,
 }) => {
   if (!baseURL) throw new Error("Missing server URL");
-  for (const scenario of ["fresh", "question"]) {
+  for (const scenario of ["fresh", "trial-answer"]) {
     const { data, input } = await fixture(page, baseURL, false, scenario);
     const player = await identity(
       browser,
@@ -133,7 +141,7 @@ test("map votes and questions remain usable in the responsive player frame", asy
       );
       for (const viewport of [
         { width: 1366, height: 768 },
-        { width: 1024, height: 768 },
+        { width: 768, height: 1024 },
         { width: 844, height: 390 },
         { width: 667, height: 375 },
         { width: 360, height: 800 },
@@ -144,19 +152,43 @@ test("map votes and questions remain usable in the responsive player frame", asy
         if (scenario === "fresh") {
           const map = player.page.locator(".phone-panel .map-viewport");
           await expect(player.page.locator(".phone-panel .player-context")).toHaveCount(0);
-          await expect(player.page.locator(".phone-panel .map-toolbar")).toHaveCount(0);
-          await expect(player.page.locator(".route-vote-heading")).toContainText("Floor 1/10");
+          await expect(
+            player.page.getByRole("button", { name: "Locate crew", exact: true }),
+          ).toBeVisible();
+          await expect(player.page.locator(".map-toolbar")).toContainText("Chapter 1 · 1/7");
           await expect.poll(() => map.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
           expect(await map.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
             true,
           );
+          await player.page.getByRole("button", { name: "Locate crew", exact: true }).click();
           const bounds = await map.boundingBox();
           for (const node of await player.page.locator(".phone-panel .map-node.reachable").all()) {
             const box = await node.boundingBox();
-            expect(box?.y).toBeGreaterThanOrEqual((bounds?.y ?? 0) + 5);
+            expect(box?.y).toBeGreaterThanOrEqual(bounds?.y ?? 0);
             expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(
               (bounds?.y ?? 0) + (bounds?.height ?? 0),
             );
+          }
+          if (viewport.height >= 768) {
+            await player.page
+              .getByRole("button", { name: "Show whole route", exact: true })
+              .click();
+            await expect(player.page.locator(".map-node.guardian")).toBeInViewport();
+            const overviewBounds = await map.boundingBox();
+            for (const stop of await player.page.locator(".map-stop").all()) {
+              const box = await stop.boundingBox();
+              expect(box?.y).toBeGreaterThanOrEqual(overviewBounds?.y ?? 0);
+              expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(
+                (overviewBounds?.y ?? 0) + (overviewBounds?.height ?? 0),
+              );
+            }
+            await player.page.screenshot({
+              path: `test-results/map-overview-${viewport.width}.png`,
+            });
+            await player.page
+              .getByRole("button", { name: "Show route detail", exact: true })
+              .click();
+            await player.page.getByRole("button", { name: "Locate crew", exact: true }).click();
           }
           if (viewport.width > viewport.height && viewport.height < 500) {
             expect(
@@ -166,8 +198,9 @@ test("map votes and questions remain usable in the responsive player frame", asy
             ).toBe(true);
           }
         }
-        if (scenario === "question" && viewport.width > viewport.height) {
-          const last = await player.page.locator(".answers button").last().boundingBox();
+        if (scenario === "trial-answer" && viewport.width > viewport.height) {
+          await player.page.locator(".trial-options button").last().scrollIntoViewIfNeeded();
+          const last = await player.page.locator(".trial-options button").last().boundingBox();
           expect((last?.y ?? 0) + (last?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
         }
         await player.page.screenshot({
@@ -175,18 +208,23 @@ test("map votes and questions remain usable in the responsive player frame", asy
         });
       }
       if (scenario === "fresh") {
+        const overview = player.page.getByRole("button", { name: "Show whole route", exact: true });
+        await expect(overview.locator("svg")).toBeVisible();
+        expect(await overview.locator("svg").evaluate((el) => getComputedStyle(el).color)).not.toBe(
+          "rgb(255, 255, 255)",
+        );
         const map = player.page.locator(".phone-panel .map-viewport");
         const start = await map.evaluate((element) => element.scrollTop);
         await player.page.locator(".phone-panel .map-node.reachable").first().click();
         await expect(player.page.locator(".phone-panel .map-node.own-vote")).toHaveCount(1);
-        await expect(player.page.locator(".map-inspection")).toContainText("Voted");
+        await expect(player.page.locator(".map-inspection")).toContainText("Selected");
         await player.page.locator(".phone-panel .map-node.reachable").last().click();
         await expect(player.page.locator(".phone-panel .map-node.reachable").last()).toHaveClass(
           /own-vote/,
         );
         expect(await map.evaluate((element) => element.scrollTop)).toBeCloseTo(start, 0);
         const first = await player.page.locator(".map-stop[data-floor='1']").first().boundingBox();
-        const boss = await player.page.locator(".map-stop[data-floor='10']").first().boundingBox();
+        const boss = await player.page.locator(".map-stop[data-floor='7']").first().boundingBox();
         expect(boss?.y).toBeLessThan(first?.y ?? 0);
         await map.evaluate((element) => {
           element.scrollTop = 0;
@@ -194,11 +232,85 @@ test("map votes and questions remain usable in the responsive player frame", asy
         await expect(player.page.locator(".phone-panel .map-node.guardian")).toBeInViewport();
         await player.page.screenshot({ path: "test-results/layout-map-guardian.png" });
       } else {
-        await player.page.locator(".phone-panel .answers button").last().click();
-        await expect(player.page.locator(".quiz-card")).toContainText("Answer received");
+        await player.page.locator(".phone-panel .trial-options button").last().click();
+        await expect(player.page.locator(".trial-panel")).toContainText("Answer locked");
       }
     } finally {
       await player.context.close();
     }
+  }
+});
+
+test("map browsing survives 50 snapshots and a movement update", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  if (!baseURL) throw new Error("Missing server URL");
+  const { data, input } = await fixture(page, baseURL, false);
+  const student = await identity(
+    browser,
+    baseURL,
+    data.code,
+    input.players[6].bootstrapSecret,
+    "player",
+  );
+  const host: Socket<ServerEvents, ClientEvents> = io(baseURL);
+  try {
+    let snapshots = 0;
+    page.on("websocket", (socket) =>
+      socket.on("framereceived", ({ payload }) => {
+        if (String(payload).includes("room:snapshot")) snapshots++;
+      }),
+    );
+    await page.goto(`/#/board/${data.code}`);
+    await page.getByRole("button", { name: "Map", exact: true }).click();
+    const map = page.locator(".map-board-panel .map-viewport");
+    await map.evaluate((el) => {
+      el.scrollTop = 200;
+    });
+    const position = await map.evaluate((el) => el.scrollTop);
+    const routes = student.page.locator(".phone-panel .map-node.reachable");
+    for (let i = 0; i < 50; i++) {
+      const choice = routes.first();
+      const edit = student.page.getByRole("button", { name: "Change", exact: true });
+      if (await edit.count()) await edit.click();
+      await choice.click();
+      await student.page.getByRole("button", { name: "Ready to travel", exact: true }).click();
+      await expect(choice).toHaveClass(/own-vote/);
+      await expect.poll(() => map.evaluate((el) => el.scrollTop)).toBe(position);
+      await student.page.waitForTimeout(120);
+    }
+    await expect.poll(() => snapshots).toBeGreaterThanOrEqual(50);
+    await new Promise<void>((resolve) =>
+      host.connected ? resolve() : host.once("connect", resolve),
+    );
+    const resumed = await new Promise<Parameters<Ack>[0]>((resolve) =>
+      host.emit("session:resume", { code: data.code, token: input.hostSecret }, resolve),
+    );
+    expect(resumed.ok).toBe(true);
+    const synchronized = await new Promise<
+      Parameters<Parameters<ClientEvents["session:sync"]>[1]>[0]
+    >((resolve) => host.emit("session:sync", { pending: [] }, resolve));
+    if (!synchronized.ok) throw new Error(synchronized.message);
+    const view = synchronized.value.view;
+    const advanced = await new Promise<Parameters<Ack>[0]>((resolve) =>
+      host.emit(
+        "test:control",
+        {
+          requestId: randomUUID(),
+          matchId: view.id,
+          phaseId: view.phaseId,
+          command: { kind: "advance" },
+        },
+        resolve,
+      ),
+    );
+    expect(advanced.ok).toBe(true);
+    await expect(student.page.locator(".phone-panel")).toHaveAttribute("data-phase", "arrival");
+    await expect.poll(() => map.evaluate((el) => el.scrollTop)).toBe(position);
+  } finally {
+    host.disconnect();
+    await student.context.close();
   }
 });

@@ -1,5 +1,3 @@
-import type { MatchState } from "./game-types.js";
-
 export type DecisionClock = {
   deadline: number | null;
   remainingMs: number;
@@ -8,24 +6,7 @@ export type DecisionClock = {
   startedAt: number;
 };
 
-export type CrewProgress = Pick<
-  MatchState,
-  | "depth"
-  | "turn"
-  | "globalTurn"
-  | "phase"
-  | "phaseId"
-  | "actions"
-  | "routeVotes"
-  | "campVotes"
-  | "withdrawVotes"
-  | "equipmentChoices"
-  | "resolvedActions"
-  | "resolvedPhaseIds"
-  | "treasureEquipmentDepths"
-  | "before"
-  | "events"
->;
+export type CrewProgress = import("./progression-types.js").CrewProgress;
 
 export type CrewRun = {
   crewId: string;
@@ -36,12 +17,11 @@ export type CrewRun = {
   suspended: boolean;
   pauseReasons: import("./host-types.js").CrewPauseReason[];
   finished: boolean;
-  rewardCharges: 1 | 2 | null;
 };
 
 export type CrewRunView = Pick<
   CrewRun,
-  "crewId" | "clock" | "pauseReasons" | "suspended" | "finished" | "rewardCharges"
+  "crewId" | "clock" | "pauseReasons" | "suspended" | "finished"
 > &
   Pick<CrewProgress, "depth" | "turn" | "phase" | "phaseId" | "before" | "events"> & {
     readyCount: number;

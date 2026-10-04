@@ -1,0 +1,143 @@
+.crew-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.crew-stage {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+}
+.crew-stage.own {
+  border-color: var(--team);
+}
+.crew-stage > header,
+.crew-stage > footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+.crew-stage > header {
+  padding-block: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.crew-stage > footer {
+  border-top: 1px solid var(--border);
+  justify-content: space-between;
+  font-size: 12px;
+}
+.crew-title {
+  border: 0;
+  background: transparent;
+  color: var(--team);
+  text-align: left;
+  justify-content: start;
+  overflow-wrap: anywhere;
+  padding: 0;
+}
+.crew-state {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+.animated-battle {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1200 / 580;
+  overflow: hidden;
+  min-height: 0;
+}
+.dungeon-arena {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.animated-battle .dungeon-arena {
+  position: absolute;
+  inset: 0;
+}
+.dungeon-arena canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.battle-narration {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  right: 12px;
+  text-align: center;
+  font-size: 12px;
+}
+.character-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.enemy-bars {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+}
+.enemy-bars > div:first-child {
+  position: relative;
+}
+.enemy-bars > div:first-child::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: var(--shield, 0%);
+  height: 6px;
+  border: 1px solid var(--text);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.shield-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.shield-badge strong {
+  border: 1px solid var(--text);
+  border-radius: 4px;
+  padding: 0 var(--space-1);
+}
+.intent-symbols,
+.intent-symbols > span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.intent-symbols {
+  gap: var(--space-2);
+  font-size: 16px;
+  font-weight: 700;
+}
+@media (max-width: 760px) {
+  .crew-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.encounter-detail > .dungeon-arena {
+  height: auto;
+  aspect-ratio: 1200 / 580;
+  min-height: 200px;
+}

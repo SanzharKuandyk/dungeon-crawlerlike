@@ -11,12 +11,14 @@
     roomId,
     actor,
     crewId = null,
+    targetId = null,
   }: {
     view: RoomView;
     arena: ArenaState;
     roomId: string | null;
     actor: string | null;
     crewId?: string | null;
+    targetId?: string | null;
   } = $props();
   let parent: HTMLDivElement,
     renderer = $state<ReturnType<typeof createArena> | null>(null);
@@ -31,12 +33,20 @@
     };
   });
   $effect(() =>
-    renderer?.scene.renderArena(view, arena, roomId, actor, preferences.reducedMotion, crewId),
+    renderer?.scene.renderArena(
+      view,
+      arena,
+      roomId,
+      actor,
+      preferences.reducedMotion,
+      crewId,
+      targetId,
+    ),
   );
 </script>
 <div
   class="dungeon-arena"
   bind:this={parent}
   role="img"
-  aria-label="Dungeon encounter. Colored character portraits match crew badges. Enemy health and weak-point health are shown."
+  aria-label="Dungeon encounter. Colored character portraits match crew badges. Enemy health and seal health are shown."
 ></div>

@@ -1,153 +1,137 @@
+import { POWER } from "../shared/constants.js";
 import type { MatchState } from "../shared/game-types.js";
 import { TEAM_COLORS } from "../shared/palette.js";
-
-export function assertInvariants(s: MatchState) {
-  const fail = (m: string) => {
-    throw new Error(`Invariant: ${m}`);
+import { validateMap } from "./progression/maps.js";
+export function assertInvariants(state: MatchState) {
+  const fail = (message: string) => {
+    throw new Error(`Invariant: ${message}`);
   };
-  const unique = (values: string[], label: string) => {
-    if (new Set(values).size !== values.length) fail(label);
+  const unique = (values: string[], name: string) => {
+    if (new Set(values).size !== values.length) fail(name);
   };
+  if (state.rulesVersion !== "dungeon-v4") fail("rules version");
   unique(
-    s.players.map((p) => p.id),
+    state.players.map((p) => p.id),
     "players",
   );
   unique(
-    s.crews.map((c) => c.id),
+    state.crews.map((c) => c.id),
     "crews",
   );
   unique(
-    s.crews.map((c) => c.symbol),
+    state.crews.map((c) => c.symbol),
     "symbols",
   );
   unique(
-    s.heroes.map((h) => h.playerId),
+    state.heroes.map((h) => h.playerId),
     "hero ownership",
   );
-  unique(s.resolvedPhaseIds.map(String), "phase resolution");
-  unique(s.usedQuestions, "questions");
-  unique(s.quizDepths.map(String), "question per depth");
-  if (
-    !["dungeon-v1", "dungeon-v2"].includes(s.rulesVersion) ||
-    !Number.isInteger(s.depth) ||
-    s.depth < 1 ||
-    (!s.expeditionMap && s.depth > 5) ||
-    s.turn < 1 ||
-    s.turn > 4
-  )
-    fail("progress");
-
-  if (s.expeditionMap) {
-    const map = s.expeditionMap;
-    const nodes = new Map(map.nodes.map((node) => [node.id, node]));
-    unique(
-      map.nodes.map((node) => node.id),
-      "map nodes",
-    );
-
-    if (
-      map.version !== "branching-v1" ||
-      map.rows !== 10 ||
-      map.chapter !== Math.floor((s.depth - 1) / map.rows) + 1
-    )
-      fail("map chapter");
-
-    for (const node of map.nodes) {
-      if (
-        node.row < 1 ||
-        node.row > map.rows ||
-        node.lane < 0 ||
-        node.lane > 2 ||
-        node.room.id !== node.id ||
-        node.room.depth !== (map.chapter - 1) * map.rows + node.row ||
-        (node.row < map.rows && node.nextIds.length === 0) ||
-        node.nextIds.some((id) => nodes.get(id)?.row !== node.row + 1)
-      )
-        fail("map connections");
-    }
-
-    for (const crew of s.crews) {
-      const position = crew.mapPosition;
-      if (!position || crew.status === "eliminated") continue;
-
-      if (
-        position.chapter !== map.chapter ||
-        (position.nodeId !== null && !nodes.has(position.nodeId)) ||
-        position.trail.some(
-          (id, index) =>
-            !nodes.has(id) ||
-            (index > 0 && !nodes.get(position.trail[index - 1])?.nextIds.includes(id)),
-        ) ||
-        (position.nodeId !== null && position.trail.at(-1) !== position.nodeId)
-      )
-        fail("crew map position");
-    }
-  }
-  for (const c of s.crews) {
-    const members = s.players.filter((p) => p.crewId === c.id);
+  unique(state.usedTrialQuestions, "trial questions");
+  unique(state.completedTrials.map(String), "trial triggers");
+  if (state.chapterMaps.length !== 3) fail("three chapter maps");
+  for (const map of state.chapterMaps) validateMap(map);
+  for (const crew of state.crews) {
+    const members = state.players.filter((p) => p.crewId === crew.id);
     if (members.length < 1 || members.length > 4) fail("crew size");
-    if (!TEAM_COLORS.some((v) => v.id === c.colorId)) fail("palette");
+    if (!TEAM_COLORS.some((c) => c.id === crew.colorId)) fail("palette");
     if (
-      !Number.isInteger(c.carriedTreasure) ||
-      c.carriedTreasure < 0 ||
-      !Number.isInteger(c.securedTreasure) ||
-      c.securedTreasure < 0
+      ![
+        crew.economy.gold,
+        crew.economy.rescueDebt,
+        crew.trialScoreUnits,
+        crew.bossesDefeated,
+      ].every((n) => Number.isInteger(n) && n >= 0) ||
+      crew.bossesDefeated > 3
     )
-      fail("treasure");
-    if (
-      s.status !== "lobby" &&
-      (members.length !== c.startingSize || members.some((p) => !c.playerIds.includes(p.id)))
-    )
-      fail("frozen roster");
+      fail("crew economy/ranking");
+    unique(crew.rewardedNodeIds, "node rewards");
+    unique(crew.completedNodeIds, "completed nodes");
+    if (state.status !== "lobby") {
+      if (
+        members.length !== crew.startingSize ||
+        members.some((p) => !crew.playerIds.includes(p.id))
+      )
+        fail("frozen roster");
+      const p = state.crewProgress[crew.id];
+      if (
+        !p ||
+        p.chapter < 1 ||
+        p.chapter > 3 ||
+        p.depth < 1 ||
+        p.depth > 7 ||
+        p.turn < 1 ||
+        p.turn > 6
+      )
+        fail("crew progress");
+      unique(p.resolvedPhaseIds.map(String), "crew resolution");
+    }
   }
-  if (s.players.some((p) => p.crewId && !s.crews.some((c) => c.id === p.crewId)))
-    fail("membership");
-  if (s.status !== "lobby" && s.heroes.length !== s.players.length) fail("one hero per student");
-  for (const h of s.heroes) {
-    if (!s.players.some((p) => p.id === h.playerId && p.crewId === h.crewId)) fail("hero owner");
+  if (state.status !== "lobby" && state.heroes.length !== state.players.length)
+    fail("one hero per student");
+  for (const hero of state.heroes) {
+    if (!state.players.some((p) => p.id === hero.playerId && p.crewId === hero.crewId))
+      fail("hero owner");
+    const crew = state.crews.find((c) => c.id === hero.crewId);
+    if (!crew || hero.power !== POWER[crew.startingSize]) fail("frozen power");
     if (
-      h.maxHp !== 4 * h.power ||
-      !Number.isInteger(h.hp) ||
-      h.hp < 0 ||
-      h.hp > h.maxHp ||
-      !Number.isInteger(h.stress) ||
-      h.stress < 0 ||
-      h.stress > 5
+      hero.maxHp !== 4 * hero.power ||
+      !Number.isInteger(hero.hp) ||
+      hero.hp < 0 ||
+      hero.hp > hero.maxHp ||
+      !Number.isInteger(hero.stress) ||
+      hero.stress < 0 ||
+      hero.stress > 9
     )
       fail("hero bounds");
-    if ((h.status === "dead") !== (h.hp === 0)) fail("permanent death");
-    if (h.equipment && ![1, 2].includes(h.equipment.charges)) fail("charges");
-    if (
-      h.mastery &&
-      (![1, 2].includes(h.mastery.rank) ||
-        !Number.isInteger(h.mastery.activeFromTurn) ||
-        h.mastery.activeFromTurn < 1)
-    )
-      fail("mastery");
+    if ((hero.status === "dead") !== (hero.hp === 0)) fail("hero life");
+    if (hero.conditions.blessings.length > 2 || hero.conditions.afflictions.length > 2)
+      fail("trait caps");
+    unique(
+      hero.conditions.blessings.map((b) => b.kind),
+      "blessings",
+    );
+    unique(
+      hero.conditions.afflictions.map((b) => b.kind),
+      "afflictions",
+    );
+    unique(hero.conditions.injuries, "injuries");
+    const inv = hero.inventory;
+    if (inv.backpack.length > 6 || inv.overflow.length > 32) fail("inventory capacity");
+    const items = [
+      ...inv.backpack,
+      ...Object.values(inv.equipment).filter((i) => i !== null),
+      ...inv.overflow,
+    ];
+    unique(
+      items.map((i) => i.id),
+      "item IDs",
+    );
+    if (items.some((i) => i.count < 1 || i.count > 3)) fail("item stack");
   }
-  for (const c of s.crews)
+  for (const enemy of state.encounters)
     if (
-      s.status !== "lobby" &&
-      (c.status === "eliminated") !==
-        !s.heroes.some((h) => h.crewId === c.id && h.status === "alive")
-    )
-      fail("crew life");
-  for (const e of s.encounters) {
-    if (
-      e.rivalry &&
-      (s.expeditionFeatures !== "rivalries-v1" ||
-        e.crewIds.length !== 2 ||
-        (e.rivalry.winnerCrewId !== null && !e.crewIds.includes(e.rivalry.winnerCrewId)))
-    )
-      fail("rivalry");
-    if (
-      e.bodyHp < 0 ||
-      e.bodyHp > e.maxBodyHp ||
-      e.weakHp < 0 ||
-      e.weakHp > e.maxWeakHp ||
-      e.spawnPower <= 0
+      enemy.bodyHp < 0 ||
+      enemy.bodyHp > enemy.maxBodyHp ||
+      enemy.weakHp < 0 ||
+      enemy.weakHp > enemy.maxWeakHp ||
+      enemy.shield < 0 ||
+      enemy.spawnPower <= 0
     )
       fail("enemy bounds");
+  if (state.history.some((event, index) => event.sequence !== index + 1)) fail("event sequence");
+  unique(
+    state.rewardOffers.map((o) => o.id),
+    "reward IDs",
+  );
+  for (const offer of state.rewardOffers) {
+    if (
+      !state.heroes.some((h) => h.id === offer.ownerHeroId) ||
+      offer.options.length !== 2 ||
+      new Set(offer.options.map((o) => o.kind)).size !== 2
+    )
+      fail("reward entitlement");
+    if (offer.status === "claimed" && !offer.options.some((o) => o.id === offer.selectedOptionId))
+      fail("reward selection");
   }
-  if (s.history.some((e, i) => e.sequence !== i + 1)) fail("event sequence");
+  if (state.trial) unique(state.trial.resolvedQuestions, "question resolution");
 }

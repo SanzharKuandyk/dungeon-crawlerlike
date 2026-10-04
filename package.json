@@ -12,9 +12,12 @@
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.server.json --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:load": "tsx scripts/simulate-match.ts"
+    "test:load": "tsx scripts/simulate-match.ts",
+    "test:balance": "tsx scripts/simulate-balance.ts"
   },
   "dependencies": {
+    "@internationalized/date": "3.8.1",
+    "bits-ui": "2.19.5",
     "express": "5.2.1",
     "node": "24.21.0",
     "phaser": "4.2.1",

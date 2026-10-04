@@ -9,9 +9,8 @@ export function hostModeration(
   now: number,
 ) {
   if (command.kind === "question-skip") {
-    if (room.state.quizQuestionId !== command.questionId) reject("STALE", "This question changed.");
-    if (room.state.quizLocked || !["question-intro", "question"].includes(room.state.phase.kind))
-      reject("CLOSED", "This question has already locked.");
+    if (room.state.trial?.id !== command.questionId) reject("STALE", "This question changed.");
+    if (!room.state.trial) reject("CLOSED", "No trial is active.");
     skipQuestion(room, now);
   } else {
     const duel = room.duels.find((d) => d.id === command.duelId);

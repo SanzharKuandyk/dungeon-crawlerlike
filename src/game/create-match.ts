@@ -1,8 +1,8 @@
 import type { DungeonContent } from "../shared/content-types.js";
 import type { MatchState } from "../shared/game-types.js";
 import { createHeroes } from "./create-heroes.js";
-import { createExpeditionMap } from "./expedition-map.js";
-import { shuffled } from "./random.js";
+import { newCrewProgress } from "./crew-state.js";
+import { chapterMap } from "./progression/maps.js";
 import { offerRooms } from "./routes.js";
 
 export function createMatch(
@@ -12,12 +12,29 @@ export function createMatch(
   seed = 1,
 ): MatchState {
   return {
+    crewProgress: {},
+    chapterMaps: ([1, 2, 3] as const).map((chapter) => chapterMap(content, seed, chapter)),
+    trialPack: content.trialPack ?? {
+      fixture: true,
+      categories: ["Input", "State", "Timing"],
+      questions: [],
+    },
+    trial: null,
+    completedTrials: [],
+    usedTrialQuestions: [],
+    outcomeRng: {},
+    transactions: {},
+    rewardSeed: seed ^ 0x73b48a19,
+    rewardRng: {},
+    rewardOffers: [],
+    trialRng: seed ^ 0xa57a,
     id,
     code,
-    rulesVersion: "dungeon-v1",
-    expeditionFeatures: "rivalries-v1",
-    expeditionMap: createExpeditionMap(content, seed),
+    rulesVersion: "dungeon-v4",
+
+    expeditionMap: chapterMap(content, seed, 1),
     seed,
+    outcomeSeed: seed ^ 0xbc4df,
     revision: 0,
     status: "lobby",
     depth: 1,
@@ -36,24 +53,8 @@ export function createMatch(
     routeVotes: {},
     campVotes: {},
     withdrawVotes: {},
-    answers: {},
-    answerPacts: {},
-    equipmentChoices: {},
     resolvedActions: {},
     learningEnabled: true,
-    questionDeck: shuffled(
-      content.questions.map((q) => q.id),
-      seed,
-    ),
-    usedQuestions: [],
-    quizDepths: [],
-    quizResults: [],
-    quizCause: null,
-    quizQuestionId: null,
-    quizLocked: false,
-    quizGranted: false,
-    quizContinuation: null,
-    treasureEquipmentDepths: {},
     resolvedPhaseIds: [],
     before: null,
     events: [],
@@ -61,6 +62,7 @@ export function createMatch(
     winners: [],
   };
 }
+
 export function startMatch(s: MatchState) {
   if (s.status !== "lobby" || !s.crews.length || s.players.some((p) => !p.crewId))
     throw new Error("Every player needs a crew before starting.");
@@ -72,6 +74,11 @@ export function startMatch(s: MatchState) {
     }
   }
 
+  for (const crew of s.crews) {
+    s.crewProgress[crew.id] = newCrewProgress();
+    s.outcomeRng[crew.id] = (s.outcomeSeed ^ ((s.crews.indexOf(crew) + 1) * 0x9e3779b9)) >>> 0;
+  }
   s.status = "running";
+  s.learningEnabled &&= s.trialPack.questions.length >= 18;
   offerRooms(s);
 }

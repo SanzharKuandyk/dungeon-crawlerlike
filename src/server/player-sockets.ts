@@ -1,19 +1,27 @@
 import { z } from "zod";
+import {
+  inventoryEnvelopeSchema,
+  shopSchema,
+  treatmentSchema,
+} from "../shared/inventory-validation.js";
 import type { Envelope } from "../shared/protocol.js";
+import { rewardClaimSchema } from "../shared/reward-validation.js";
+import { trialCommandSchema, wagerSchema } from "../shared/trial-validation.js";
 import {
   actionSchema,
   campSchema,
   classSchema,
   envelopeSchema,
-  itemSchema,
   nameSchema,
 } from "../shared/validation.js";
-import { challenge, submitDuel, voteDuel } from "./duel-commands.js";
+import { challenge, queueArena, submitDuel, voteDuel } from "./duel-commands.js";
 import { reject } from "./errors.js";
+import { buy, inventoryCommand, rescue, treat } from "./handlers/builds.js";
 import { voteCamp, voteRoute } from "./handlers/crew-decisions.js";
 import { submitAction, voteWithdraw } from "./handlers/hero-actions.js";
-import { answerQuestion, chooseEquipment } from "./handlers/learning.js";
 import { chooseClass, createCrew, joinCrew } from "./handlers/lobby.js";
+import { claimReward, readyResult } from "./handlers/rewards.js";
+import { answerTrial, chooseBlessing, voteTrial, wagerTrial } from "./handlers/trials.js";
 import type { RoomManager } from "./room-manager.js";
 import type { StoredRoom } from "./room-types.js";
 import type { BindingGetter, GameSocket, Responder } from "./socket-types.js";
@@ -40,6 +48,33 @@ export function attachPlayerSockets(
       decision,
     );
   };
+  socket.on(
+    "reward:claim",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const v = rewardClaimSchema.parse(input);
+        return mutate(
+          v,
+          v,
+          (r, id) => claimReward(r, id, v.claim, v.inventoryRevision, v.requestId),
+          "social",
+        );
+      }),
+  );
+  socket.on(
+    "result:ready",
+    (input, ack) =>
+      void respond(ack, async () =>
+        mutate(input, input, (r, id) => readyResult(r, id, clock()), "confirm"),
+      ),
+  );
+  socket.on(
+    "pvp:queue",
+    (input, ack) =>
+      void respond(ack, async () =>
+        mutate(input, input, (r, id) => queueArena(r, id, clock()), "social"),
+      ),
+  );
   socket.on(
     "pvp:challenge",
     (input, ack) =>
@@ -161,25 +196,109 @@ export function attachPlayerSockets(
       ),
     );
   });
-  socket.on("learning:answer", (input, ack) => {
-    const now = clock();
-    void respond(ack, async () =>
-      mutate(input, input, (r, id) =>
-        answerQuestion(r, id, input.questionId, input.choice, now, input.pact),
+  socket.on(
+    "inventory:command",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const v = inventoryEnvelopeSchema.parse(input);
+        return mutate(
+          v,
+          v,
+          (r, id) => inventoryCommand(r, id, v.command, v.inventoryRevision, v.requestId),
+          "social",
+        );
+      }),
+  );
+  socket.on(
+    "shop:buy",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const v = shopSchema.parse(input);
+        return mutate(
+          v,
+          v,
+          (r, id) => buy(r, id, v.offerId, v.inventoryRevision, v.requestId),
+          "social",
+        );
+      }),
+  );
+  socket.on(
+    "camp:treat",
+    (input, ack) =>
+      void respond(ack, async () =>
+        mutate(
+          input,
+          input,
+          (r, id) => treat(r, id, treatmentSchema.parse(input.treatment), input.requestId),
+          "social",
+        ),
       ),
-    );
-  });
-  socket.on("equipment:choose", (input, ack) => {
-    const now = clock();
-    void respond(ack, async () =>
-      mutate(
-        input,
-        input,
-        (r, id) => chooseEquipment(r, id, itemSchema.parse(input.item), now),
-        "confirm",
-      ),
-    );
-  });
+  );
+  socket.on(
+    "camp:rescue",
+    (input, ack) =>
+      void respond(ack, async () => mutate(input, input, (r, id) => rescue(r, id), "social")),
+  );
+  socket.on(
+    "trial:vote",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const v = trialCommandSchema.extend({ tileId: z.string() }).strict().parse(input);
+        return mutate(v, v, (r, id) => voteTrial(r, id, v.trialId, v.tileId), "social");
+      }),
+  );
+  socket.on(
+    "trial:wager",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const v = trialCommandSchema.extend({ wager: wagerSchema }).strict().parse(input);
+        return mutate(v, v, (r, id) => wagerTrial(r, id, v.trialId, v.wager), "social");
+      }),
+  );
+  socket.on(
+    "trial:answer",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const v = trialCommandSchema
+          .extend({ questionId: z.string(), choice: z.number().int().min(0).max(3) })
+          .strict()
+          .parse(input);
+        return mutate(
+          v,
+          v,
+          (r, id) => answerTrial(r, id, v.trialId, v.questionId, v.choice),
+          "social",
+        );
+      }),
+  );
+  socket.on(
+    "trial:blessing",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const v = trialCommandSchema
+          .extend({
+            offerId: z.string(),
+            replace: z
+              .enum([
+                "iron-nerve",
+                "sealbreaker",
+                "last-stand",
+                "field-medic",
+                "clear-purpose",
+                "second-breath",
+              ])
+              .nullable(),
+          })
+          .strict()
+          .parse(input);
+        return mutate(
+          v,
+          v,
+          (r, id) => chooseBlessing(r, id, v.trialId, v.offerId, v.replace),
+          "social",
+        );
+      }),
+  );
   socket.on("decision:edit", (input, ack) => {
     void respond(ack, async () =>
       mutate(
@@ -188,7 +307,12 @@ export function attachPlayerSockets(
         (room) => {
           if (
             room.state.status !== "running" ||
-            !["combat", "route", "camp", "equipment"].includes(room.state.phase.kind)
+            !["combat", "route", "camp", "result"].includes(
+              room.state.crewProgress[
+                room.state.players.find((p) => p.id === binding(true).session?.playerId)?.crewId ??
+                  ""
+              ]?.phase.kind,
+            )
           )
             reject("CLOSED", "This decision is closed.");
         },

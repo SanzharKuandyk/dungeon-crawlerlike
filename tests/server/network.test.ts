@@ -12,7 +12,7 @@ async function setup() {
   const f = await serverFixture();
   fixtures.push(f);
   const secret = token(),
-    created = await f.server.manager.create(secret, false, "dungeon-v1");
+    created = await f.server.manager.create(secret, false, "dungeon-v4");
   const host = await f.connect(),
     player = await f.connect();
   const ack = (send: (done: (r: ActionResult<Receipt>) => void) => void) =>
@@ -28,6 +28,8 @@ async function setup() {
   );
   if (!joined.ok || !joined.value.playerId) throw new Error("Join failed");
   const playerId = joined.value.playerId;
+  const timedRoom = f.server.manager.rooms.get(created.code);
+  if (timedRoom) timedRoom.inactivityFallback = true;
   const current = () => {
     const r = f.server.manager.rooms.get(created.code);
     if (!r) throw new Error("Missing room");
@@ -36,7 +38,10 @@ async function setup() {
   const env = () => ({
     requestId: token(),
     matchId: current().state.id,
-    phaseId: current().state.phaseId,
+    phaseId:
+      current().state.crewProgress[
+        current().state.players.find((p) => p.id === playerId)?.crewId ?? ""
+      ]?.phaseId ?? current().state.phaseId,
   });
   await ack((done) => player.emit("crew:create", { ...env(), name: "Seekers" }, done));
   return { ...f, created, host, player, playerId, playerSecret, current, env, ack };
@@ -143,8 +148,8 @@ it("rejects stale, unauthorized, invalid targets and actions beyond deadlines", 
   expect(
     await f.ack((done) => f.player.emit("route:vote", { ...old, roomId: "d1-0" }, done)),
   ).toMatchObject({ ok: false, code: "STALE" });
-  await f.advance(f.current().deadline ?? 0);
-  await f.advance(f.current().deadline ?? 0);
+  await f.advance(Object.values(f.current().runs)[0].clock.deadline ?? 0);
+  await f.advance(Object.values(f.current().runs)[0].clock.deadline ?? 0);
   expect(
     await f.ack((done) =>
       f.player.emit(
@@ -156,7 +161,7 @@ it("rejects stale, unauthorized, invalid targets and actions beyond deadlines", 
   ).toMatchObject({ ok: false, code: "INVALID" });
   const accepted = { ...f.env(), action: { kind: "attack" as const, part: "body" as const } };
   expect((await f.ack((done) => f.player.emit("hero:action", accepted, done))).ok).toBe(true);
-  await f.advance(f.current().deadline ?? 0);
+  await f.advance(Object.values(f.current().runs)[0].clock.deadline ?? 0);
   expect(await f.ack((done) => f.player.emit("hero:action", accepted, done))).toMatchObject({
     ok: true,
   });
@@ -169,6 +174,13 @@ it("latest tab controls an identity; reconnect restores its submitted action", a
   const newer = await f.connect();
   await f.ack((done) =>
     newer.emit("session:resume", { code: f.created.code, token: f.playerSecret }, done),
+  );
+  await f.ack((done) =>
+    newer.emit(
+      "session:resume",
+      { code: f.created.code, token: f.playerSecret, takeover: true },
+      done,
+    ),
   );
   expect(
     await f.ack((done) => f.player.emit("hero:class", { ...f.env(), classId: "occultist" }, done)),
@@ -199,7 +211,7 @@ it("save failures roll back commands and pause only that room", async () => {
     await f.ack((done) =>
       f.player.emit(
         "route:vote",
-        { ...f.env(), roomId: f.current().state.offeredRooms[0].id },
+        { ...f.env(), roomId: f.current().state.chapterMaps[0].nodes[0].id },
         done,
       ),
     ),
@@ -211,7 +223,11 @@ it("save failures roll back commands and pause only that room", async () => {
   expect(
     (
       await f.ack((done) =>
-        f.host.emit("host:control", { ...f.env(), command: { kind: "resume" } }, done),
+        f.host.emit(
+          "host:control",
+          { ...f.env(), phaseId: f.current().state.phaseId, command: { kind: "resume" } },
+          done,
+        ),
       )
     ).ok,
   ).toBe(true);
@@ -227,6 +243,6 @@ it("host disconnect does not interrupt automatic phases; normal rooms forbid deb
     f.host.emit("host:control", { ...f.env(), command: { kind: "start" } }, done),
   );
   f.host.disconnect();
-  await f.advance(f.current().deadline ?? 0);
-  expect(f.current().state.phase.kind).toBe("arrival");
+  await f.advance(Object.values(f.current().runs)[0].clock.deadline ?? 0);
+  expect(Object.values(f.current().runs)[0].progress.phase.kind).toBe("arrival");
 });

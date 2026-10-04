@@ -6,7 +6,7 @@ import { type PlayerController, playerController } from "../player-controller.js
 import { type ConnectionStatus, room } from "../room.svelte.js";
 import { type ClientSession, createClientSession } from "../session.js";
 import { browserStorage } from "../storage.js";
-import { botAction, botRoute } from "./bots.js";
+import { botAction, botCamp, botPreparation, botRoute } from "./bots.js";
 
 export type TestActor = {
   playerId: string;
@@ -157,15 +157,47 @@ export function createTestController() {
         void c.duelVote(offer.id, v.hero.hp >= 2 * v.hero.power);
         continue;
       }
+      if (!v.trial && ["result", "route", "camp"].includes(v.phase.kind) && !v.decisionReady) {
+        const reward = v.rewards.find((o) => !o.deferred);
+        if (reward && v.hero) {
+          void c.claimReward(
+            {
+              offerId: reward.id,
+              optionId: reward.options[0].id,
+              disposition: v.hero.inventory.backpack.length >= 6 ? "defer" : "equip",
+              replacementItemId: null,
+            },
+            v.hero.inventory.revision,
+          );
+          continue;
+        }
+      }
       const key = `${a.playerId}:${v.phaseId}`;
       if (submitted.has(key)) continue;
+      const preparation = botPreparation(v);
+      if (preparation) {
+        const task =
+          preparation.kind === "rescue"
+            ? c.rescue()
+            : preparation.kind === "buy"
+              ? c.buy(preparation.offerId, v.hero?.inventory.revision ?? 0)
+              : preparation.kind === "equip"
+                ? c.inventory(
+                    { kind: "equip", itemId: preparation.itemId },
+                    v.hero?.inventory.revision ?? 0,
+                  )
+                : c.treat(preparation.treatment);
+        void task;
+        continue;
+      }
       submitted.add(key);
       let task: Promise<boolean> | undefined;
-      if (v.phase.kind === "route" && v.hero?.status === "alive") {
+      if (!v.trial && v.phase.kind === "result") task = c.resultReady();
+      if (!v.trial && v.phase.kind === "route" && v.hero?.status === "alive") {
         const destination = botRoute(v);
         if (destination) task = c.route(destination);
       }
-      if (v.phase.kind === "combat") {
+      if (!v.trial && v.phase.kind === "combat") {
         const duel = v.duels.find(
           (duel) => duel.status === "active" && duel.crewIds.includes(a.crewId),
         );
@@ -179,21 +211,29 @@ export function createTestController() {
           );
         } else task = c.action(botAction(v));
       }
-      if (v.phase.kind === "camp" && v.canCamp && v.hero?.status === "alive") {
+      if (v.trial) {
+        const t = v.trial;
+        if (t.phase.kind === "board-vote")
+          task = c.trialVote(
+            t.id,
+            t.tiles.find((tile) => !t.usedValues.includes(tile.value))?.id ?? "",
+          );
+        if (t.phase.kind === "wager") task = c.wager(t.id, "steady");
+        if (t.phase.kind === "answer" && t.question)
+          task = c.trialAnswer(t.id, t.question.id, (v.self.name.length + t.questionNumber) % 4);
+        if (t.phase.kind === "blessing-choice") {
+          const offer = v.trialInput.offers[0];
+          task = c.blessing(
+            t.id,
+            offer?.id ?? "decline",
+            v.hero?.conditions.blessings[0]?.kind ?? null,
+          );
+        }
+      } else if (v.phase.kind === "camp") {
         const crew = v.crews.find((x) => x.id === a.crewId);
-        const wounded = v.heroes
-          .filter((h) => h.crewId === a.crewId && h.status === "alive")
-          .some((h) => h.hp <= 2 * h.power);
-        task = c.camp(wounded && (crew?.carriedTreasure ?? 0) < 12 ? "rest" : "secure");
+        if (v.hero?.status === "dead" && crew?.status !== "eliminated") continue;
+        task = c.camp(botCamp(v));
       }
-      if (v.phase.kind === "question" && v.question && v.answerChoice === null)
-        task = c.answer(v.question.id, (v.self.name.length + v.depth) % 4);
-      if (
-        v.phase.kind === "equipment" &&
-        v.hero?.status === "alive" &&
-        (v.rewardCharges || v.inscriptionReward !== null)
-      )
-        task = c.equipment(v.hero.stress >= 3 ? "lantern" : "ward");
       if (task)
         void task.then((ok) => {
           if (!ok) submitted.delete(key);

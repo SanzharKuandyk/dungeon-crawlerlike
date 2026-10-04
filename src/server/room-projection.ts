@@ -1,8 +1,8 @@
 import { legalActions } from "../game/action-options.js";
 import { crewState } from "../game/crew-state.js";
-import { projectRoom, type ViewOptions } from "../game/projections.js";
+import { projectRoom, publicArena, publicEvent, type ViewOptions } from "../game/projections.js";
 import { clockView } from "./clocks.js";
-import { playerRun } from "./crew-decisions.js";
+import { eligibleMembers, playerRun } from "./crew-decisions.js";
 import { reject } from "./errors.js";
 import { hostCapabilities } from "./host-capabilities.js";
 import { questionActive } from "./question-coordinator.js";
@@ -13,13 +13,59 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
     StoredRoom["state"],
     { revision: number; view: import("../shared/view-types.js").PublicRoomView }
   >();
+  const runsCache = new WeakMap<
+    StoredRoom,
+    { revision: number; runs: import("../shared/crew-run-types.js").CrewRunView[] }
+  >();
   return function snapshot(binding: Binding) {
     const room = rooms.get(binding.code);
     if (!room) reject("NOT_FOUND", "Room not found.");
+    let cachedRuns = runsCache.get(room);
+    if (!cachedRuns || cachedRuns.revision !== room.state.revision) {
+      cachedRuns = {
+        revision: room.state.revision,
+        runs: Object.values(room.runs).map((run) => ({
+          crewId: run.crewId,
+          clock: run.clock,
+          suspended: run.suspended,
+          pauseReasons: run.pauseReasons,
+          finished: run.finished,
+          depth: run.progress.depth,
+          turn: run.progress.turn,
+          phase: run.progress.phase,
+          phaseId: run.progress.phaseId,
+          before: [
+            "arrival",
+            "combat-reveal",
+            "combat-recap",
+            "camp-reveal",
+            "extraction",
+            "return",
+          ].includes(run.progress.phase.kind)
+            ? publicArena(run.progress.before)
+            : null,
+          events: [
+            "arrival",
+            "combat-reveal",
+            "combat-recap",
+            "camp-reveal",
+            "extraction",
+            "return",
+          ].includes(run.progress.phase.kind)
+            ? run.progress.events.map(publicEvent)
+            : [],
+          memberCount: eligibleMembers(room, run).length,
+          readyCount: run.ready.filter((id) => eligibleMembers(room, run).includes(id)).length,
+        })),
+      };
+      runsCache.set(room, cachedRuns);
+    }
+    const projectedRuns = cachedRuns.runs;
     const options: ViewOptions = {
       duels: room.duels
-        .filter((duel) => ["offered", "active"].includes(duel.status))
+        .filter((duel) => ["offered", "active", "champion-offer"].includes(duel.status))
         .map((duel) => ({
+          npc: duel.npc,
           id: duel.id,
           nodeId: duel.nodeId,
           crewIds: duel.crewIds,
@@ -66,7 +112,7 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
         absentMs: p.connected ? 0 : Math.max(0, clock() - (room.absentSince[p.id] ?? clock())),
       })),
       readOnly: binding.readOnly,
-      independent: room.state.rulesVersion === "dungeon-v2",
+      independent: room.state.rulesVersion === "dungeon-v4",
       quizActive: questionActive(room),
       intermissionPending: room.discovery !== null,
       hostReconnectUntil:
@@ -77,34 +123,7 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
       pvpEnabled: room.pvpEnabled,
       closed: room.lifecycle.kind === "closed",
       inactivityFallback: room.inactivityFallback,
-      crewRuns: Object.values(room.runs).map((run) => ({
-        crewId: run.crewId,
-        clock: run.clock,
-        suspended: run.suspended,
-        pauseReasons: run.pauseReasons,
-        finished: run.finished,
-        rewardCharges: run.rewardCharges,
-        depth: run.progress.depth,
-        turn: run.progress.turn,
-        phase: run.progress.phase,
-        phaseId: run.progress.phaseId,
-        before: ["arrival", "combat-reveal", "camp-reveal", "extraction", "return"].includes(
-          run.progress.phase.kind,
-        )
-          ? run.progress.before
-          : null,
-        events: ["arrival", "combat-reveal", "camp-reveal", "extraction", "return"].includes(
-          run.progress.phase.kind,
-        )
-          ? run.progress.events
-          : [],
-        memberCount: room.state.heroes.filter(
-          (h) => h.crewId === run.crewId && h.status === "alive",
-        ).length,
-        readyCount: run.ready.filter((id) =>
-          room.state.heroes.some((h) => h.playerId === id && h.status === "alive"),
-        ).length,
-      })),
+      crewRuns: projectedRuns,
     };
     let cached = publicViews.get(room.state);
     if (!cached || cached.revision !== room.state.revision) {
@@ -129,17 +148,28 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
         globalTurn: scoped.globalTurn,
         phase: scoped.phase,
         phaseId: scoped.phaseId,
-        before: ["arrival", "combat-reveal", "camp-reveal", "extraction", "return"].includes(
-          run.progress.phase.kind,
-        )
-          ? run.progress.before
+        before: [
+          "arrival",
+          "combat-reveal",
+          "combat-recap",
+          "camp-reveal",
+          "extraction",
+          "return",
+        ].includes(run.progress.phase.kind)
+          ? publicArena(run.progress.before)
           : null,
-        events: ["arrival", "combat-reveal", "camp-reveal", "extraction", "return"].includes(
-          run.progress.phase.kind,
-        )
-          ? run.progress.events
+        events: [
+          "arrival",
+          "combat-reveal",
+          "combat-recap",
+          "camp-reveal",
+          "extraction",
+          "return",
+        ].includes(run.progress.phase.kind)
+          ? run.progress.events.map(publicEvent)
           : [],
         offeredRooms: scoped.offeredRooms,
+        expeditionMap: scoped.expeditionMap ?? null,
         heroes: cached.view.heroes.filter((hero) => visibleCrews.includes(hero.crewId)),
         encounters: cached.view.encounters.filter((encounter) =>
           encounter.crewIds.includes(run.crewId),
@@ -157,7 +187,6 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
           ...clockView(run.clock),
           crewRuns: localBase.crewRuns,
           readyPlayers: run.ready,
-          rewardCharges: run.rewardCharges,
         },
         localBase,
       );

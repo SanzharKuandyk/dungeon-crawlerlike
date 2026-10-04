@@ -25,6 +25,7 @@ export function createSessionRequests(storageKey: string, onPending?: (count: nu
       return [];
     }
   }
+  let lastError = "";
   const uncertain = new Set(persisted());
   function savePending() {
     browserStorage.setItem(
@@ -53,6 +54,7 @@ export function createSessionRequests(storageKey: string, onPending?: (count: nu
         else uncertain.delete(env.requestId);
         savePending();
         if (!result.ok && result.code !== "STALE") notifyError(result.message, result.code);
+        lastError = result.ok ? "" : result.message;
         resolve(result.ok);
       };
       pending.set(env.requestId, { phaseId: env.phaseId, finish });
@@ -91,5 +93,14 @@ export function createSessionRequests(storageKey: string, onPending?: (count: nu
       transmit();
     });
   }
-  return { pending, uncertain, persisted, savePending, send };
+  return {
+    get error() {
+      return lastError;
+    },
+    pending,
+    uncertain,
+    persisted,
+    savePending,
+    send,
+  };
 }

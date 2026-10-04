@@ -1,104 +1,13 @@
 import type { Hero, MatchState } from "../shared/game-types.js";
-import { beginEvents, crewEvent, enemyEvent, finalizeEvents, lockResolution } from "./events.js";
-import { chooseQuestion } from "./learning.js";
-import { enterMapRooms } from "./map-arrival.js";
-import { shuffled } from "./random.js";
-import { rivalryDoor } from "./rivalry.js";
-import { winningRoute } from "./voting.js";
-
 export function offerRooms(s: MatchState) {
-  s.offeredRooms = s.expeditionMap
-    ? s.expeditionMap.nodes
-        .filter((node) => node.room.depth === s.depth)
-        .map((node) => ({ ...node.room }))
-    : shuffled(
-        s.content.rooms.filter((r) => r.depth === s.depth),
-        s.seed + s.depth,
-      );
-  s.routeVotes = {};
-  s.encounters = [];
-  s.before = null;
-  s.events = [];
+  s.offeredRooms = s.chapterMaps[0].nodes.filter((n) => n.row === 1).map((n) => n.room);
 }
 export function encounterFor(s: MatchState, h: Hero) {
-  const c = s.crews.find((c) => c.id === h.crewId);
-  return c?.location.kind === "room"
-    ? s.encounters.find((e) => e.id === (c.location.kind === "room" ? c.location.roomId : ""))
-    : undefined;
+  return s.encounters.find((e) => e.id === s.crewProgress[h.crewId]?.encounterId);
 }
 export function fighting(s: MatchState, h: Hero) {
   return h.status === "alive" && encounterFor(s, h)?.status === "active";
 }
-export function resolveRoutes(s: MatchState) {
-  lockResolution(s);
-  beginEvents(s);
-
-  if (s.expeditionMap) {
-    enterMapRooms(s);
-    chooseQuestion(s);
-    finalizeEvents(s);
-    return;
-  }
-
-  for (const c of s.crews.filter((c) => c.status === "active")) {
-    c.location = { kind: "room", roomId: winningRoute(s, c.id) };
-    crewEvent(
-      s,
-      c,
-      `${c.name} enters ${s.offeredRooms.find((r) => r.id === (c.location.kind === "room" ? c.location.roomId : ""))?.name}.`,
-      0.2,
-      "arrival",
-    );
-  }
-  s.encounters = s.offeredRooms.flatMap((definition) => {
-    const crews = s.crews.filter(
-      (c) =>
-        c.location.kind === "room" && c.location.roomId === definition.id && c.status === "active",
-    );
-    if (!crews.length) return [];
-    const enteringPower = Object.fromEntries(
-      crews.map((c) => [
-        c.id,
-        s.heroes
-          .filter((h) => h.crewId === c.id && h.status === "alive")
-          .reduce((n, h) => n + h.power, 0),
-      ]),
-    );
-    const spawnPower = Object.values(enteringPower).reduce((n, v) => n + v, 0);
-    const rivalry = crews.length === 2 && rivalryDoor(s, definition);
-    const bodyHp = rivalry
-      ? 0
-      : spawnPower * { sentinel: 4, seer: 5, devourer: 6 }[definition.family];
-    return [
-      {
-        id: definition.id,
-        definition,
-        crewIds: crews.map((c) => c.id),
-        enteringPower,
-        spawnPower,
-        bodyHp,
-        maxBodyHp: bodyHp,
-        weakHp: rivalry ? 0 : spawnPower,
-        maxWeakHp: rivalry ? 0 : spawnPower,
-        status: "active" as const,
-        contribution: {},
-        purseAwarded: false,
-        ...(rivalry ? { rivalry: { winnerCrewId: null } } : {}),
-      },
-    ];
-  });
-  for (const e of s.encounters)
-    enemyEvent(
-      s,
-      e,
-      e.rivalry
-        ? `${e.definition.name}: ${s.crews
-            .filter((c) => e.crewIds.includes(c.id))
-            .map((c) => c.name)
-            .join(" vs ")}. A lethal rivalry begins.`
-        : `${e.definition.name}: the ${e.definition.family} awakens.`,
-      0.5,
-      "arrival",
-    );
-  finalizeEvents(s);
+export function resolveRoutes(_s: MatchState) {
+  throw new Error("Use the canonical crew transition.");
 }

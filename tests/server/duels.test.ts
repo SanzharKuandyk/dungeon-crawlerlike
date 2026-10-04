@@ -2,8 +2,8 @@ import { randomBytes } from "node:crypto";
 import { afterEach, expect, it } from "vitest";
 import { assertInvariants } from "../../src/game/invariants.js";
 import { freezeCrewClocks, resumeCrewClocks } from "../../src/server/crew-clock.js";
-import { challenge, submitDuel, voteDuel } from "../../src/server/duel-commands.js";
-import { progressDuels } from "../../src/server/duel-coordinator.js";
+import { challenge, queueArena, submitDuel, voteDuel } from "../../src/server/duel-commands.js";
+import { cancelDuel, duelsDue, progressDuels } from "../../src/server/duel-coordinator.js";
 import { beginQuestion } from "../../src/server/question-coordinator.js";
 import { createTestRoom } from "../../src/server/test-mode/create-test-room.js";
 import type { Ack, Envelope } from "../../src/shared/protocol.js";
@@ -30,11 +30,11 @@ async function setup() {
   if (!room) throw new Error("Missing room");
   return { ...f, input, result, room, duel: room.duels[0] };
 }
-it("three nonlethal exchanges conserve treasure and restore both dungeon continuations once", async () => {
+it("three nonlethal exchanges award gold and restore both dungeon continuations once", async () => {
   const { room, duel } = await setup();
   const saved = structuredClone(duel.saved);
   const total =
-    room.state.crews.reduce((sum, crew) => sum + crew.carriedTreasure, 0) +
+    room.state.crews.reduce((sum, crew) => sum + crew.economy.gold, 0) +
     Object.values(duel.stakes).reduce((sum, n) => sum + n, 0);
   const unrelated = structuredClone(room.runs[room.state.crews[2].id]);
   for (let turn = 0; turn < 3; turn++) {
@@ -53,7 +53,9 @@ it("three nonlethal exchanges conserve treasure and restore both dungeon continu
   for (const id of duel.crewIds)
     expect(room.runs[id].progress.phase).toEqual(saved[id].progress.phase);
   expect(room.runs[room.state.crews[2].id]).toEqual(unrelated);
-  expect(room.state.crews.reduce((sum, crew) => sum + crew.carriedTreasure, 0)).toBe(total);
+  expect(room.state.crews.reduce((sum, crew) => sum + crew.economy.gold, 0)).toBe(
+    total + (duel.winner ? 18 : 12),
+  );
   const state = structuredClone(room.state);
   progressDuels(room, 100, true);
   expect(room.state).toEqual(state);
@@ -75,7 +77,7 @@ it("challenges require consent, allow refusal, expire and cannot repeat a pair",
   expect(offer.status).toBe("offered");
   voteDuel(room, b.playerIds[1], offer.id, false, 1003);
   expect(offer.status).toBe("declined");
-  expect(() => challenge(room, a.playerIds[0], b.id, 1004)).toThrow("already");
+  expect(() => challenge(room, a.playerIds[0], b.id, 1004)).not.toThrow();
   room.duels = [];
   challenge(room, a.playerIds[0], b.id, 1005);
   progressDuels(room, 31005);
@@ -85,7 +87,7 @@ it("questions wait until active duels return to a safe boundary", async () => {
   const { room } = await setup();
   room.discovery = { cause: "A seal opens", depth: 1 };
   beginQuestion(room, 1000);
-  expect(room.state.quizQuestionId).toBeNull();
+  expect(room.state.trial?.phase.kind).toBe("intro");
 });
 it("real duel commands validate ownership, deduplicate receipts and hide rival choices", async () => {
   const f = await setup();
@@ -167,4 +169,38 @@ it("a crew cannot farm wagers using invulnerable one-health fighters", async () 
   expect(() => challenge(room, room.state.heroes[0].playerId, room.state.crews[1].id, 100)).toThrow(
     "half health",
   );
+});
+
+it("arena waiting offers a consensual NPC after twenty seconds and settles once", async () => {
+  const { room, duel: original } = await setup();
+  cancelDuel(room, original, 100);
+  room.duels = [];
+  const crew = room.state.crews[0];
+  queueArena(room, crew.playerIds[0], 1000);
+  const duel = room.duels[0];
+  expect(duel.npc).toBeDefined();
+  progressDuels(room, 20999);
+  expect(duel.status).toBe("offered");
+  progressDuels(room, 21000);
+  expect(duel.status).toBe("champion-offer");
+  voteDuel(room, crew.playerIds[0], duel.id, true, 21001);
+  expect(duelsDue(room, 21001)).toBe(true);
+  progressDuels(room, 21001);
+  expect(duel.status).toBe("active");
+  for (let i = 0; i < 3; i++) {
+    submitDuel(
+      room,
+      crew.playerIds[0],
+      duel.id,
+      { kind: "strike", targetHeroId: "champion" },
+      21002 + i * 2,
+    );
+    progressDuels(room, 21002 + i * 2, true);
+    progressDuels(room, 21003 + i * 2, true);
+  }
+  expect(duel.status).toBe("finished");
+  const state = structuredClone(room.state);
+  progressDuels(room, 99999, true);
+  expect(room.state).toEqual(state);
+  expect(room.state.heroes.every((h) => h.hp >= 1)).toBe(true);
 });

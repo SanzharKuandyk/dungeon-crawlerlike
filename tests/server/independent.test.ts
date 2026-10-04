@@ -141,49 +141,46 @@ it("server restart preserves live authority paused", async () => {
   expect(manager.rooms.get(f.created.code)?.sessions).toEqual(f.current().sessions);
 });
 
-it("shared questions freeze decisions at a safe boundary and resume the same choices", async () => {
+it("trial questions hide solutions and resume exactly the same crew decisions", async () => {
   const f = await setup();
-  await f.server.manager.transaction(f.created.code, (room) => {
-    room.state.learningEnabled = true;
-    room.discovery = { cause: "The seal breaks.", depth: 1 };
-    progressExpedition(room, Date.now());
+  await f.server.manager.transaction(f.created.code, (r) => {
+    r.state.learningEnabled = true;
+    r.discovery = { cause: "First altar", depth: 1 };
+    progressExpedition(r, Date.now());
   });
-  const phases = Object.values(f.current().runs).map((run) => run.progress.phaseId);
-  expect(f.current().state.phase.kind).toBe("question-intro");
-  await f.advance(required(f.current().deadline));
-  const question = required(
-    f
-      .current()
-      .state.content.questions.find((entry) => entry.id === f.current().state.quizQuestionId),
-  );
-  const first = await f.sync(f.players[0].socket);
-  expect(first.correctChoice).toBeNull();
-  expect(
-    await ack((done) =>
-      f.players[0].socket.emit(
-        "learning:answer",
-        { ...f.env(), questionId: question.id, choice: question.correctIndex },
-        done,
-      ),
-    ),
-  ).toMatchObject({ ok: true });
-  expect((await f.sync(f.players[1].socket)).correctChoice).toBeNull();
-  await f.advance(required(f.current().deadline));
-  expect((await f.sync(f.players[0].socket)).correctChoice).toBe(question.correctIndex);
-  expect(f.current().state.quizResults.map((result) => result.tier)).toEqual(["perfect", "none"]);
-  await f.advance(required(f.current().deadline));
-  expect(
-    await ack((done) =>
-      f.players[1].socket.emit("equipment:choose", { ...f.env(), item: "ward" }, done),
-    ),
-  ).toMatchObject({ ok: false });
-  await ack((done) =>
-    f.players[0].socket.emit("equipment:choose", { ...f.env(), item: "salve" }, done),
-  );
-  expect(f.current().state.heroes[0].equipment).toEqual({ kind: "salve", charges: 1 });
-  await f.advance(required(f.current().deadline));
-  expect(f.current().state.quizQuestionId).toBeNull();
-  expect(Object.values(f.current().runs).map((run) => run.progress.phaseId)).toEqual(phases);
+  const phases = Object.values(f.current().runs).map((r) => r.progress.phaseId);
+  for (let i = 0; i < 30 && f.current().state.trial; i++) {
+    const t = f.current().state.trial;
+    if (!t) break;
+    const v = await f.sync(f.players[0].socket);
+    expect(v.role).toBe("player");
+    if (t.phase.kind === "answer") {
+      expect(v.trial?.correctIndex).toBeNull();
+      const q = f
+        .current()
+        .state.trialPack.questions.find(
+          (q) => "questionId" in t.phase && q.id === t.phase.questionId,
+        );
+      if (!q) throw new Error("Missing trial question");
+      expect(
+        await ack((done) =>
+          f.players[0].socket.emit(
+            "trial:answer",
+            { ...f.env(), trialId: t.id, questionId: q.id, choice: q.correctIndex },
+            done,
+          ),
+        ),
+      ).toMatchObject({ ok: true });
+      expect((await f.sync(f.players[1].socket)).trial?.correctIndex).toBeNull();
+    }
+    if (t.phase.kind === "reveal") expect(v.trial?.correctIndex).not.toBeNull();
+    await f.advance(required(f.current().deadline));
+  }
+  expect(f.current().state.trial).toBeNull();
+  expect(f.current().state.usedTrialQuestions).toHaveLength(3);
+  expect(f.current().state.crews[0].trialScoreUnits).toBeGreaterThan(0);
+  expect(f.current().state.crews[1].trialScoreUnits).toBe(0);
+  expect(Object.values(f.current().runs).map((r) => r.progress.phaseId)).toEqual(phases);
 });
 
 it("all-offline crews suspend and resume their own decision", async () => {

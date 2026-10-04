@@ -1,16 +1,16 @@
 <script lang="ts">
   import type { Hero } from "../../shared/game-types.js";
+  import HeroEffects from "./HeroEffects.svelte";
+  import StatusBar from "./ui/StatusBar.svelte";
 
-  let { hero }: { hero: Hero } = $props();
+  let { hero, effects = true }: { hero: Hero; effects?: boolean } = $props();
 </script>
 
 <div class="vitals-strip">
-  <div>
-    <span>{hero.hp}/{hero.maxHp} <small>HP</small></span>
-    <meter min="0" max={hero.maxHp} value={hero.hp} aria-label="Your health"></meter>
-  </div>
-  <div>
-    <span>{hero.stress}/6 <small>Stress</small></span>
-    <meter min="0" max="6" value={hero.stress} aria-label="Your stress"></meter>
-  </div>
+  <StatusBar label="HP" ariaLabel="Your health" value={hero.hp} max={hero.maxHp} />
+  <StatusBar label="Stress" icon="stress" ariaLabel="Your stress" value={hero.stress} max={10} />
 </div>
+
+{#if effects}
+  <HeroEffects {hero} />
+{/if}

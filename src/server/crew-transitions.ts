@@ -1,151 +1,150 @@
-import { crewState, mergeCrewState } from "../game/crew-state.js";
-import { beginEvents, heroEvent, lockResolution } from "../game/events.js";
-import { campAvailable } from "../game/expedition-map.js";
-import { resolveCamp } from "../game/resolve-camp.js";
-import { resolveCombat } from "../game/resolve-combat.js";
-import { offerRooms, resolveRoutes } from "../game/routes.js";
-import { extract } from "../game/scoring.js";
+import { resolveCombat } from "../game/combat/resolve-combat.js";
+import { createShop } from "../game/inventory/shops.js";
+import { applyCamp } from "../game/progression/camp.js";
+import { enterNode, nextCombatTurn, spawnEncounter } from "../game/progression/encounters.js";
+import { createCrewResult } from "../game/progression/results.js";
+import { winningCamp, winningRoute } from "../game/voting.js";
 import type { CrewRun } from "../shared/crew-run-types.js";
-import type { MatchState, Phase } from "../shared/game-types.js";
 import { enterCrew } from "./crew-clock.js";
 import type { StoredRoom } from "./room-types.js";
-
-function afterFloor(state: MatchState): Phase {
-  for (const hero of state.heroes) {
-    if (hero.bargainDepth === state.depth) hero.bargainDepth = null;
-  }
-  if (state.depth === state.expeditionMap?.rows) {
-    extract(state);
-    return { kind: "extraction" };
-  }
-  if (campAvailable(state, state.crews[0])) {
-    state.campVotes = {};
-    return { kind: "camp" };
-  }
-  return nextRoom(state);
-}
-
-function nextRoom(state: MatchState): Phase {
-  state.depth++;
-  state.turn = 1;
-  state.actions = {};
-  state.withdrawVotes = {};
-  offerRooms(state);
-  return { kind: "route" };
-}
-
-function discover(room: StoredRoom, state: MatchState) {
-  if (
-    !room.state.learningEnabled ||
-    room.discovery ||
-    room.state.quizQuestionId ||
-    state.depth >= 10 ||
-    room.state.quizDepths.includes(state.depth) ||
-    room.state.usedQuestions.length >= Math.min(3, room.state.questionDeck.length) ||
-    room.state.crews.every((crew) => crew.status === "eliminated")
-  )
-    return;
-  const event = ["weak-point", "victory", "loot"].flatMap((cause) =>
-    state.events.filter((event) => event.cause === cause),
-  )[0];
-  if (event)
-    room.discovery = { cause: `${event.message} An inscription is revealed.`, depth: state.depth };
-}
-
-function grantSpoils(state: MatchState, charges: 1 | 2) {
-  lockResolution(state);
-  beginEvents(state);
-  for (const hero of state.heroes.filter((hero) => hero.status === "alive")) {
-    const choice = state.equipmentChoices[hero.playerId] ?? (hero.equipment ? "keep" : "ward");
-    if (choice !== "keep") {
-      hero.equipment = { kind: choice, charges };
-      hero.equipmentActiveFromTurn = state.globalTurn + 1;
-    }
-    heroEvent(
-      state,
-      hero,
-      `${hero.classId} ${choice === "keep" ? "keeps their equipment" : `equips ${choice}`}.`,
-      0.4,
-      "equipment",
-    );
-  }
-}
-
 export function advanceCrew(room: StoredRoom, run: CrewRun, now: number) {
   if (run.finished) return;
-  let state = crewState(room.state, run);
-  let next: Phase;
-  switch (state.phase.kind) {
+  const id = run.crewId;
+  const crew = room.state.crews.find((c) => c.id === id);
+  if (!crew) throw new Error("Crew missing");
+  const p = room.state.crewProgress[id];
+  const map = room.state.chapterMaps[p.chapter - 1];
+  const node = map.nodes.find((n) => n.id === p.nodeId);
+  const enemy = room.state.encounters.find((e) => e.id === p.encounterId);
+  switch (p.phase.kind) {
     case "route":
-      resolveRoutes(state);
-      next = { kind: "arrival" };
+      enterNode(room.state, id, winningRoute(room.state, id));
+      enterCrew(room, run, { kind: "arrival" }, now);
       break;
     case "arrival":
-      state.actions = {};
-      state.withdrawVotes = {};
-      next = {
-        kind: state.encounters.some((encounter) => encounter.status === "active")
-          ? "combat"
-          : "floor-result",
-      };
+      if (p.encounterId) enterCrew(room, run, { kind: "combat" }, now);
+      else {
+        if (
+          node?.kind === "altar" &&
+          room.state.learningEnabled &&
+          !room.state.completedTrials.includes(p.chapter)
+        )
+          room.discovery = {
+            cause: `Crew ${crew.symbol} has awakened the ${p.chapter === 1 ? "First" : "Second"} Trial.`,
+            depth: p.chapter,
+          };
+        enterCrew(
+          room,
+          run,
+          {
+            kind: ["merchant", "camp", "altar", "shrine", "arena", "event"].includes(
+              node?.kind ?? "",
+            )
+              ? "camp"
+              : "result",
+          },
+          now,
+        );
+      }
+      if (node?.kind === "treasure" && !p.encounterId)
+        createCrewResult(room.state, id, "cache", "encounter");
       break;
     case "combat":
-      state = resolveCombat(state).state;
-      next = { kind: "combat-reveal" };
+      room.state = resolveCombat(room.state, { crewId: id }).state;
+      enterCrew(room, run, { kind: "combat-reveal" }, now);
       break;
     case "combat-reveal":
-      if (state.crews[0].status === "eliminated") {
-        run.finished = true;
-        run.clock.deadline = null;
-        return;
-      }
-      if (state.encounters.some((encounter) => encounter.status === "active")) {
-        state.turn++;
-        state.actions = {};
-        state.withdrawVotes = {};
-        state.before = null;
-        state.events = [];
-        next = { kind: "combat" };
-      } else next = { kind: "floor-result" };
+      enterCrew(room, run, { kind: enemy?.status === "active" ? "combat-recap" : "result" }, now);
       break;
+    case "combat-recap":
+      nextCombatTurn(room.state, id);
+      enterCrew(room, run, { kind: "combat" }, now);
+      break;
+    case "result":
     case "floor-result":
-      if (state.encounters.some((encounter) => encounter.status === "defeated")) {
-        const node = state.expeditionMap?.nodes.find(
-          (node) => node.id === state.crews[0].mapPosition?.nodeId,
-        );
-        run.rewardCharges = node?.kind === "elite" || node?.kind === "boss" ? 2 : 1;
-        state.equipmentChoices = {};
-        next = { kind: "equipment", questionId: `spoils:${run.crewId}:${state.depth}` };
-      } else next = afterFloor(state);
-      break;
-    case "equipment":
-      grantSpoils(state, run.rewardCharges ?? 1);
-      next = { kind: "return" };
-      break;
-    case "return":
-      run.rewardCharges = null;
-      next = afterFloor(state);
+      if (p.phase.kind === "result" && p.result?.continuation === "stop") {
+        finishStop(room, run, now);
+        break;
+      }
+      if (crew.status === "eliminated" || (enemy?.kind === "boss" && enemy.status !== "defeated")) {
+        p.recovering = true;
+        crew.shop = createShop(room.state, id, p.nodeId ?? "rescue");
+        enterCrew(room, run, { kind: "camp" }, now);
+      } else if (enemy?.kind === "boss" && enemy.status === "defeated") {
+        if (p.chapter === 3) enterCrew(room, run, { kind: "extraction" }, now);
+        else {
+          p.chapter = (p.chapter + 1) as 2 | 3;
+          p.depth = 1;
+          p.nodeId = null;
+          p.encounterId = null;
+          crew.mapPosition = { chapter: p.chapter, nodeId: null, trail: [] };
+          crew.location = { kind: "camp" };
+          enterCrew(room, run, { kind: "route" }, now);
+        }
+      } else {
+        p.routeVotes = {};
+        crew.shop = null;
+        enterCrew(room, run, { kind: "route" }, now);
+      }
       break;
     case "camp":
-      resolveCamp(state);
-      next = { kind: "camp-reveal" };
+      applyCamp(room.state, id, winningCamp(room.state, id));
+      enterCrew(room, run, { kind: "camp-reveal" }, now);
       break;
     case "camp-reveal":
-      if (state.crews[0].status === "eliminated") {
-        run.finished = true;
-        run.clock.deadline = null;
-        return;
-      }
-      next = nextRoom(state);
+      createCrewResult(
+        room.state,
+        id,
+        winningCamp(room.state, id) === "rest"
+          ? "rested"
+          : winningCamp(room.state, id) === "rescue"
+            ? "recovered"
+            : "departed",
+        "stop",
+      );
+      enterCrew(room, run, { kind: "result" }, now);
       break;
     case "extraction":
       run.finished = true;
       run.clock.deadline = null;
-      return;
+      break;
     default:
-      throw new Error(`Unexpected crew phase: ${state.phase.kind}`);
+      throw new Error(`Unexpected crew phase ${p.phase.kind}`);
   }
-  mergeCrewState(room.state, run, state);
-  if (["arrival", "combat-reveal"].includes(next.kind)) discover(room, state);
-  enterCrew(room, run, next, now);
+}
+
+function finishStop(room: StoredRoom, run: CrewRun, now: number) {
+  const id = run.crewId,
+    p = run.progress;
+  const crew = room.state.crews.find((c) => c.id === id);
+  if (!crew) throw new Error("Crew missing.");
+  const enemy = room.state.encounters.find((e) => e.id === p.encounterId);
+  const node = room.state.chapterMaps[p.chapter - 1].nodes.find((n) => n.id === p.nodeId);
+
+  if (p.recovering && ["rescue", "rest"].includes(winningCamp(room.state, id))) {
+    p.campVotes = {};
+    crew.shop ??= createShop(room.state, id, p.nodeId ?? "recovery");
+    enterCrew(room, run, { kind: "camp" }, now);
+    return;
+  }
+  if (crew.status === "eliminated") enterCrew(room, run, { kind: "camp" }, now);
+  else if (enemy?.kind === "boss" && enemy.status === "defeated") {
+    p.recovering = false;
+    enterCrew(room, run, { kind: "floor-result" }, now);
+  } else if (
+    (enemy?.kind === "boss" && enemy.status !== "defeated") ||
+    (enemy &&
+      enemy.status === "abandoned" &&
+      node &&
+      ["battle", "elite", "boss"].includes(node.kind))
+  ) {
+    if (!node) throw new Error("Retry node missing");
+    p.recovering = false;
+    spawnEncounter(room.state, id, node);
+    enterCrew(room, run, { kind: "combat" }, now);
+  } else {
+    p.routeVotes = {};
+    crew.shop = null;
+    enterCrew(room, run, { kind: "route" }, now);
+  }
 }

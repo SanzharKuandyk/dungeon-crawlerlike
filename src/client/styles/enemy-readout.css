@@ -1,0 +1,45 @@
+.intent-hud {
+  position: absolute;
+}
+.enemy-readout {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.enemy-readout .intent-hud {
+  left: var(--enemy-x);
+  top: var(--intent-top);
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+.enemy-readout .intent-hud .inspect-trigger {
+  padding: var(--space-1) var(--space-2);
+  min-width: 44px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+.enemy-applied-effects {
+  position: absolute;
+  left: var(--enemy-x);
+  top: var(--effect-top);
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+.enemy-readout .enemy-applied-effects .inspect-trigger {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.enemy-effect-chip {
+  display: inline-flex;
+  align-items: center;
+  color: var(--seal-fill);
+}
+.enemy-readout .inspect-trigger:hover {
+  background: transparent;
+}

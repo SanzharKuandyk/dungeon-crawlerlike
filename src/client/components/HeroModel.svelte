@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ClassId } from "../../shared/content-types.js";
+  import { CLASS_NAMES } from "../../shared/display-names.js";
 
   let {
     classId,
@@ -21,7 +22,7 @@
   role="img"
   aria-label={name}
 >
-  <title>{name} · {classId}</title>
+  <title>{name} · {CLASS_NAMES[classId]}</title>
   <g stroke="#18181b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
     <path d="M37 92 31 117h15l7-27m6 0 4 27h15L66 91" fill="#333337" />
     <path d="M32 52 24 86l11 5 8-21m23-16 13 28-8 6-16-21" fill={color} />

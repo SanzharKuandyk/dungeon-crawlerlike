@@ -16,7 +16,7 @@ export function hostControl(room: StoredRoom, input: HostInput, now: number) {
       room.pauseReasons = [];
       startMatch(room.state);
       enter(room, { kind: "route" }, now);
-      if (room.state.rulesVersion === "dungeon-v2") startCrews(room, now);
+      if (room.state.rulesVersion === "dungeon-v4") startCrews(room, now);
       break;
     case "pause":
       if (room.state.status !== "running" && room.state.status !== "paused")
@@ -33,13 +33,17 @@ export function hostControl(room: StoredRoom, input: HostInput, now: number) {
     case "learning":
     case "fallback":
       if (room.state.status !== "lobby") reject("CLOSED", "Choose this before starting.");
-      if (command.kind === "learning") room.state.learningEnabled = command.enabled;
-      else room.inactivityFallback = command.enabled;
+      if (command.kind === "learning") {
+        if (command.enabled && !room.testMode && room.state.trialPack.fixture)
+          reject("INVALID", "Reviewed lecture trial content is not installed.");
+        room.state.learningEnabled = command.enabled;
+      } else room.inactivityFallback = command.enabled;
       break;
     case "pvp-policy":
       room.pvpEnabled = command.enabled;
       if (!command.enabled)
-        for (const duel of room.duels) if (duel.status === "offered") duel.status = "declined";
+        for (const duel of room.duels)
+          if (["offered", "champion-offer"].includes(duel.status)) duel.status = "declined";
       break;
     case "crew-pause":
     case "crew-resume":
@@ -52,6 +56,7 @@ export function hostControl(room: StoredRoom, input: HostInput, now: number) {
       hostModeration(room, command, now);
       break;
   }
+
   audit(
     room,
     {

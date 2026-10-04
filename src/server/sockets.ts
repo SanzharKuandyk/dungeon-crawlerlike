@@ -1,6 +1,7 @@
 import type { Server, Socket } from "socket.io";
 import { ZodError } from "zod";
-import { activeQuestion } from "../game/learning.js";
+import { publicEvent } from "../game/projections.js";
+import { trialQuestion as activeQuestion } from "../game/trials/board.js";
 import { recoveryRedeemSchema } from "../shared/host-validation.js";
 import type { Ack, ActionResult, ClientEvents, ServerEvents } from "../shared/protocol.js";
 import { codeSchema, nameSchema, secretSchema } from "../shared/validation.js";
@@ -54,7 +55,7 @@ export function attachSockets(
         ),
         clock(),
       );
-      if (room.state.rulesVersion === "dungeon-v2") progressExpedition(room, clock());
+      if (room.state.rulesVersion === "dungeon-v4") progressExpedition(room, clock());
     });
   }
   async function bind(socket: GameSocket, code: string, token?: string, takeover = false) {
@@ -75,7 +76,7 @@ export function attachSockets(
     const owner = [...bindings.entries()].find(
       ([id, b]) => id !== socket.id && b.code === code && b.tokenHash === tokenHash && !b.readOnly,
     );
-    if (tokenHash && owner && room.state.rulesVersion === "dungeon-v2" && !takeover)
+    if (tokenHash && owner && room.state.rulesVersion === "dungeon-v4" && !takeover)
       binding.readOnly = true;
     bindings.set(socket.id, binding);
     if (tokenHash && !binding.readOnly)
@@ -205,7 +206,10 @@ export function attachSockets(
             reject("INVALID", "Invalid log cursor.");
           return {
             ok: true,
-            value: room.state.history.filter((e) => e.sequence < input.before).slice(-50),
+            value: room.state.history
+              .filter((e) => e.sequence < input.before)
+              .slice(-50)
+              .map(publicEvent),
           };
         }),
     );

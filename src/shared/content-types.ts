@@ -6,7 +6,7 @@ export type ClassDefinition = {
   name: string;
   skill: string;
   description: string;
-  maxCrewSize: 2 | 4;
+  maxCrewSize: 4;
 };
 export type RoomDefinition = {
   id: string;
@@ -16,17 +16,36 @@ export type RoomDefinition = {
   family: EnemyFamily;
   description: string;
 };
-export type Question = {
-  id: string;
-  topic: string;
-  prompt: string;
-  choices: string[];
-  correctIndex: number;
-  explanation: string;
-  source: string;
-};
 export type DungeonContent = {
   classes: ClassDefinition[];
   rooms: RoomDefinition[];
-  questions: Question[];
+  trialPack?: import("./trial-types.js").TrialPack;
+  balance?: Balance;
+};
+
+export type Balance = {
+  ordinaryHealthBase: number;
+  eliteHealthBase: number;
+  bossHealthBase: number;
+  sealPower: number;
+  strikePower: number;
+  heavyBonusPower: number;
+  shieldPower: number;
+  woundedBonusPower: number;
+  finalPhaseBonusPower: number;
+  seerStress: number;
+  sealedStress: number;
+  startingGold: number;
+  ordinaryReward: number;
+  eliteReward: number;
+  bossReward: number;
+  cacheReward: number;
+  rescueDebt: number;
+  ordinaryTurns: number;
+  bossTurns: number;
+  injuryChance: number;
+  backpackSlots: number;
+  stackLimit: number;
+  signatureCooldown: number;
+  skirmishStress: number;
 };

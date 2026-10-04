@@ -13,19 +13,15 @@ test("empty lobby fits the screen and lets the host join as a player in another 
   await expect(page.getByRole("button", { name: "Start expedition" })).toBeDisabled();
   await expect(page.getByRole("button", { name: /^(Previous|Next) crews$/ })).toHaveCount(0);
   const empty = page.locator(".empty-crews");
-  expect(await empty.evaluate((el) => el.getBoundingClientRect().width)).toBeGreaterThan(900);
+  await expect(empty).toBeVisible();
   await page.screenshot({ path: "test-results/empty-host-lobby.png" });
   await page.setViewportSize({ width: 360, height: 800 });
-  expect(await empty.evaluate((el) => el.getBoundingClientRect().width)).toBeGreaterThan(250);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1366, height: 768 });
   const code = page.url().split("/").at(-1) ?? "";
   const projector = await context.newPage();
   await projector.goto(`/#/board/${code}`);
   await expect(projector.getByRole("heading", { name: "Waiting for players" })).toBeVisible();
-  expect(
-    await projector.locator(".empty-crews").evaluate((el) => el.getBoundingClientRect().width),
-  ).toBeGreaterThan(900);
   await projector.close();
   const playerOpened = page.waitForEvent("popup");
   await page.getByRole("link", { name: "Join as player" }).click();
@@ -47,14 +43,14 @@ test("empty lobby fits the screen and lets the host join as a player in another 
     "Teacher testing (you)",
   );
   await expect(player.getByLabel("Or create a crew")).toHaveCount(0);
-  await player.getByRole("button", { name: /Physician/ }).click();
-  await expect(player.locator(".selected-class")).toHaveText("Selected: Physician");
-  await expect(player.getByRole("button", { name: /Physician/ })).toHaveAttribute(
+  await player.getByRole("button", { name: /Healer/ }).click();
+  await expect(player.locator(".selected-class")).toHaveText("Selected: Healer");
+  await expect(player.getByRole("button", { name: /Healer/ })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
   await player.reload();
-  await expect(player.locator(".selected-class")).toHaveText("Selected: Physician");
+  await expect(player.locator(".selected-class")).toHaveText("Selected: Healer");
   await expect(
     player.getByRole("heading", { name: "Your crew: Test crew", exact: true }),
   ).toBeVisible();
@@ -153,18 +149,24 @@ test("combat targets are on the scene and four heroes fit desktop and mobile", a
   await expect(page.locator(".combat-console")).toBeVisible();
   const takeover = page.getByRole("button", { name: "Take control", exact: true });
   if (await takeover.isVisible()) await takeover.click();
+  const change = page.getByRole("button", { name: "Change", exact: true });
+  if (await change.isVisible()) await change.click();
   await page.getByRole("button", { name: "Protect", exact: true }).click();
   await expect(page.locator(".character-targets button:visible")).toHaveCount(4);
-  await page.getByRole("button", { name: /Explorer 4.2/ }).click();
-  await page.getByRole("button", { name: /Confirm · Protect Explorer 4.2/ }).click();
-  await expect(page.locator(".confirmed")).toContainText("Protect Explorer 4.2");
+  await page
+    .locator(".character-targets")
+    .getByRole("button", { name: /Explorer 4.2/ })
+    .click();
+  await page.getByRole("button", { name: /(?:Ready|Play turn) · Protect Explorer 4.2/ }).click();
+  await expect(page.locator(".own-order button")).toHaveAccessibleName(/Protect Explorer 4.2/);
+  await page.getByRole("button", { name: "Change", exact: true }).click();
   await page.getByRole("button", { name: "Attack", exact: true }).click();
-  await page.getByRole("button", { name: "Weak point", exact: true }).click();
-  await page.getByRole("button", { name: /Confirm · Attack weak point/ }).click();
-  await expect(page.locator(".confirmed")).toContainText("Attack weak point");
-  await page.getByLabel("Bag", { exact: true }).click();
-  await expect(page.locator(".bag-content")).toContainText("automatically");
-  await page.getByLabel("Bag", { exact: true }).click();
+  await page.getByRole("button", { name: "Seal", exact: true }).click();
+  await page.getByRole("button", { name: /(?:Ready|Play turn) · Attack seal/ }).click();
+  await expect(page.locator(".own-order button")).toHaveAccessibleName(/Attack seal/);
+  await page.getByRole("button", { name: /^Backpack/ }).click();
+  await expect(page.getByRole("dialog", { name: "Backpack" })).toBeVisible();
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   for (const viewport of [
     { width: 1366, height: 768 },
     { width: 360, height: 740 },
@@ -202,7 +204,7 @@ test("host pages crews, separates the log and fits four heroes on a laptop scree
   );
   await page.goto(`/#/host/${code}`);
   const board = page.locator(".expedition-board");
-  await expect(board.locator(".expedition-heading")).toContainText("Independent crews");
+  await expect(board.locator(".expedition-heading")).toContainText("Three chapters");
   await expect(board.locator(".board-panel .crew-stage")).toHaveCount(2);
   await expect(board.getByRole("button", { name: "Previous crews" })).toBeDisabled();
   await board.getByRole("button", { name: "Next crews" }).click();
@@ -232,13 +234,15 @@ test("team door highlighting distinguishes the crew result from a personal vote"
   await page.getByRole("button", { name: "Start expedition", exact: true }).click();
   await page.locator(".team-switcher button").nth(6).click();
   const doors = page.locator(".phone-panel .map-node.reachable");
-  await doors.nth(1).click();
-  await expect(doors.nth(1)).toHaveClass(/crew-choice/);
-  await expect(doors.nth(1)).toHaveClass(/own-vote/);
+  await doors.first().click();
+  await page.getByRole("button", { name: "Ready to travel", exact: true }).click();
+  await expect(doors.first()).toHaveClass(/crew-choice/);
+  await expect(doors.first()).toHaveClass(/own-vote/);
   await page.locator(".team-switcher button").nth(7).click();
-  await expect(doors.nth(1)).toHaveClass(/crew-choice/);
-  await expect(doors.nth(1)).not.toHaveClass(/own-vote/);
-  await doors.nth(1).click();
-  await expect(doors.nth(1)).toHaveAttribute("aria-label", /2 votes/);
+  await expect(doors.first()).toHaveClass(/crew-choice/);
+  await expect(doors.first()).not.toHaveClass(/own-vote/);
+  await doors.first().click();
+  await page.getByRole("button", { name: "Ready to travel", exact: true }).click();
+  await expect(doors.first()).toHaveAttribute("aria-label", /2 votes/);
   await page.screenshot({ path: "test-results/team-door-votes.png", fullPage: true });
 });

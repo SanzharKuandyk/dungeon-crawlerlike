@@ -2,8 +2,8 @@ import type { MatchState } from "../shared/game-types.js";
 import type { PublicRoomView, RoomView } from "../shared/view-types.js";
 import { legalActions } from "./action-options.js";
 import { campAvailable, reachableNodes } from "./expedition-map.js";
-import { activeQuestion, personalReward } from "./learning.js";
-import { rivalryDoor } from "./rivalry.js";
+import { projectTrial } from "./trials/projections.js";
+
 import { winningCamp, winningRoute } from "./voting.js";
 
 export type ViewOptions = {
@@ -29,7 +29,6 @@ export type ViewOptions = {
   closed?: boolean;
   inactivityFallback?: boolean;
   readyPlayers?: string[];
-  rewardCharges?: 1 | 2 | null;
 };
 export function projectRoom(
   s: MatchState,
@@ -38,23 +37,19 @@ export function projectRoom(
   options: ViewOptions,
   sharedView?: PublicRoomView,
 ): RoomView {
-  const { testMode, readOnly, readyPlayers, rewardCharges, operations, moderation, ...clock } =
-    options;
+  const { testMode, readOnly, readyPlayers, operations, moderation, ...clock } = options;
   const presenting = ["arrival", "combat-reveal", "camp-reveal", "extraction", "return"].includes(
     s.phase.kind,
   );
-  const locked = s.quizLocked && ["explanation", "equipment", "return"].includes(s.phase.kind);
-  const q = ["question", "explanation", "equipment", "return"].includes(s.phase.kind)
-    ? activeQuestion(s)
-    : null;
-  const question = q
-    ? { id: q.id, topic: q.topic, prompt: q.prompt, choices: [...q.choices], source: q.source }
-    : null;
   const cached = sharedView;
   const base: PublicRoomView = cached
     ? { ...cached, ...clock }
     : {
         role: "projector",
+        chapterMaps: structuredClone(s.chapterMaps),
+        trial: projectTrial(s),
+        trialContentReady: !s.trialPack.fixture,
+        skillStress: { skirmish: s.content.balance?.skirmishStress ?? 2 },
         id: s.id,
         code: s.code,
         revision: s.revision,
@@ -62,11 +57,10 @@ export function projectRoom(
         depth: s.depth,
         turn: s.turn,
         globalTurn: s.globalTurn,
-        rivalryRoomIds: s.offeredRooms.filter((r) => rivalryDoor(s, r)).map((r) => r.id),
         phase: { ...s.phase },
         phaseId: s.phaseId,
-        heroes: structuredClone(s.heroes),
-        crews: structuredClone(s.crews),
+        heroes: s.heroes.map(publicHero),
+        crews: s.crews.map((c) => ({ ...structuredClone(c), shop: null })),
         encounters: structuredClone(s.encounters),
         players: s.players.map(({ id, name, crewId, connected, classId }) => ({
           id,
@@ -78,9 +72,16 @@ export function projectRoom(
         classes: structuredClone(s.content.classes),
         offeredRooms: structuredClone(s.offeredRooms),
         expeditionMap: structuredClone(s.expeditionMap ?? null),
-        events: presenting ? structuredClone(s.events) : [],
-        history: structuredClone(s.history.slice(-50)),
-        before: presenting ? structuredClone(s.before) : null,
+        events: presenting ? s.events.map(publicEvent) : [],
+        history: s.history.slice(-50).map(publicEvent),
+        before:
+          presenting && s.before
+            ? {
+                ...s.before,
+                heroes: s.before.heroes.map(publicHero),
+                crews: s.before.crews.map((c) => ({ ...c, shop: null })),
+              }
+            : null,
         winners: [...s.winners],
         learningEnabled: s.learningEnabled,
         pauseReasons: options.pauseReasons ?? [],
@@ -88,17 +89,12 @@ export function projectRoom(
         crewRuns: options.crewRuns ?? [],
         duels: options.duels ?? [],
         independent: options.independent ?? false,
-        quizActive: options.quizActive ?? s.quizQuestionId !== null,
+        quizActive: options.quizActive ?? s.trial !== null,
         intermissionPending: options.intermissionPending ?? false,
         hostReconnectUntil: options.hostReconnectUntil ?? null,
         closed: options.closed ?? false,
         inactivityFallback: options.inactivityFallback ?? true,
         ...clock,
-        question,
-        correctChoice: locked && q ? q.correctIndex : null,
-        explanation: locked && q ? q.explanation : null,
-        quizCause: s.quizCause,
-        quizResults: locked ? structuredClone(s.quizResults) : [],
         participation: s.crews.map((c) => {
           const members = s.players.filter((p) => p.crewId === c.id);
           const eligible =
@@ -119,7 +115,7 @@ export function projectRoom(
                   ? s.campVotes[p.id] !== undefined
                   : s.actions[p.id] !== undefined,
             ).length,
-            answered: members.filter((p) => s.answers[p.id] !== undefined).length,
+            answered: members.filter((p) => s.trial?.answers[p.id] !== undefined).length,
           };
         }),
       };
@@ -139,6 +135,42 @@ export function projectRoom(
     ...base,
     role: "player",
     self: { ...self },
+    result:
+      s.phase.kind === "result"
+        ? structuredClone(s.crewProgress[self.crewId ?? ""]?.result ?? null)
+        : null,
+    rewards: s.rewardOffers
+      .filter((o) => o.ownerHeroId === hero?.id && o.status === "pending")
+      .map((o) => structuredClone(o)),
+    lastTurn: ["combat-reveal"].includes(s.phase.kind)
+      ? null
+      : structuredClone(s.crewProgress[self.crewId ?? ""]?.lastTurn ?? null),
+    transaction: structuredClone(s.transactions[self.id] ?? null),
+    restAvailable: !s.crewProgress[self.crewId ?? ""]?.restedNodeIds.includes(
+      s.crewProgress[self.crewId ?? ""]?.nodeId ?? "",
+    ),
+    shop: (() => {
+      const shop = s.crews.find((c) => c.id === self.crewId)?.shop;
+      if (!shop || !hero) return null;
+      return {
+        ...shop,
+        offers: { [hero.id]: shop.offers[hero.id] ?? [] },
+        allowances: { [hero.id]: shop.allowances[hero.id] ?? 0 },
+      };
+    })(),
+    trialInput: {
+      vote: s.trial?.votes[self.id] ?? null,
+      wager: s.trial?.wagers[self.id] ?? null,
+      answer: s.trial?.answers[self.id] ?? null,
+      offers: s.trial?.offers[self.id] ?? [],
+      choice: s.trial?.choices[self.id] ?? null,
+      crewResults:
+        s.trial?.phase.kind === "reveal"
+          ? s.trial.results.filter(
+              (r) => s.players.find((p) => p.id === r.playerId)?.crewId === self.crewId,
+            )
+          : [],
+    },
     hero: structuredClone(hero),
     readOnly,
     classNotice: self.classNotice,
@@ -147,22 +179,49 @@ export function projectRoom(
       .map((p) => ({
         playerId: p.id,
         name: p.name,
-        action: s.actions[p.id] ?? null,
-        route: s.routeVotes[p.id] ?? null,
-        camp: s.campVotes[p.id] ?? null,
-        withdraw: s.withdrawVotes[p.id] ?? false,
+        ready: readyPlayers?.includes(p.id) ?? false,
+        action: s.crewProgress[self.crewId ?? ""]?.actions[p.id] ?? null,
+        route: s.crewProgress[self.crewId ?? ""]?.routeVotes[p.id] ?? null,
+        camp: s.crewProgress[self.crewId ?? ""]?.campVotes[p.id] ?? null,
+        withdraw: s.crewProgress[self.crewId ?? ""]?.withdrawVotes[p.id] ?? false,
       })),
     legalActions: hero && s.phase.kind === "combat" ? legalActions(s, hero) : [],
-    selectedAction: s.actions[self.id] ?? null,
+    selectedAction: s.crewProgress[self.crewId ?? ""]?.actions[self.id] ?? null,
     winningRoute: self.crewId && s.status !== "lobby" ? winningRoute(s, self.crewId) : null,
     reachableNodeIds: self.crewId ? reachableNodes(s, self.crewId).map((node) => node.id) : [],
+    recoveryAvailable: s.crewProgress[self.crewId ?? ""]?.recovering ?? false,
     canCamp: s.crews.some((crew) => crew.id === self.crewId && campAvailable(s, crew)),
     winningCamp: self.crewId ? winningCamp(s, self.crewId) : null,
-    answerChoice: s.answers[self.id] ?? null,
-    answerPact: s.answerPacts[self.id] ?? null,
-    inscriptionReward: personalReward(s, self.id),
-    equipmentChoice: s.equipmentChoices[self.id] ?? null,
     decisionReady: readyPlayers?.includes(self.id) ?? false,
-    rewardCharges: rewardCharges ?? null,
   };
+}
+
+export function publicHero(hero: import("../shared/game-types.js").Hero) {
+  const { inventory, pendingBlessings: _offers, ...visible } = hero;
+  return {
+    ...structuredClone(visible),
+    pendingBlessings: [],
+    inventory: {
+      revision: inventory.revision,
+      equipment: structuredClone(inventory.equipment),
+      backpack: [],
+      overflow: [],
+    },
+  };
+}
+export function publicEvent(event: import("../shared/event-types.js").GameEvent) {
+  if (event.kind === "hero") return { ...event, hero: publicHero(event.hero) };
+  if (event.kind === "crew")
+    return { ...event, crew: { ...structuredClone(event.crew), shop: null } };
+  return structuredClone(event);
+}
+
+export function publicArena(arena: import("../shared/game-types.js").ArenaState | null) {
+  return arena
+    ? {
+        ...arena,
+        heroes: arena.heroes.map(publicHero),
+        crews: arena.crews.map((c) => ({ ...structuredClone(c), shop: null })),
+      }
+    : null;
 }

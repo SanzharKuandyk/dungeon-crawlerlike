@@ -2,6 +2,7 @@
   import { onDestroy } from "svelte";
   import type { TestScenario } from "../../shared/protocol.js";
   import ClassPicker from "../components/ClassPicker.svelte";
+  import Button from "../components/ui/Button.svelte";
   import { room } from "../room.svelte.js";
   import { createTestController } from "../test-mode/test-controller.svelte.js";
   import PlayerScreen from "./PlayerScreen.svelte";
@@ -21,53 +22,53 @@
     <p class="eyebrow">Dungeon playground</p>
     <h1>Every character. Every crew.</h1>
     <p>Descend, claim treasure, and face the darkness.</p>
-    <button
+    <Button
       class="primary"
       type="button"
       disabled={test.state.busy}
       onclick={() => void test.bootstrap()}
     >
       Join test match
-    </button>
+    </Button>
   </section>
 {:else}
   <div class="test-toolbar">
     <strong>Dungeon playground</strong>
     {#if test.state.host?.status === "lobby"}
-      <button
+      <Button
         class="primary"
         type="button"
         disabled={!test.state.hostReady}
         onclick={() => void test.control("start")}
       >
         Start expedition
-      </button>
+      </Button>
     {:else if test.state.host?.status === "paused"}
-      <button
+      <Button
         class="primary"
         type="button"
         disabled={!test.state.hostReady}
         onclick={() => void test.control("resume")}
       >
         Resume
-      </button>
+      </Button>
     {:else if test.state.host?.status === "running"}
-      <button
+      <Button
         type="button"
         disabled={!test.state.hostReady}
         onclick={() => void test.control("pause")}
       >
         Pause
-      </button>
+      </Button>
     {/if}
-    <button
+    <Button
       class="quiet"
       type="button"
       disabled={test.state.busy}
       onclick={() => void test.bootstrap("fresh", true)}
     >
       Reset
-    </button>
+    </Button>
     <details class="debugger">
       <summary>Test debugger</summary>
       <div>
@@ -83,49 +84,69 @@
           <option value="fast">Fast</option>
           <option value="manual">Manual</option>
         </select>
-        <button
+        <Button
           type="button"
           disabled={!test.state.hostReady || test.state.host?.status !== "running"}
           onclick={() => void test.control("advance")}
         >
           Next phase
-        </button>
+        </Button>
         <label for="scenario">Scenario</label
         ><select id="scenario" bind:value={scenario}>
           <option value="fresh">Fresh expedition</option>
           <option value="split">Split rooms</option>
-          <option value="treasure">Treasure contest</option>
+          <option value="shop">Merchant budgets</option>
           <option value="critical">Critical health</option>
           <option value="question">Question reward</option>
           <option value="duel">Consensual crew duel</option>
-          <option value="final">Final depth</option>
-        </select><button
+          <option value="final">Final boss</option>
+          {#each [
+            "reward",
+            "reward-full",
+            "result",
+            "injuries",
+            "panic",
+            "overflow",
+            "revival",
+            "rescue",
+            "boss-transition",
+            "trial-intro",
+            "trial-board",
+            "trial-wager",
+            "trial-answer",
+            "trial-reveal",
+            "trial-reward",
+            "trial-return",
+          ] as value}
+            <option {value}>{value}</option>
+          {/each}
+        </select><Button
           type="button"
           disabled={test.state.busy}
           onclick={() => void test.bootstrap(scenario, true)}
         >
           Load scenario
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onclick={() => {
             for (const a of test.state.actors) a.auto = true;
           }}
         >
           Auto all characters
-        </button><button
+        </Button><Button
           type="button"
           onclick={() => {
             for (const a of test.state.actors) a.auto = false;
           }}
         >
           Manual all characters
-        </button>
-        <button type="button" onclick={test.disconnect}>Disconnect selected</button
-        ><button type="button" onclick={test.reconnect}>Reconnect selected</button
-        ><button type="button" disabled={!test.state.hostReady} onclick={test.revealAnswer}>
+        </Button>
+        <Button type="button" onclick={test.disconnect}>Disconnect selected</Button
+        ><Button type="button" onclick={test.reconnect}>Reconnect selected</Button
+        ><Button type="button" disabled={!test.state.hostReady} onclick={test.revealAnswer}>
           Reveal current answer
-        </button>
+        </Button>
         {#if test.state.answer !== null}
           <small>Correct choice: {["A", "B", "C", "D"][test.state.answer]}</small>
         {/if}
@@ -141,15 +162,15 @@
         <strong>{crew.view?.crews.find((c) => c.id === crew.crewId)?.name ?? "Crew"}</strong>
         <div>
           {#each test.state.actors.filter((a) => a.crewId === crew.crewId) as actor}
-            <button
+            <Button
               type="button"
-              class:chosen={test.state.selected === actor.playerId}
               onclick={() => test.select(actor.playerId)}
+              class={`${test.state.selected === actor.playerId ? "chosen" : ""}`}
             >
               {actor.view?.self.name ?? actor.clientId}{actor.view?.hero?.status === "dead"
                 ? " · Spirit"
                 : ""}
-            </button>
+            </Button>
           {/each}
         </div>
       </div>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580">
+  <title>Original dungeon trading post</title>
+  <path fill="#fffdf7" d="M0 0h1200v580H0Z" />
+  <path
+    fill="#f6f4ef"
+    stroke="#b8b5ac"
+    stroke-width="4"
+    d="M35 430V150Q35 48 132 48h936q97 0 97 102v280Z"
+  />
+  <g stroke="#635444" stroke-width="4" stroke-linejoin="round">
+    <path fill="#bf8951" d="M140 260h390v180H140Z" />
+    <path fill="#e4b578" d="M125 250h420v32H125Z" />
+    <path fill="#b3763e" d="M156 113h356v35H156Z" />
+    <path fill="#f2d697" d="m156 113 20-46h316l20 46Z" />
+    <path fill="#8b5e34" d="M168 147h10v103h-10Zm322 0h10v103h-10Z" />
+    <path fill="#669b82" d="M194 208h35v40h-35Zm8-18h19v18h-19Z" />
+    <path fill="#a583bb" d="M256 210h30v38h-30Zm7-21h16v21h-16Z" />
+    <path fill="#89b0c6" d="m357 206 38-58 8 3-1 14-32 49Z" />
+    <path fill="#dfc381" d="M419 225q20-20 40 0v25h-40Z" />
+    <path fill="none" d="M159 315h351M159 382h351" />
+  </g>
+  <g fill="none" stroke="#d2cec2" stroke-width="2">
+    <path
+      d="M0 430h1200M0 492h1200M0 552h1200M200 430 125 580m360-150-20 150m300-150 35 150m290-150 95 150"
+    />
+  </g>
+</svg>

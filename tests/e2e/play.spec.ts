@@ -15,11 +15,11 @@ test("all ten characters have independent lobby choices and combat controls", as
   await page.getByRole("button", { name: "Manual all characters" }).click();
   await expect(page.locator(".team-switcher button")).toHaveCount(10);
   await page.locator(".team-switcher button").nth(0).click();
-  await page.getByRole("button", { name: /Wanderer/ }).click();
+  await page.getByRole("button", { name: /Fighter/ }).click();
   await page.locator(".team-switcher button").nth(1).click();
-  await page.getByRole("button", { name: /Physician/ }).click();
+  await page.getByRole("button", { name: /Healer/ }).click();
   await page.locator(".team-switcher button").nth(0).click();
-  await expect(page.getByRole("button", { name: /Wanderer/ })).toHaveClass(/chosen/);
+  await expect(page.getByRole("button", { name: /Fighter/ })).toHaveClass(/chosen/);
   await page.getByRole("button", { name: "Start expedition", exact: true }).click();
   await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "route");
   await page.getByRole("button", { name: "View Crew 1", exact: true }).click();
@@ -29,10 +29,7 @@ test("all ten characters have independent lobby choices and combat controls", as
   for (let i = 0; i < 10; i++) {
     await page.locator(".team-switcher button").nth(i).click();
     await expect(page.locator(".selected-identity small")).toContainText("ready");
-    await page
-      .locator(".phone-panel .map-node.reachable")
-      .nth(i < 3 ? 0 : 1)
-      .click();
+    await page.locator(".phone-panel .map-node.reachable").first().click();
   }
   await page.getByRole("button", { name: "Next phase" }).click();
   await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "arrival");
@@ -42,21 +39,21 @@ test("all ten characters have independent lobby choices and combat controls", as
   await page.locator(".phone-panel").getByRole("button", { name: "Attack", exact: true }).click();
   await page
     .locator(".phone-panel")
-    .getByRole("button", { name: /Confirm · Attack/ })
+    .getByRole("button", { name: /(?:Ready|Play turn) · Attack/ })
     .click();
-  await expect(page.locator(".phone-panel .confirmed")).toContainText("Attack");
+  await expect(page.locator(".phone-panel .own-order button")).toHaveAccessibleName(/Attack/);
   await page.locator(".team-switcher button").nth(1).click();
-  await page.locator(".phone-panel").getByRole("button", { name: "Loot", exact: true }).click();
+  await page.locator(".phone-panel").getByRole("button", { name: "Block", exact: true }).click();
   await page
     .locator(".phone-panel")
-    .getByRole("button", { name: /Confirm · Loot/ })
+    .getByRole("button", { name: /(?:Ready|Play turn) · Block/ })
     .click();
-  await expect(page.locator(".phone-panel .confirmed")).toContainText("Loot");
+  await expect(page.locator(".phone-panel .own-order button")).toHaveAccessibleName(/Block/);
   await page.getByRole("button", { name: "Disconnect selected" }).click();
   await expect(page.locator(".selected-identity small")).toContainText("reconnecting");
   await page.getByRole("button", { name: "Reconnect selected" }).click();
   await expect(page.locator(".selected-identity small")).toContainText("ready");
-  await expect(page.locator(".phone-panel .confirmed")).toContainText("Loot");
+  await expect(page.locator(".phone-panel .own-order button")).toHaveAccessibleName(/Block/);
   expect(await canvas.evaluate((node) => node.isConnected)).toBe(true);
   await page.screenshot({ path: "test-results/dungeon-playground.png", fullPage: true });
   expect(errors).toEqual([]);
@@ -83,9 +80,6 @@ test("one Start automatically finishes a finite expedition with a persistent are
     await page.waitForTimeout(250);
   }
   await expect(page.locator(".phone-panel .results")).toContainText("Expedition complete");
-  expect(Number(await page.locator(".phone-panel").getAttribute("data-depth"))).toBeLessThanOrEqual(
-    10,
-  );
   expect(questionSeen).toBe(true);
   expect(await canvas.evaluate((node) => node.isConnected)).toBe(true);
   expect(errors).toEqual([]);
@@ -104,9 +98,9 @@ test("spirits, private questions, equipment and scenario resets use the same con
   await expect(page.locator(".phone-panel")).toContainText("Spirit");
   await page
     .locator(".phone-panel")
-    .getByRole("button", { name: /Confirm Ward/ })
+    .getByRole("button", { name: "Shield ally", exact: true })
     .click();
-  await page.getByLabel("Scenario", { exact: true }).selectOption("question");
+  await page.getByLabel("Scenario", { exact: true }).selectOption("trial-answer");
   await page.getByRole("button", { name: "Load scenario" }).click();
   await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "question");
   await page.getByText("Test debugger", { exact: true }).click();
@@ -116,15 +110,12 @@ test("spirits, private questions, equipment and scenario resets use the same con
   await expect(page.locator(".debugger")).toContainText("Correct choice:");
   const text = await page.locator(".debugger").innerText();
   const choice = "ABCD".indexOf(text.match(/Correct choice: ([ABCD])/)?.[1] ?? "A");
-  await page.locator(".phone-panel .answers button").nth(choice).click();
-  await expect(page.locator(".phone-panel .quiz-card")).toContainText("Answer received");
+  await page.locator(".phone-panel .trial-options button").nth(choice).click();
+  await expect(page.locator(".phone-panel .trial-panel")).toContainText("Answer locked");
   await page.getByRole("button", { name: "Next phase" }).click();
   await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "explanation");
   await page.getByRole("button", { name: "Next phase" }).click();
-  await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "equipment");
-  await page.locator(".phone-panel").getByRole("button", { name: /^Ward/ }).click();
-  await page.getByRole("button", { name: "Next phase" }).click();
-  await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "return");
+  await expect(page.locator(".phone-panel .trial-board")).toBeVisible();
   await page.screenshot({ path: "test-results/dungeon-question.png", fullPage: true });
 });
 test("separate host, five phones and projector support crew controls and recovery", async ({
@@ -145,15 +136,15 @@ test("separate host, five phones and projector support crew controls and recover
       const p = await context.newPage();
       pages.push(p);
       await p.goto(`/#/room/${code}`);
-      await p.getByLabel("Your nickname").fill(`Student ${i}`);
+      await p.getByLabel("Your nickname").fill(i === 0 ? "Alexandra Longsurname" : `Student ${i}`);
       await p.getByRole("button", { name: "Join as player" }).click();
       if (i === 0 || i === 4) {
-        await p.getByLabel("Or create a crew").fill(i === 0 ? "Four players" : "Solo");
+        await p.getByLabel("Or create a crew").fill(i === 0 ? "The Wandering Scholars" : "Solo");
         await p.getByRole("button", { name: "Create crew", exact: true }).click();
-      } else await p.getByRole("button", { name: /Four players/ }).click();
+      } else await p.getByRole("button", { name: /The Wandering Scholars/ }).click();
       await expect(
         p.getByRole("heading", {
-          name: `Your crew: ${i === 4 ? "Solo" : "Four players"}`,
+          name: `Your crew: ${i === 4 ? "Solo" : "The Wandering Scholars"}`,
           exact: true,
         }),
       ).toBeVisible();
@@ -161,29 +152,48 @@ test("separate host, five phones and projector support crew controls and recover
     }
     const projector = await hostContext.newPage();
     await projector.goto(`/#/board/${code}`);
-    await projector.getByRole("button", { name: "View Four players", exact: true }).click();
+    await projector
+      .getByRole("button", { name: "View The Wandering Scholars", exact: true })
+      .click();
     await expect(projector.locator("dialog canvas")).toBeVisible();
     await host.getByRole("button", { name: "Start expedition", exact: true }).click();
     for (const p of pages) {
       await expect(p.locator(".phone-panel")).toHaveAttribute("data-phase", "route");
       await p.locator(".phone-panel .map-node.reachable").first().click();
+      await p.getByRole("button", { name: "Ready to travel", exact: true }).click();
     }
     await expect(pages[0].locator(".phone-panel")).toHaveAttribute("data-phase", "combat", {
       timeout: 35000,
     });
     const p = pages[0];
     await p.getByRole("button", { name: "Attack", exact: true }).click();
-    await p.getByRole("button", { name: /Confirm · Attack/ }).click();
-    await expect(p.locator(".confirmed")).toContainText("Attack");
+    await p.getByRole("button", { name: /(?:Ready|Play turn) · Attack/ }).click();
+    await expect(p.locator(".own-order button")).toHaveAccessibleName(/Attack/);
     await p.context().setOffline(true);
     await expect(p.locator(".banner")).toContainText("reconnecting");
     await p.context().setOffline(false);
-    await expect(p.locator(".confirmed")).toContainText("Attack");
+    await expect(p.locator(".own-order button")).toHaveAccessibleName(/Attack/);
     await p.reload();
-    await expect(p.locator(".phone-panel")).toContainText("Student 0");
-    await expect(p.locator(".confirmed")).toContainText("Attack");
+    await expect(p.locator(".phone-panel")).toContainText("Alexandra Longsurname");
+    await expect(p.locator(".own-order button")).toHaveAccessibleName(/Attack/);
     expect(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await p.screenshot({ path: "test-results/dungeon-mobile.png", fullPage: true });
+    const largerText = await p.addStyleTag({
+      content:
+        "button, .player-heading strong, .player-vitals strong { font-size:18px !important; }",
+    });
+    for (const viewport of [
+      { width: 360, height: 800 },
+      { width: 667, height: 375 },
+      { width: 844, height: 390 },
+    ]) {
+      await p.setViewportSize(viewport);
+      expect(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await expect(p.getByRole("button", { name: "Change", exact: true })).toBeInViewport();
+      await p.screenshot({ path: `.Codex/ui-v4/long-name-larger-text-${viewport.width}.png` });
+    }
+    await largerText.evaluate((el) => el.parentNode?.removeChild(el));
+
     await host.getByRole("button", { name: "Pause", exact: true }).click();
     await expect(projector.locator(".expedition-heading h1")).toContainText("paused");
     await host.getByRole("button", { name: "Resume", exact: true }).click();

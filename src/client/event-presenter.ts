@@ -2,7 +2,29 @@ import type { ArenaState, Crew, Hero, RoomEncounter } from "../shared/game-types
 import type { RoomView } from "../shared/view-types.js";
 import { crewView } from "./crew-view.js";
 
-const copyHero = (h: Hero): Hero => ({ ...h, equipment: h.equipment ? { ...h.equipment } : null });
+// Svelte snapshots may be proxies, which structuredClone cannot read.
+const copyHero = (h: Hero): Hero => ({
+  ...h,
+  inventory: {
+    ...h.inventory,
+    equipment: {
+      weapon: h.inventory.equipment.weapon ? { ...h.inventory.equipment.weapon } : null,
+      armor: h.inventory.equipment.armor ? { ...h.inventory.equipment.armor } : null,
+      charm: h.inventory.equipment.charm ? { ...h.inventory.equipment.charm } : null,
+    },
+    backpack: h.inventory.backpack.map((i) => ({ ...i })),
+    overflow: h.inventory.overflow.map((i) => ({ ...i })),
+  },
+  conditions: {
+    injuries: [...h.conditions.injuries],
+    blessings: h.conditions.blessings.map((b) => ({ ...b })),
+    afflictions: h.conditions.afflictions.map((a) => ({ ...a })),
+    combatEffects: h.conditions.combatEffects.map((e) => ({ ...e })),
+  },
+  pendingBlessings: h.pendingBlessings.map((b) => ({ ...b })),
+  encounterUses: [...h.encounterUses],
+  expeditionUses: [...h.expeditionUses],
+});
 const copyCrew = (c: Crew): Crew => ({
   ...c,
   playerIds: [...c.playerIds],
@@ -26,6 +48,13 @@ export function phaseInstruction(view: RoomView) {
   if (view.status === "paused") return "Expedition paused";
   if (view.status === "finished") return "Expedition complete";
   if (view.independent && view.role !== "player" && !view.quizActive) return "The expedition";
+  if (view.role === "player" && view.phase.kind === "camp") {
+    const crew = view.crews.find((c) => c.id === view.self.crewId);
+    const node = view.expeditionMap?.nodes.find((n) => n.id === crew?.mapPosition?.nodeId);
+    if (["merchant", "altar", "shrine"].includes(node?.kind ?? "") && !view.recoveryAvailable)
+      return "At the trading post";
+    if (node?.kind === "event") return node.room.name;
+  }
   const names = {
     route: view.role === "player" ? "Choose the next room" : "Crews are choosing rooms",
     arrival: "The doors open",
@@ -33,12 +62,13 @@ export function phaseInstruction(view: RoomView) {
       view.role === "player" ? "Choose your character’s action" : "All characters are choosing",
     "combat-reveal": "Actions revealed",
     "combat-recap": "The dust settles",
+    result: "Review your rewards · ready to travel",
     "floor-result": "Depth complete",
-    "question-intro": "An inscription is revealed",
-    question: "Decipher the inscription",
-    explanation: "Inscription decoded",
-    equipment: "Choose equipment",
-    return: "Equipment ready",
+    "question-intro": "Trial of Wagers",
+    question: "Everyone answers",
+    explanation: "Answers revealed",
+    equipment: "Choose a Blessing",
+    return: "Return to the expedition",
     camp: view.role === "player" ? "At the campfire" : "Crews are choosing at camp",
     "camp-reveal": "Camp decisions revealed",
     extraction: "The survivors return",

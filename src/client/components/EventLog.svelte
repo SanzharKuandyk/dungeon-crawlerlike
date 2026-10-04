@@ -5,6 +5,7 @@
   import { readHistory } from "../connection.js";
   import { eventMessage } from "../event-messages.js";
   import { room } from "../room.svelte.js";
+  import Button from "./ui/Button.svelte";
 
   let {
     view,
@@ -64,7 +65,7 @@
   <div class="section-heading">
     <h2>Expedition log</h2>
     {#if !full}
-      <button
+      <Button
         type="button"
         class="quiet"
         onclick={() => {
@@ -73,7 +74,7 @@
         }}
       >
         {expanded ? "Recent" : "Expand log"}
-      </button>
+      </Button>
     {/if}
   </div>
   {#if entries.length === 0}
@@ -85,11 +86,11 @@
     {/each}
   </ol>
   {#if before !== null}
-    <button type="button" class="quiet" onclick={() => (before = null)}>Latest events</button>
+    <Button type="button" class="quiet" onclick={() => (before = null)}>Latest events</Button>
   {/if}
   {#if (expanded || full) && (displayed[0]?.sequence ?? 1) > 1}
-    <button type="button" class="quiet" disabled={loading} onclick={load}>
+    <Button type="button" class="quiet" disabled={loading} onclick={load}>
       {loading ? "Loading…" : "Show earlier"}
-    </button>
+    </Button>
   {/if}
 </section>

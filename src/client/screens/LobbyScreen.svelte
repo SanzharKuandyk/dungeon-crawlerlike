@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { CLASS_NAMES } from "../../shared/display-names.js";
   import { teamColor } from "../../shared/palette.js";
   import type { RoomView } from "../../shared/view-types.js";
   import ClassPicker from "../components/ClassPicker.svelte";
+  import Button from "../components/ui/Button.svelte";
   import { createCrew, joinCrew, joinPlayer, recoverPlayer } from "../connection.js";
   import { room } from "../room.svelte.js";
 
@@ -56,9 +58,9 @@
           bind:value={recoveryCode}
           maxlength="12"
           autocomplete="off"
-        ><button type="submit" disabled={recoveryCode.trim().length !== 12}>
+        ><Button type="submit" disabled={recoveryCode.trim().length !== 12}>
           Recover character
-        </button>
+        </Button>
       </form>
     </details>
     {#if view.status !== "lobby"}
@@ -72,13 +74,13 @@
       >
         <label for="nickname">Your nickname</label>
         <input id="nickname" bind:value={nickname} maxlength="24" required>
-        <button
+        <Button
           type="submit"
           class="primary"
           disabled={busy || !nickname.trim() || room.status === "reconnecting"}
         >
           {busy ? "Joining…" : "Join as player"}
-        </button>
+        </Button>
       </form>
     {/if}
   {:else}
@@ -98,24 +100,22 @@
           {#each view.players.filter((p) => p.crewId === ownCrew.id) as member (member.id)}
             <li>
               <strong>{member.name}{member.id === self.id ? " (you)" : ""}</strong>
-              <span>{view.classes.find((c) => c.id === member.classId)?.name}</span>
+              <span>{CLASS_NAMES[member.classId]}</span>
             </li>
           {/each}
         </ul>
-        <button
+        <Button
           type="button"
           class="quiet"
           disabled={locked}
           onclick={() => (changingCrew = !changingCrew)}
         >
           {changingCrew ? "Keep current crew" : "Change crew"}
-        </button>
+        </Button>
       </section>
     {/if}
     {#if !choosingCrew}
-      <p class="banner" role="status">
-        Waiting for the teacher to start. You can choose your character below.
-      </p>
+      <p class="banner" role="status">Choose your character while the expedition gathers.</p>
       {#if view.role === "player" && room.controller}
         <ClassPicker {view} controller={room.controller} {locked} />
       {/if}
@@ -128,10 +128,10 @@
       <div class="lobby-crews">
         {#each view.crews as crew}
           {@const members = view.players.filter((p) => p.crewId === crew.id)}
-          <button
+          <Button
             type="button"
             class="crew-option"
-            style:--team={teamColor(crew.colorId).hex}
+            style={`--team:${teamColor(crew.colorId).hex}`}
             disabled={members.length >= 4 || locked || crew.id === self.crewId}
             onclick={() => void joinCrew(crew.id)}
           >
@@ -144,7 +144,7 @@
                   ? "Full"
                   : `${4 - members.length} places available`}</small
             >
-          </button>
+          </Button>
         {/each}
       </div>
       <form
@@ -156,7 +156,7 @@
         <label for="crew-name">Or create a crew</label>
         <div class="inline">
           <input id="crew-name" bind:value={crewName} maxlength="24" required>
-          <button type="submit" disabled={!crewName.trim() || locked}>Create crew</button>
+          <Button type="submit" disabled={!crewName.trim() || locked}>Create crew</Button>
         </div>
       </form>
     {/if}

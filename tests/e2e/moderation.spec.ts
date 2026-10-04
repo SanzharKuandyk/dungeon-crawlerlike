@@ -33,7 +33,7 @@ test("host moderates one crew and privately recovers its character on another de
     await host.page
       .getByRole("button", { name: "Reconnect Explorer 4.1 on another device", exact: true })
       .click();
-    const dialog = host.page.getByRole("dialog", { name: "Reconnect player" });
+    const dialog = host.page.getByRole("dialog", { name: "Reconnect Explorer 4.1", exact: true });
     await dialog.getByRole("button", { name: "Generate recovery code" }).click();
     const code = (await dialog.locator(".recovery-code").innerText()).trim();
     const projector = await board.newPage();

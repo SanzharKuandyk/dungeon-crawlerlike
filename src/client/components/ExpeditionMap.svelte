@@ -1,12 +1,15 @@
 <script lang="ts">
-  import { tick, untrack } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import type { Crew } from "../../shared/game-types.js";
   import { type ExpeditionMap, MAP_NODE_LABELS, type MapNode } from "../../shared/map-types.js";
-  import { teamColor } from "../../shared/palette.js";
+  import { NODE_COLORS, teamColor } from "../../shared/palette.js";
+  import GameIcon from "./GameIcon.svelte";
   import MapNodeIcon from "./MapNodeIcon.svelte";
+  import Button from "./ui/Button.svelte";
 
   let {
     map,
+    roomId,
     crews,
     focusCrewId = null,
     reachable = [],
@@ -17,8 +20,11 @@
     onvote,
     oncrew,
     voting = false,
+    preview = false,
+    floor = null,
   }: {
     map: ExpeditionMap;
+    roomId: string;
     crews: Crew[];
     focusCrewId?: string | null;
     reachable?: string[];
@@ -29,9 +35,21 @@
     onvote?: (id: string) => void;
     oncrew?: (id: string) => void;
     voting?: boolean;
+    preview?: boolean;
+    floor?: number | null;
   } = $props();
 
   let viewport = $state<HTMLElement | null>(null);
+  let overview = $state(false),
+    viewportHeight = $state(0);
+  onMount(() => {
+    if (!viewport) return;
+    const observer = new ResizeObserver(([entry]) => {
+      viewportHeight = entry.contentRect.height;
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  });
   let inspected = $state<string | null>(null);
   let focusedCrew = $state<string | null>(null);
   let crewId = $derived(focusCrewId ?? focusedCrew);
@@ -48,35 +66,49 @@
   );
 
   const x = (node: MapNode) => 64 + node.lane * 116;
-  const y = (node: MapNode) => 56 + (map.rows - node.row) * 104;
-  let startY = $derived(56 + (map.rows - 1) * 104 + 64);
-  let mapHeight = $derived(startY + 58);
+  let rowSpacing = $derived(overview ? Math.max(52, (viewportHeight - 64) / (map.rows - 1)) : 96);
+  const y = (node: MapNode) => (overview ? 24 : 48) + (map.rows - node.row) * rowSpacing;
+  let startY = $derived((overview ? 28 : 48) + (map.rows - 1) * rowSpacing + (overview ? 48 : 80));
+  let mapHeight = $derived(overview ? 64 + (map.rows - 1) * rowSpacing : startY + 58);
   let currentNodeId = $derived(crew?.mapPosition?.nodeId ?? null);
 
+  let browseKey = $derived(
+    `dungeon-map:${roomId}:${map.chapter}:${crewId ?? crews[0]?.id ?? "public"}`,
+  );
   $effect(() => {
-    map.chapter;
-    crewId;
-    currentNodeId;
+    const key = browseKey;
     const element = viewport;
     if (!element) return;
     let canceled = false;
-    const observer = new ResizeObserver(() => untrack(focusPosition));
     void tick().then(() => {
       if (canceled) return;
-      untrack(focusPosition);
-      observer.observe(element);
+      let saved: string | null = null;
+      try {
+        saved = localStorage.getItem(key);
+      } catch {
+        /* Browsing still works without storage. */
+      }
+      if (saved !== null && Number.isFinite(Number(saved))) element.scrollTop = Number(saved);
+      else untrack(focusPosition);
     });
     return () => {
       canceled = true;
-      observer.disconnect();
     };
   });
+  function rememberScroll() {
+    if (!viewport) return;
+    try {
+      localStorage.setItem(browseKey, String(viewport.scrollTop));
+    } catch {
+      /* Storage is optional for browsing. */
+    }
+  }
 
   function focusPosition() {
-    const node = map.nodes.find((node) => node.id === currentNodeId);
+    const node =
+      map.nodes.find((node) => node.id === currentNodeId) ?? map.nodes.find((n) => n.row === 1);
     if (!viewport) return;
-    const bottom = node ? (viewport.clientHeight >= 220 ? 72 : 32) : 56;
-    viewport.scrollTop = (node ? y(node) : startY) - viewport.clientHeight + bottom;
+    viewport.scrollTop = (node ? y(node) : startY) - viewport.clientHeight * 0.72;
   }
 
   function routePath(from: MapNode, to: MapNode) {
@@ -103,34 +135,37 @@
   }
 </script>
 
-<section class="expedition-map" class:voting-map={voting} aria-label={`Chapter ${map.chapter} map`}>
-  {#if !voting}
-    <header class="map-toolbar">
-      <strong>Chapter {map.chapter}</strong>
-      <div class="map-pan">
-        <button
-          type="button"
-          class="quiet"
-          aria-label="Explore higher floors"
-          onclick={() => viewport?.scrollBy({ top: -viewport.clientHeight * 0.7 })}
-        >
-          ↑
-        </button>
-        <button
-          type="button"
-          class="quiet"
-          aria-label="Explore lower floors"
-          onclick={() => viewport?.scrollBy({ top: viewport.clientHeight * 0.7 })}
-        >
-          ↓
-        </button>
-      </div>
-    </header>
-  {/if}
+<section
+  class="expedition-map"
+  class:voting-map={voting}
+  class:map-overview={overview}
+  aria-label={`Chapter ${map.chapter} map`}
+>
+  <header class="map-toolbar">
+    <strong>Chapter {map.chapter}{floor ? ` · ${floor}/${map.rows}` : ""}</strong>
+    <Button
+      type="button"
+      variant="quiet"
+      class="map-overview-toggle"
+      aria-label={overview ? "Show route detail" : "Show whole route"}
+      aria-pressed={overview}
+      onclick={() => {
+        overview = !overview;
+        void tick().then(() => {
+          if (overview && viewport) viewport.scrollTop = 0;
+          else focusPosition();
+        });
+      }}
+    >
+      <GameIcon name="map-overview" size={24} />
+    </Button>
+    <button type="button" class="quiet" onclick={focusPosition}>Locate crew</button>
+  </header>
 
   <section
     class="map-viewport"
     bind:this={viewport}
+    onscroll={rememberScroll}
     aria-label="Dungeon routes; climb from the start below to the guardian above"
   >
     <div class="map-canvas" style:height={`${mapHeight}px`}>
@@ -140,13 +175,14 @@
         preserveAspectRatio="none"
         aria-hidden="true"
       >
-        {#each map.nodes.filter((node) => node.row === 1) as node}
-          <path
-            d={`M 180 ${startY} C 180 ${startY - 40}, ${x(node)} ${startY - 40}, ${x(node)} ${y(node)}`}
-            class:available={voting && reachable.includes(node.id)}
-          />
-        {/each}
-
+        {#if !overview}
+          {#each map.nodes.filter((node) => node.row === 1) as node}
+            <path
+              d={`M 180 ${startY} C 180 ${startY - 40}, ${x(node)} ${startY - 40}, ${x(node)} ${y(node)}`}
+              class:available={voting && reachable.includes(node.id)}
+            />
+          {/each}
+        {/if}
         {#each edges as edge}
           <path
             d={routePath(edge.from, edge.to)}
@@ -158,21 +194,25 @@
         {/each}
       </svg>
 
-      <div class="map-start" style:top={`${(startY / mapHeight) * 100}%`}>
-        <span>Start</span>
-        <div class="map-markers">
-          {#each occupants(null).slice(0, 4) as crew}
-            <span style:--team={teamColor(crew.colorId).hex} title={crew.name}>{crew.symbol}</span>
-          {/each}
-          {#if occupants(null).length > 4}
-            <b>+{occupants(null).length - 4}</b>
-          {/if}
+      {#if !overview}
+        <div class="map-start" style:top={`${(startY / mapHeight) * 100}%`}>
+          <span>Start</span>
+          <div class="map-markers">
+            {#each occupants(null).slice(0, 4) as crew}
+              <span style:--team={teamColor(crew.colorId).hex} title={crew.name}
+                >{crew.symbol}</span
+              >
+            {/each}
+            {#if occupants(null).length > 4}
+              <b>+{occupants(null).length - 4}</b>
+            {/if}
+          </div>
         </div>
-      </div>
-
+      {/if}
       {#each map.nodes as node (node.id)}
         <div
           class="map-stop"
+          style:--node-color={NODE_COLORS[node.kind]}
           style:left={`${(x(node) / 360) * 100}%`}
           style:top={`${(y(node) / mapHeight) * 100}%`}
           data-floor={node.row}
@@ -201,9 +241,10 @@
             {/if}
           </button>
 
-          <span class="map-node-label"
-            >{currentNodeId === node.id ? "YOU ARE HERE" : MAP_NODE_LABELS[node.kind]}</span
-          >
+          <span class="map-node-label">{MAP_NODE_LABELS[node.kind]}</span>
+          {#if currentNodeId === node.id}
+            <span class="map-here">YOU</span>
+          {/if}
           <div class="map-markers">
             {#each occupants(node.id).slice(0, 4) as crew}
               <span
@@ -227,7 +268,7 @@
       <strong
         >{selectedNode.room.name}
         {#if ownVote === selectedNode.id}
-          <span> · ✓ Voted</span>
+          <span> · {preview ? "Selected" : "✓ Voted"}</span>
         {/if}
         {#if crewChoice === selectedNode.id && ownVote !== selectedNode.id}
           <span> · Crew choice</span>

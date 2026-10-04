@@ -1,8 +1,19 @@
 import type { RoomDefinition } from "./content-types.js";
 
-export type MapNodeKind = "battle" | "elite" | "camp" | "treasure" | "event" | "boss";
+export type MapNodeKind =
+  | "battle"
+  | "elite"
+  | "camp"
+  | "treasure"
+  | "event"
+  | "boss"
+  | "merchant"
+  | "altar"
+  | "arena"
+  | "shrine";
 
 export type MapNode = {
+  eventId?: "coin-fountain" | "trapped-cache" | "sacrificial-altar" | "quiet-shrine";
   id: string;
   row: number;
   lane: number;
@@ -12,7 +23,7 @@ export type MapNode = {
 };
 
 export type ExpeditionMap = {
-  version: "branching-v1";
+  version: "branching-v1" | "chapters-v3";
   chapter: number;
   rows: number;
   nodes: MapNode[];
@@ -25,6 +36,10 @@ export type MapPosition = {
 };
 
 export const MAP_NODE_LABELS: Record<MapNodeKind, string> = {
+  merchant: "Merchant",
+  altar: "Trial altar",
+  arena: "Arena",
+  shrine: "Recovery shrine",
   battle: "Battle",
   elite: "Elite",
   camp: "Camp",

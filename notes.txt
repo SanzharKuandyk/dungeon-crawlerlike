@@ -1,0 +1,102 @@
+Overall notes about current state of the project: 
+
+1. Quizes are real weak point of the project. For a team we should make it much
+engaging, and it should have stakes. We might as well do something like each
+team puts somethin on a line. But we need better presentation part. Right now -
+after timer ends it really displays only the correct answer, and who selected
+what is not shown, answers should have been displayed better, like keep options
+but mark the right answer. Quizes are really not engaging, I think introducing
+some sort of competition across teams would've been better. Next thing - Quizes
+triggered and nobody understands who triggered them, why they happened. And
+there is too much of them. I think we need to have clearer events. Overally map
+should have more events, but it's ok.
+
+2. Progression is bad. One player can select good char and outperform whole
+other groups. Map rerenders (updates the scroll state) each tick or when player
+moves (something like that, but it's heavily annoying); Enemy & map logic
+(difficulty progression) is not like in Slay the spire 2. I think we need to
+add twist like in fear & hunger, we need to introduce arm & leg injuries, use
+stress system (or fear) from darkest dungeon properly. Stress really useless
+right now. When I say mechanics from fear & hunger 2 I mean they logic tied to
+random x luck, darkest dungeon does the same. Team should have good management.
+For example in Fear & Hunger also all effects clear and animations dead simple
+but everybody got an idea of what's going on. Currently ux/ui done in a way you
+clearly don't understand what's going on: especially big buttons with text,
+that really should display when you press on info.
+
+3. Indicators are really bad, putting intent into words is bad UX, enemy intent
+should be seen via icon x numbers, and effects explained on click (hover on
+desktop). Stress indicator, hp indicators are missing.
+
+4. Besides, map is not good, it's really got all those icons, but events
+over there are annoying and routes interwined without proper logic (Slay the
+spire 2 got such, todo: review they approach, they make it in a way that forces
+player think, + shops). Map should be colored too,
+to have some colors, right now it's really same mess, without clear
+ways.
+
+5. Enemy team encounters are not developed enough. PvP can get really
+fun, it's just we need actual trigger event. 
+
+6. Enemy damage is static, seal is static, seal and shields should
+actually be displayed as secondary bar, and bar for effects, so it's visible
+(it's hard to grasp what's going on with enemy).
+
+7. Need to decide, should we have cards like in slay the spire 2 or
+items like in fear & hunger/darkest dungeon. If we select cards, we
+will manage hand and tie card mechanics - fun. If we select items -
+fun, we need to allow players pickup items, equip them. Items will
+have own effects and other stuff. I think cards hard to manage on mobile, but
+items could be good, we just need reward to include them in random stuff, we
+should include item management (backpacks);
+
+8. A lot should be redone for ui/ux, really a lot does not follow common ui/ux
+pattern for such games, like indication, turns, intents, get rid of a lot of
+textual information.
+
+9. Maybe introduce some crazy events via toss of a coin, like fontain - toss a
+coin. Something bad or something good happens to you.
+
+10. Stress (or fear) should really play huge role. Stressed player should not
+really be able to perform good attacks, or enemy could block them. (Same idea
+as in darkest dungeon);
+
+11. Overally I think at the end of the dungeon level should be boss, (more
+attack patterns x effects x more damage). Players have to use all earned
+items x skill. But one dungeon cleared -> players get new map and move.
+
+This is plan to make decisions. Need come up arguments for each option, put
+them in order, like the most ground breaking -> architecturally big decisions
+should be made first, then we do small stuff.
+
+12. Other fixes: on some smartphones certain buttons you could not scroll
+there, it was like out of safe area on the screen. Looked ugly in desktop a
+bit, like quizes hid map and stuff. Really button ui is bad, and different
+across pages we probably need to use uikit, uilib, something of that sort and
+define core style/design contracts for stuff around project (Each page, each
+expandable, each state should be analyzed for correctness).
+
+Have questions to typescript though, is running with tsx a good way actually, i
+thought you run it via bun now, or from node itself. Plus imports ending with
+.js kinda feels wron. Plus we got so much unions and string comparisions. Makes
+me think, maybe we should have used enums
+
+As i said, better to have icon indicators rather than good amount of long text.
+We making game, rather than just average browser game.
+
+Treasure system sucks, we need to replace it with something else, also I would
+like to obviously use shops with items
+
+Okay, turns out items (equipment is far better than cards (students opinion)).
+So we stick with it, but make it much more clearer, like you will have
+equipment slots/backpack, it's easy modal window (with design) that appears on
+small button press and you can quickly swap things out.
+
+MORE ENGAGING BUFF SYSTEM, like roles should be rethink, we should add as i
+said twist of fear & hunger, stress & maybe random generator (coin toss in fear
+    & hunger) But if we make it like that reviving players is important
+because fear & hunger really hard to play and stay alive. So I suggest there
+should be buy out and stuff.
+
+At certain places some modifications feel like side-effects, I think it's way
+better to follow functional approach.

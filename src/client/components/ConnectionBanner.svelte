@@ -1,6 +1,7 @@
 <script lang="ts">
   import { reconnect } from "../connection.js";
   import { room } from "../room.svelte.js";
+  import Button from "./ui/Button.svelte";
 
   let { active = true }: { active?: boolean } = $props();
 </script>
@@ -26,13 +27,13 @@
               : "A newer tab controls this identity. This tab is read-only.")}</span
     >
     {#if !room.view?.closed}
-      <button
+      <Button
         type="button"
         class="quiet"
         onclick={() => (room.controller ? room.controller.reconnect(true) : reconnect())}
       >
         Reconnect here
-      </button>
+      </Button>
     {/if}
   </div>
 {/if}

@@ -1,7 +1,8 @@
 .map-panel > .phase-pane {
   inset: 0;
-  border-radius: 12px;
+  border-radius: 8px;
   border-top: 0;
+  max-height: none;
 }
 
 .map-panel > .crew-stage {
@@ -20,8 +21,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 4px 12px;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
   flex-shrink: 0;
 }
 
@@ -37,9 +38,9 @@
 }
 
 .route-vote-heading button {
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   min-height: 44px;
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -52,7 +53,7 @@
   flex-direction: column;
   min-width: 0;
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -67,12 +68,12 @@
 }
 
 .map-toolbar strong {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .map-pan {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .map-pan button {
@@ -92,10 +93,16 @@
   scrollbar-width: thin;
   scrollbar-color: var(--border) var(--surface);
 }
+.map-overview-toggle {
+  width: 44px;
+  padding: 0;
+  font-size: 24px;
+  margin-left: auto;
+}
 
 .map-canvas {
   width: 100%;
-  max-width: 520px;
+  max-width: 760px;
   margin: auto;
   position: relative;
 }
@@ -127,24 +134,25 @@
 
 .map-stop {
   position: absolute;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   transform: translate(-50%, -50%);
 }
 
 .map-node {
   position: relative;
-  width: 44px;
-  height: 44px;
-  padding: 8px;
+  width: 56px;
+  height: 56px;
+  padding: var(--space-2);
   border-radius: 50%;
   border: 2px solid var(--border);
   background: var(--surface);
+  color: var(--node-color, var(--text));
 }
 
 .map-node svg {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
 }
 
 .map-node.reachable {
@@ -159,8 +167,10 @@
 }
 
 .map-node.current-node {
-  border-width: 3px;
-  box-shadow: 0 0 0 4px var(--selected);
+  background: var(--team, var(--text));
+  color: white;
+  border-color: white;
+  box-shadow: 0 0 0 4px var(--team, var(--text));
 }
 
 .map-node.crew-choice {
@@ -170,9 +180,9 @@
 }
 
 .map-node.own-vote {
-  background: var(--text);
+  background: var(--team, var(--text));
   color: var(--surface);
-  border-color: var(--text);
+  border-color: var(--team, var(--text));
 }
 
 .map-node.own-vote:hover:not(:disabled) {
@@ -181,7 +191,7 @@
 }
 
 .map-node.guardian {
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .map-vote-check,
@@ -194,7 +204,7 @@
   border-radius: 50%;
   width: 22px;
   height: 22px;
-  font-size: 11px;
+  font-size: 12px;
   display: grid;
   place-items: center;
 }
@@ -209,21 +219,36 @@
 
 .map-node-label {
   position: absolute;
-  top: 47px;
+  top: 58px;
   left: -14px;
-  width: 72px;
+  width: 84px;
   text-align: center;
-  font-size: 11px;
-  color: var(--muted);
+  font-size: 12px;
+  color: var(--node-color, var(--muted));
 }
 
 .map-markers {
   position: absolute;
   left: 50%;
-  top: 64px;
+  top: -16px;
   transform: translateX(-50%);
   display: flex;
-  gap: 2px;
+  gap: var(--space-1);
+}
+.map-here {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--team);
+}
+.map-route-picker .decision-footer > div {
+  justify-content: flex-end;
+}
+.map-route-picker .decision-footer .primary {
+  flex: 0 1 280px;
 }
 
 .map-markers > span {
@@ -246,7 +271,7 @@
 }
 
 .map-markers > b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .map-start {
@@ -256,7 +281,7 @@
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: 8px;
-  padding: 6px 12px;
+  padding: var(--space-2) var(--space-3);
   font-size: 12px;
 }
 
@@ -266,7 +291,7 @@
 
 .map-inspection {
   height: 60px;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   overflow: auto;
@@ -277,12 +302,12 @@
 }
 
 .map-inspection strong span {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .map-inspection small {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -297,16 +322,16 @@
 .map-crew-legend {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 8px;
-  padding: 12px;
+  gap: var(--space-2);
+  padding: var(--space-3);
 }
 
 .map-crew-label {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
   text-align: left;
-  padding: 8px;
-  gap: 4px 8px;
+  padding: var(--space-2);
+  gap: var(--space-1) var(--space-2);
 }
 
 .map-crew-label .team-badge {
@@ -318,6 +343,28 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.map-overview .map-stop,
+.map-overview .map-node {
+  width: 44px;
+  height: 44px;
+}
+.map-overview .map-node svg {
+  width: 26px;
+  height: 26px;
+}
+.map-overview .map-node-label {
+  left: -20px;
+  top: 44px;
+  font-size: 12px;
+}
+.map-overview .map-markers {
+  top: -12px;
+}
+.map-overview .map-markers > span {
+  width: 16px;
+  height: 16px;
 }
 
 .map-board-panel[hidden] {
@@ -357,35 +404,4 @@
 
 .map-board-panel .map-crew-label {
   flex-shrink: 0;
-}
-
-.map-node {
-  background: #fff;
-  color: #34323a;
-}
-.map-node.visited {
-  background: #e5eee9;
-  border-color: #46765e;
-}
-.map-node.current-node {
-  background: var(--team, #25242b);
-  color: white;
-  border-color: white;
-  box-shadow:
-    0 0 0 3px var(--team, #25242b),
-    0 0 0 7px white;
-}
-.map-stop:has(.current-node) .map-node-label {
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--team, #25242b);
-}
-.map-connections .traveled {
-  stroke: #46765e;
-}
-.map-connections path:not(.available):not(.traveled) {
-  stroke: #b1afba;
-}
-.map-inspection small {
-  color: var(--text);
 }

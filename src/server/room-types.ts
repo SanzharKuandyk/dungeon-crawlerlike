@@ -5,7 +5,7 @@ import type { Receipt } from "../shared/protocol.js";
 import type { Session } from "./sessions.js";
 
 export type StoredRoom = {
-  schemaVersion: 7;
+  schemaVersion: 9;
   savedAt: number;
   absentSince: Record<string, number>;
   pauseReasons: import("../shared/host-types.js").RoomPauseReason[];

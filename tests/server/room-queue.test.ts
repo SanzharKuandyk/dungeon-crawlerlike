@@ -28,7 +28,7 @@ it("groups concurrent mutations into one save and acknowledges only after durabi
   const requests = Array.from({ length: 20 }, (_, index) =>
     f
       .transaction(f.code, (room) => {
-        room.state.crews[0].securedTreasure++;
+        room.state.crews[0].trialScoreUnits++;
         room.processed[String(index)] = {
           fingerprint: String(index),
           receipt: { revision: room.state.revision + 1 },
@@ -44,7 +44,7 @@ it("groups concurrent mutations into one save and acknowledges only after durabi
   release();
   await Promise.all(requests);
   expect(acknowledged).toBe(20);
-  expect(f.rooms.get(f.code)?.state.crews[0].securedTreasure).toBe(20);
+  expect(f.rooms.get(f.code)?.state.crews[0].trialScoreUnits).toBe(20);
 });
 
 it("a failed batch rolls back new receipts but keeps existing receipts recoverable", async () => {
@@ -53,7 +53,7 @@ it("a failed batch rolls back new receipts but keeps existing receipts recoverab
   });
   f.room.processed.old = { fingerprint: "old", receipt: { revision: 1 } };
   const fresh = f.transaction(f.code, (room) => {
-    room.state.crews[0].securedTreasure = 10;
+    room.state.crews[0].trialScoreUnits = 10;
     room.processed.new = { fingerprint: "new", receipt: { revision: 2 } };
   });
   const duplicate = f.transaction(
@@ -65,7 +65,7 @@ it("a failed batch rolls back new receipts but keeps existing receipts recoverab
   );
   expect(await duplicate).toEqual({ revision: 1 });
   await expect(fresh).rejects.toMatchObject({ code: "SAVE_FAILED" });
-  expect(f.room.state.crews[0].securedTreasure).toBe(0);
+  expect(f.room.state.crews[0].trialScoreUnits).toBe(0);
   expect(f.room.processed.new).toBeUndefined();
   expect(f.room.state.status).toBe("paused");
 });
@@ -80,9 +80,9 @@ it("a snapshot delivery error never rolls back an already committed action", asy
       },
     );
     await f.transaction(f.code, (room) => {
-      room.state.crews[0].securedTreasure = 10;
+      room.state.crews[0].trialScoreUnits = 10;
     });
-    expect(f.rooms.get(f.code)?.state.crews[0].securedTreasure).toBe(10);
+    expect(f.rooms.get(f.code)?.state.crews[0].trialScoreUnits).toBe(10);
     expect(f.rooms.get(f.code)?.storageError).toBeNull();
   } finally {
     log.mockRestore();

@@ -7,30 +7,40 @@ const target = z.string().min(1).max(100);
 export const actionSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("attack"), part }).strict(),
   z.object({ kind: z.literal("brace") }).strict(),
-  z.object({ kind: z.literal("loot") }).strict(),
+  z
+    .object({
+      kind: z.literal("use-item"),
+      itemId: target,
+      targetHeroId: target,
+      inventoryRevision: z.number().int().min(0),
+    })
+    .strict(),
   z.object({ kind: z.literal("protect"), targetHeroId: target }).strict(),
   z.object({ kind: z.literal("mend"), targetHeroId: target }).strict(),
   z.object({ kind: z.literal("hex"), part }).strict(),
   z.object({ kind: z.literal("pilfer") }).strict(),
   z.object({ kind: z.literal("skirmish"), part }).strict(),
   z.object({ kind: z.literal("channel"), part }).strict(),
-  z.object({ kind: z.literal("duel-attack"), targetHeroId: target }).strict(),
-  z.object({ kind: z.literal("duel-hex"), targetHeroId: target }).strict(),
-  z.object({ kind: z.literal("duel-pilfer"), targetHeroId: target }).strict(),
-  z.object({ kind: z.literal("duel-skirmish"), targetHeroId: target }).strict(),
-  z.object({ kind: z.literal("duel-channel"), targetHeroId: target }).strict(),
   z.object({ kind: z.literal("ward"), targetHeroId: target }).strict(),
   z.object({ kind: z.literal("observe") }).strict(),
 ]);
-export const itemSchema = z.enum(["ward", "salve", "lantern", "keep"]);
-export const campSchema = z.enum(["secure", "rest", "bargain"]);
+export const campSchema = z.enum([
+  "rest",
+  "continue",
+  "rescue",
+  "leave",
+  "risk",
+  "recover-health",
+  "recover-stress",
+  "sacrifice",
+]);
 export const classDefinitionSchema = z
   .object({
     id: classSchema,
     name: z.string().min(1),
     skill: z.string().min(1),
     description: z.string().min(1),
-    maxCrewSize: z.union([z.literal(2), z.literal(4)]),
+    maxCrewSize: z.literal(4),
   })
   .strict();
 export const roomDefinitionSchema = z
@@ -41,17 +51,6 @@ export const roomDefinitionSchema = z
     risk: z.enum(["low", "medium", "high"]),
     family: z.enum(["sentinel", "seer", "devourer"]),
     description: z.string().min(1),
-  })
-  .strict();
-export const questionSchema = z
-  .object({
-    id: target,
-    topic: z.string(),
-    prompt: z.string(),
-    choices: z.array(z.string()).length(4),
-    correctIndex: z.number().int().min(0).max(3),
-    explanation: z.string(),
-    source: z.string(),
   })
   .strict();
 export const nameSchema = z.string().trim().min(1).max(24);
@@ -68,6 +67,9 @@ export const rosterSchema = z.discriminatedUnion("action", [
 ]);
 export const scenarioSchema = z.enum([
   "duel",
+  "reward",
+  "reward-full",
+  "result",
   "fresh",
   "split",
   "treasure",
@@ -75,6 +77,20 @@ export const scenarioSchema = z.enum([
   "question",
   "final",
   "rivalry",
+  "injuries",
+  "panic",
+  "overflow",
+  "shop",
+  "revival",
+  "rescue",
+  "boss-transition",
+  "trial-intro",
+  "trial-board",
+  "trial-wager",
+  "trial-answer",
+  "trial-reveal",
+  "trial-reward",
+  "trial-return",
 ]);
 export const bootstrapSchema = z.object({
   hostSecret: secretSchema,

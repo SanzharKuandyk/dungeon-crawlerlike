@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { HeroAction } from "../../shared/command-types.js";
   import type { ClassId } from "../../shared/content-types.js";
+  import { CLASS_NAMES } from "../../shared/display-names.js";
   import type { Hero } from "../../shared/game-types.js";
   import HeroModel from "./HeroModel.svelte";
+  import Button from "./ui/Button.svelte";
 
   let {
     hero,
@@ -35,7 +37,7 @@
   class:target-selected={selected}
 >
   {#if action && onchoose}
-    <button
+    <Button
       type="button"
       class="hero-target"
       aria-label={`Target ${name}`}
@@ -44,22 +46,16 @@
       onclick={() => action && onchoose?.(action)}
     >
       <HeroModel {classId} {color} {name} fallen={hero?.status === "dead"} />
-    </button>
+    </Button>
   {:else}
     <details class="hero-inspect">
       <summary aria-label={`Details for ${name}`}>
         <HeroModel {classId} {color} {name} fallen={hero?.status === "dead"} />
       </summary>
       <div>
-        <strong>{name}</strong><span>{classId}{hero ? ` · ${hero.stress}/6 stress` : ""}</span
-        ><span
-          >{hero?.equipment
-            ? `${hero.equipment.kind} · ${hero.equipment.charges} charges`
-            : "No equipment"}</span
-        >
-        {#if hero?.mastery}
-          <span>Mastery {hero.mastery.rank}/2</span>
-        {/if}
+        <strong>{name}</strong
+        ><span>{CLASS_NAMES[classId]}{hero ? ` · ${hero.stress}/10 stress` : ""}</span
+        ><span>{hero?.conditions.injuries.join(" · ") || "No injuries"}</span>
       </div>
     </details>
   {/if}
@@ -68,6 +64,6 @@
     <span>{hero.status === "dead" ? "Spirit" : `${hero.hp}/${hero.maxHp}`}</span>
     <meter aria-label={`${name} health`} value={hero.hp} max={hero.maxHp}></meter>
   {:else}
-    <span>{classId}</span>
+    <span>{CLASS_NAMES[classId]}</span>
   {/if}
 </div>

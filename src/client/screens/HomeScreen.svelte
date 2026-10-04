@@ -1,4 +1,7 @@
 <script lang="ts">
+  import GameIcon from "../components/GameIcon.svelte";
+  import Button from "../components/ui/Button.svelte";
+  import FormField from "../components/ui/FormField.svelte";
   import { createRoom } from "../connection.js";
   import { navigate } from "../navigation.js";
   import { recoverHost } from "../recovery-client.js";
@@ -31,8 +34,9 @@
 </script>
 <section class="home">
   <header class="home-heading">
+    <GameIcon name="boss" size={48} />
     <h1>Dungeon Crawlerlike</h1>
-    <p>Enter the dungeon. Bring your crew. Leave with the treasure.</p>
+    <p>Enter the dungeon. Bring your crew. Defeat three bosses.</p>
   </header>
 
   <div class="home-entry">
@@ -41,9 +45,9 @@
         <h2 id="host-heading">Host an expedition</h2>
         <p>Create a room and invite your crews.</p>
       </div>
-      <button type="button" class="primary" disabled={busy} onclick={() => void host()}>
+      <Button primary pending={busy} onclick={() => void host()}>
         {busy ? "Creating room…" : "Host a match"}
-      </button>
+      </Button>
     </section>
 
     <form
@@ -58,8 +62,7 @@
         <h2 id="join-heading">Join your crew</h2>
         <p>Enter the code shared by your host.</p>
       </div>
-      <div class="home-field">
-        <label for="code">Room code</label>
+      <FormField id="code" label="Room code">
         <input
           id="code"
           class="home-room-code"
@@ -72,8 +75,8 @@
           spellcheck="false"
           required
         >
-      </div>
-      <button type="submit" disabled={code.trim().length !== 6}>Join room</button>
+      </FormField>
+      <Button type="submit" disabled={code.trim().length !== 6}>Join room</Button>
     </form>
   </div>
 
@@ -86,8 +89,7 @@
       }}
     >
       <p>Only needed if you lost access to an existing room.</p>
-      <div class="home-field">
-        <label for="recover-host-code">Recover hosted room</label>
+      <FormField id="recover-host-code" label="Recover hosted room">
         <input
           id="recover-host-code"
           bind:value={recoveryRoom}
@@ -98,9 +100,8 @@
           autocomplete="off"
           required
         >
-      </div>
-      <div class="home-field">
-        <label for="recover-host-key">Host recovery key</label>
+      </FormField>
+      <FormField id="recover-host-key" label="Host recovery key">
         <input
           id="recover-host-key"
           type="password"
@@ -110,15 +111,15 @@
           required
         >
         <small>On the server laptop, copy the key from <code>data/host-access.key</code>.</small>
-      </div>
-      <button
+      </FormField>
+      <Button
         type="submit"
         disabled={recoveryBusy ||
           recoveryKey.trim().length !== 64 ||
           recoveryRoom.trim().length !== 6}
       >
         {recoveryBusy ? "Recovering…" : "Recover host access"}
-      </button>
+      </Button>
     </form>
   </details>
   {#if room.testEnabled}

@@ -34,12 +34,11 @@ export function drawEnemy(
   );
   layer.add(
     scene.add
-      .text(
-        250,
-        424,
-        e.weakHp > 0 ? `WEAK POINT ${e.weakHp}/${e.maxWeakHp}` : "WEAK POINT BROKEN",
-        { fontFamily: "Arial", fontSize: "12px", color: NEUTRALS.muted },
-      )
+      .text(250, 424, e.weakHp > 0 ? `SEAL ${e.weakHp}/${e.maxWeakHp}` : "SEAL BROKEN", {
+        fontFamily: "Arial",
+        fontSize: "12px",
+        color: NEUTRALS.muted,
+      })
       .setOrigin(0.5),
   );
 }

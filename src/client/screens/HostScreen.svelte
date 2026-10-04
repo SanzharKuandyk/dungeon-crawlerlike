@@ -7,6 +7,7 @@
   import HostStatusPanel from "../components/HostStatusPanel.svelte";
   import HostToolbar from "../components/HostToolbar.svelte";
   import PlayerRecoveryDialog from "../components/PlayerRecoveryDialog.svelte";
+  import Button from "../components/ui/Button.svelte";
   import { room } from "../room.svelte.js";
   import { browserStorage } from "../storage.js";
   import ProjectorScreen from "./ProjectorScreen.svelte";
@@ -69,7 +70,7 @@
       <a class="button" href={`#/room/${view.code}`} target="_blank" rel="noopener"
         >Join as player ↗</a
       >
-      <button
+      <Button
         type="button"
         disabled={locked}
         onclick={() => {
@@ -78,7 +79,7 @@
         }}
       >
         Manage crews
-      </button>
+      </Button>
     {/if}
   </div>
   {#if waiting.length}

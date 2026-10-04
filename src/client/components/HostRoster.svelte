@@ -2,6 +2,7 @@
   import type { RosterChange } from "../../shared/protocol.js";
   import type { HostRoomView } from "../../shared/view-types.js";
   import { changeRoster } from "../connection.js";
+  import Button from "./ui/Button.svelte";
 
   let {
     view,
@@ -37,7 +38,7 @@
 >
   <header>
     <h2>Crews & players</h2>
-    <button type="button" class="quiet" onclick={() => (open = false)}>Close</button>
+    <Button type="button" class="quiet" onclick={() => (open = false)}>Close</Button>
   </header>
   {#if confirmation}
     <section class="roster-confirm" aria-label="Confirm removal">
@@ -51,11 +52,11 @@
           : "This player will leave the lobby and return to the join screen."}
       </p>
       <div>
-        <button type="button" class="primary" disabled={locked} onclick={() => void confirm()}>
+        <Button type="button" class="primary" disabled={locked} onclick={() => void confirm()}>
           Confirm removal
-        </button><button type="button" disabled={locked} onclick={() => (confirmation = null)}>
+        </Button><Button type="button" disabled={locked} onclick={() => (confirmation = null)}>
           Cancel
-        </button>
+        </Button>
       </div>
     </section>
   {:else}
@@ -63,7 +64,7 @@
       <section class="roster-group">
         <header>
           <h3>{crew.symbol} · {crew.name}</h3>
-          <button
+          <Button
             type="button"
             disabled={locked}
             onclick={() =>
@@ -73,12 +74,12 @@
               })}
           >
             Delete crew
-          </button>
+          </Button>
         </header>
         {#each view.players.filter((p) => p.crewId === crew.id) as player (player.id)}
           <div class="roster-player">
             <span>{player.name}<small>{player.connected ? "Connected" : "Offline"}</small></span
-            ><button
+            ><Button
               type="button"
               aria-label={`Remove ${player.name}`}
               disabled={locked}
@@ -89,7 +90,7 @@
                 })}
             >
               Remove
-            </button>
+            </Button>
           </div>
         {/each}
       </section>
@@ -98,7 +99,7 @@
       {#each view.players.filter((p) => !p.crewId) as player (player.id)}
         <div class="roster-player">
           <span>{player.name}<small>Choosing a crew</small></span
-          ><button
+          ><Button
             type="button"
             aria-label={`Remove ${player.name}`}
             disabled={locked}
@@ -109,7 +110,7 @@
               })}
           >
             Remove
-          </button>
+          </Button>
         </div>
       {/each}
     {/if}

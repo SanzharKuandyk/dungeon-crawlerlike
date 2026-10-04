@@ -14,13 +14,13 @@ export function testControl(
 ) {
   if (!room.testMode) reject("UNAUTHORIZED", "Test controls are unavailable.");
   if (input.command.kind === "advance") {
-    if (room.state.rulesVersion === "dungeon-v2") progressExpedition(room, now, true);
+    if (room.state.rulesVersion === "dungeon-v4") progressExpedition(room, now, true);
     else advancePhase(room, now);
     return;
   }
   room.speed = input.command.speed;
   setDeadline(room, now);
-  if (room.state.rulesVersion === "dungeon-v2" && !questionActive(room)) {
+  if (room.state.rulesVersion === "dungeon-v4" && !questionActive(room)) {
     room.deadline = null;
     for (const run of Object.values(room.runs)) {
       if (run.finished) continue;

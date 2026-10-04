@@ -2,30 +2,35 @@ import { actionKey, legalActions } from "../../game/action-options.js";
 import { fighting } from "../../game/routes.js";
 import type { HeroAction } from "../../shared/command-types.js";
 import type { PhaseKind } from "../../shared/game-types.js";
+import { playerRun } from "../crew-decisions.js";
 import { reject } from "../errors.js";
 import type { StoredRoom } from "../room-types.js";
-
-export function requirePhase(room: StoredRoom, kind: PhaseKind, now: number) {
-  if (room.state.status !== "running" || room.state.phase.kind !== kind)
+export function requirePhase(room: StoredRoom, kind: PhaseKind, now: number, playerId?: string) {
+  const run = playerId ? playerRun(room, playerId) : undefined;
+  if (
+    room.state.status !== "running" ||
+    (run?.progress.phase.kind ?? room.state.phase.kind) !== kind ||
+    room.state.trial
+  )
     reject("CLOSED", "That decision is not open.");
-  if (room.deadline !== null && now >= room.deadline) reject("CLOSED", "The deadline has passed.");
+  const deadline = run?.clock.deadline ?? room.deadline;
+  if (deadline !== null && now >= deadline) reject("CLOSED", "The deadline has passed.");
 }
 export function ownedHero(room: StoredRoom, playerId: string) {
-  const h = room.state.heroes.find((h) => h.playerId === playerId);
-  if (!h) reject("INVALID", "No character belongs to this session.");
-  return h;
+  const hero = room.state.heroes.find((h) => h.playerId === playerId);
+  if (!hero) reject("INVALID", "No character belongs to this session.");
+  return hero;
 }
-export function submitAction(room: StoredRoom, playerId: string, action: HeroAction, now: number) {
-  requirePhase(room, "combat", now);
-  const h = ownedHero(room, playerId);
-  if (!legalActions(room.state, h).some((a) => actionKey(a) === actionKey(action)))
-    reject("INVALID", "That action or target is not available to your character.");
-  room.state.actions[playerId] = action;
+export function submitAction(room: StoredRoom, id: string, action: HeroAction, now: number) {
+  requirePhase(room, "combat", now, id);
+  const hero = ownedHero(room, id);
+  if (!legalActions(room.state, hero).some((a) => actionKey(a) === actionKey(action)))
+    reject("INVALID", "That action or target is unavailable.");
+  room.state.crewProgress[hero.crewId].actions[id] = action;
 }
-export function voteWithdraw(room: StoredRoom, playerId: string, withdraw: boolean, now: number) {
-  requirePhase(room, "combat", now);
-  const h = ownedHero(room, playerId);
-  if (!fighting(room.state, h))
-    reject("INVALID", "Only fighting characters can request withdrawal.");
-  room.state.withdrawVotes[playerId] = withdraw;
+export function voteWithdraw(room: StoredRoom, id: string, withdraw: boolean, now: number) {
+  requirePhase(room, "combat", now, id);
+  const hero = ownedHero(room, id);
+  if (!fighting(room.state, hero)) reject("INVALID", "Only fighting characters may withdraw.");
+  room.state.crewProgress[hero.crewId].withdrawVotes[id] = withdraw;
 }

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { actionKey } from "../../game/action-options.js";
-  import { enemyIntent } from "../../game/enemy-actions.js";
   import type { HeroAction } from "../../shared/command-types.js";
   import type { ArenaState, Crew } from "../../shared/game-types.js";
   import { teamColor } from "../../shared/palette.js";
@@ -9,6 +8,11 @@
   import DungeonArena from "../arena/DungeonArena.svelte";
   import { crewView } from "../crew-view.js";
   import { phaseInstruction, presentation } from "../event-presenter.js";
+  import CrewOrders from "./CrewOrders.svelte";
+  import EnemyIntent from "./EnemyIntent.svelte";
+  import GameIcon from "./GameIcon.svelte";
+  import Button from "./ui/Button.svelte";
+  import StatusBar from "./ui/StatusBar.svelte";
 
   let {
     view,
@@ -20,6 +24,7 @@
     targetActions = [],
     selectedAction = null,
     locked = false,
+    obscured = false,
     onchoose,
   }: {
     view: RoomView;
@@ -31,6 +36,7 @@
     targetActions?: HeroAction[];
     selectedAction?: HeroAction | null;
     locked?: boolean;
+    obscured?: boolean;
     onchoose?: (action: HeroAction) => void;
   } = $props();
   let now = $state(Date.now());
@@ -60,15 +66,16 @@
   let own = $derived(view.role === "player" && view.self.crewId === crew.id);
   let run = $derived(view.crewRuns.find((entry) => entry.crewId === crew.id));
   let ready = $derived(view.participation.find((entry) => entry.crewId === crew.id));
-  let targetHero = $derived(heroes.find((hero) => hero.status === "alive"));
-  let intent = $derived(
-    encounter && !encounter.rivalry && targetHero
-      ? enemyIntent(encounter, targetHero, local.depth, local.turn)
-      : null,
+  let targetHero = $derived(
+    (view.role === "player"
+      ? heroes.find((h) => h.playerId === view.self.id && h.status === "alive")
+      : null) ?? heroes.find((h) => h.status === "alive"),
   );
 </script>
 
 <article
+  inert={obscured}
+  aria-hidden={obscured ? true : undefined}
   class="crew-stage"
   class:selected={selected}
   class:own={own}
@@ -77,14 +84,14 @@
   <header>
     <span class="team-badge">{crew.symbol}</span>
     {#if onselect}
-      <button
+      <Button
         type="button"
         class="crew-title"
         onclick={() => onselect?.(crew.id)}
         aria-label={`View ${crew.name}`}
       >
         {crew.name}{own ? " · YOU" : ""}
-      </button>
+      </Button>
     {:else}
       <strong>{crew.name}{own ? " · YOU" : ""}</strong>
     {/if}
@@ -103,51 +110,70 @@
       roomId={encounter?.id ?? null}
       actor={display.actor}
       crewId={crew.id}
+      targetId={selectedAction && "targetHeroId" in selectedAction
+        ? selectedAction.targetHeroId
+        : null}
     />
-    {#if fighting && intent}
-      <p class="battle-intent">
-        <strong
-          >{encounter?.definition.family === "sentinel" &&
-          encounter.weakHp > 0 &&
-          local.turn % 2 === 0
-            ? "Heavy strike"
-            : "Incoming"}</strong
-        >
-        {intent.description}
-        {#if view.independent &&
-          encounter?.definition.family === "sentinel" &&
-          encounter.weakHp > 0 &&
-          local.turn % 2 === 0}
-          <span>Break the seal to interrupt</span>
-        {/if}
-      </p>
+    {#if fighting && encounter && !encounter.rivalry && targetHero && !view.quizActive}
+      <EnemyIntent enemy={encounter} hero={targetHero} turn={local.turn} />
     {/if}
     <p class="battle-narration" aria-live="polite">
       {run?.suspended ? "Waiting for reconnection" : display.message}
     </p>
   </div>
+  {#if own &&
+    view.role === "player" &&
+    !view.quizActive &&
+    ["combat", "combat-reveal", "combat-recap"].includes(local.phase.kind)}
+    <CrewOrders {view} arena={display.arena} />
+  {/if}
   {#if targetActions.some((action) => "targetHeroId" in action)}
     <fieldset class="character-targets" aria-label="Choose a character">
       {#each targetActions as action}
         {#if "targetHeroId" in action}
           {@const hero = display.arena.heroes.find((entry) => entry.id === action.targetHeroId)}
-          <button
+          <Button
             type="button"
-            class:chosen={selectedAction && actionKey(selectedAction) === actionKey(action)}
             disabled={locked}
             onclick={() => onchoose?.(action)}
+            class={`${selectedAction && actionKey(selectedAction) === actionKey(action) ? "chosen" : ""}`}
           >
             {view.players.find((entry) => entry.id === hero?.playerId)?.name ?? "Character"}
             · {hero?.hp}/{hero?.maxHp}
-          </button>
+          </Button>
         {/if}
       {/each}
     </fieldset>
   {/if}
+  {#if encounter && !encounter.rivalry && !view.quizActive}
+    <div
+      class="enemy-bars"
+      style:--shield={`${Math.min(100, (encounter.shield / encounter.maxBodyHp) * 100)}%`}
+    >
+      <StatusBar
+        label="Enemy health"
+        caption={encounter.definition.family}
+        ariaLabel="Enemy health"
+        value={encounter.bodyHp}
+        max={encounter.maxBodyHp}
+      />
+      <StatusBar
+        label="Enemy seal"
+        caption="Seal"
+        ariaLabel="Enemy seal"
+        icon="seal"
+        value={encounter.weakHp}
+        max={encounter.maxWeakHp}
+      />
+      <div class="shield-badge" title="Enemy shield">
+        <GameIcon name="shield" size={16} /><strong>{encounter.shield}</strong>
+      </div>
+    </div>
+  {/if}
   <footer>
     <span
-      ><strong>{shownCrew.securedTreasure}</strong>
-      secured · {shownCrew.carriedTreasure} carried</span
+      ><GameIcon name="boss" size={16} /><strong>{shownCrew.bossesDefeated}/3</strong>
+      <GameIcon name="gold" size={16} />{shownCrew.economy.gold}</span
     >
     <span
       >{view.status === "lobby"

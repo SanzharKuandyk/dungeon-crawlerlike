@@ -1,4 +1,4 @@
-import type { CampChoice, EquipmentChoice, HeroAction } from "./command-types.js";
+import type { CampChoice, HeroAction } from "./command-types.js";
 import type { ClassId } from "./content-types.js";
 import type { DuelAction } from "./duel-types.js";
 import type { GameEvent } from "./event-types.js";
@@ -35,6 +35,41 @@ export type RosterChange =
   | { action: "delete-crew"; crewId: string };
 export type RosterInput = Envelope & RosterChange;
 export interface ClientEvents {
+  "reward:claim": (
+    input: Envelope & { claim: import("./reward-types.js").RewardClaim; inventoryRevision: number },
+    ack: Ack,
+  ) => void;
+  "result:ready": (input: Envelope, ack: Ack) => void;
+  "inventory:command": (
+    input: Envelope & {
+      inventoryRevision: number;
+      command: import("./inventory-types.js").InventoryCommand;
+    },
+    ack: Ack,
+  ) => void;
+  "shop:buy": (input: Envelope & { offerId: string; inventoryRevision: number }, ack: Ack) => void;
+  "camp:treat": (
+    input: Envelope & { treatment: import("./inventory-types.js").Treatment },
+    ack: Ack,
+  ) => void;
+  "camp:rescue": (input: Envelope, ack: Ack) => void;
+  "trial:vote": (input: Envelope & { trialId: string; tileId: string }, ack: Ack) => void;
+  "trial:wager": (
+    input: Envelope & { trialId: string; wager: import("./trial-types.js").WagerLevel },
+    ack: Ack,
+  ) => void;
+  "trial:answer": (
+    input: Envelope & { trialId: string; questionId: string; choice: number },
+    ack: Ack,
+  ) => void;
+  "trial:blessing": (
+    input: Envelope & {
+      trialId: string;
+      offerId: string;
+      replace: import("./condition-types.js").BlessingKind | null;
+    },
+    ack: Ack,
+  ) => void;
   "session:join": (
     input: { code: string; name: string; bootstrapSecret: string },
     ack: Ack,
@@ -49,17 +84,13 @@ export interface ClientEvents {
   "hero:class": (input: Envelope & { classId: ClassId }, ack: Ack) => void;
   "route:vote": (input: Envelope & { roomId: string }, ack: Ack) => void;
   "hero:action": (input: Envelope & { action: HeroAction }, ack: Ack) => void;
+  "pvp:queue": (input: Envelope, ack: Ack) => void;
   "pvp:challenge": (input: Envelope & { targetCrewId: string }, ack: Ack) => void;
   "pvp:vote": (input: Envelope & { duelId: string; accept: boolean }, ack: Ack) => void;
   "pvp:action": (input: Envelope & { duelId: string; action: DuelAction }, ack: Ack) => void;
   "decision:edit": (input: Envelope, ack: Ack) => void;
   "crew:withdraw": (input: Envelope & { withdraw: boolean }, ack: Ack) => void;
   "camp:vote": (input: Envelope & { choice: CampChoice }, ack: Ack) => void;
-  "learning:answer": (
-    input: Envelope & { questionId: string; choice: number; pact?: "careful" | "blood" },
-    ack: Ack,
-  ) => void;
-  "equipment:choose": (input: Envelope & { item: EquipmentChoice }, ack: Ack) => void;
   "host:control": (input: HostInput, ack: Ack) => void;
   "test:control": (
     input: Envelope & { command: import("./host-types.js").TestCommand },
@@ -90,6 +121,9 @@ export interface ServerEvents {
   "session:error": (error: { code: ErrorCode; message: string }) => void;
 }
 export type TestScenario =
+  | "reward"
+  | "reward-full"
+  | "result"
   | "duel"
   | "fresh"
   | "split"
@@ -97,7 +131,21 @@ export type TestScenario =
   | "critical"
   | "question"
   | "final"
-  | "rivalry";
+  | "rivalry"
+  | "injuries"
+  | "panic"
+  | "overflow"
+  | "shop"
+  | "revival"
+  | "rescue"
+  | "boss-transition"
+  | "trial-intro"
+  | "trial-board"
+  | "trial-wager"
+  | "trial-answer"
+  | "trial-reveal"
+  | "trial-reward"
+  | "trial-return";
 export type TestBootstrap = {
   code: string;
   players: { playerId: string; crewId: string; clientId: string }[];

@@ -7,6 +7,7 @@ export type BattleActor = {
   root: Phaser.GameObjects.Container;
   model: Phaser.GameObjects.Graphics;
   health: Phaser.GameObjects.Graphics;
+  conditions: Phaser.GameObjects.Graphics;
   title: Phaser.GameObjects.Text;
   detail: Phaser.GameObjects.Text;
   x: number;
@@ -23,6 +24,7 @@ function actor(
   const root = scene.add.container(x, y);
   const shadow = scene.add.ellipse(0, 0, 90, 15, 0x18181b, 0.18);
   const health = scene.add.graphics();
+  const conditions = scene.add.graphics().setPosition(0, -70).setScale(1.45);
   const style = {
     fontFamily: "Arial",
     fontSize: "23px",
@@ -30,9 +32,9 @@ function actor(
     backgroundColor: "#ffffff",
   };
   const title = scene.add.text(0, 24, "", { ...style, fontStyle: "bold" }).setOrigin(0.5);
-  const detail = scene.add.text(0, 73, "", style).setOrigin(0.5);
-  root.add([shadow, model, title, health, detail]);
-  return { root, model, health, title, detail, x, y, dead: false };
+  const detail = scene.add.text(0, 70, "", { ...style, fontSize: "20px" }).setOrigin(0.5);
+  root.add([shadow, model, conditions, title, health, detail]);
+  return { root, model, conditions, health, title, detail, x, y, dead: false };
 }
 
 export function createHeroActor(
@@ -63,7 +65,7 @@ export function updateActor(
   entry: BattleActor,
   hp: number,
   maxHp: number,
-  detail: string,
+  _detail: string,
   dead: boolean,
   enemy = false,
 ) {
@@ -78,7 +80,24 @@ export function updateActor(
     entry.health
       .fillStyle(0x18181b)
       .fillRoundedRect(-55, 49, Math.max(4, (110 * hp) / maxHp), 8, 4);
-  entry.detail.setText(
-    dead ? "FALLEN" : enemy ? `${hp}/${maxHp} · ${detail}` : `${hp}/${maxHp} HP`,
-  );
+  entry.detail.setText(dead ? "FALLEN" : `${hp}/${maxHp}`);
+}
+
+export function updateHeroConditions(entry: BattleActor, hero: Hero) {
+  const g = entry.conditions.clear().setAlpha(hero.status === "dead" ? 0.3 : 1);
+  const bandage = (x: number, y: number) => {
+    g.fillStyle(0xffffff).lineStyle(1, 0x18181b);
+    g.fillRoundedRect(x, y, 13, 9, 2).strokeRoundedRect(x, y, 13, 9, 2);
+    g.lineBetween(x + 3, y, x + 6, y + 9).lineBetween(x + 7, y, x + 10, y + 9);
+  };
+  if (hero.conditions.injuries.includes("arm")) bandage(14, 5);
+  if (hero.conditions.injuries.includes("leg")) bandage(-19, 33);
+  if (hero.conditions.combatEffects.some((e) => e.kind === "bleed")) {
+    g.fillStyle(0x18181b).fillCircle(-27, 17, 3).fillCircle(-28, 27, 2);
+  }
+  if (hero.stress >= 4) {
+    g.lineStyle(2, hero.stress >= 7 ? 0x9c3d2e : 0x9d6a18);
+    g.strokeCircle(0, -55, 19);
+    g.lineBetween(-4, -62, 3, -57).lineBetween(3, -57, -3, -52).lineBetween(-3, -52, 3, -47);
+  }
 }

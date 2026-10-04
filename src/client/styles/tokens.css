@@ -1,0 +1,21 @@
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius: 8px;
+  --background: #fff;
+  --surface: #fff;
+  --text: #18181b;
+  --muted: #65656b;
+  --border: #8b8b92;
+  --strong-border: #3f3f46;
+  --hover: #f4f4f4;
+  --primary: #155e75;
+  --primary-hover: #10495b;
+  --health-fill: #256b45;
+  --stress-fill: #9d6a18;
+  --seal-fill: #6d5797;
+}

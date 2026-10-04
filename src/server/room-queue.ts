@@ -23,6 +23,7 @@ export function createRoomQueue(
 ) {
   const queues = new Map<string, Queue>();
   const idle: (() => void)[] = [];
+  let maximumDepth = 0;
 
   function deliver(code: string, immediate: boolean, crewIds?: string[]) {
     try {
@@ -56,7 +57,9 @@ export function createRoomQueue(
           assertInvariants(next.state);
           const fightingCrews = next.duels
             .filter((duel) => duel.status === "active")
-            .flatMap((duel) => duel.crewIds);
+            .flatMap((duel) =>
+              duel.crewIds.filter((id) => next.state.crews.some((c) => c.id === id)),
+            );
           if (new Set(fightingCrews).size !== fightingCrews.length)
             throw new Error("Crew entered two duels");
           if (
@@ -76,7 +79,7 @@ export function createRoomQueue(
               new Set(run.progress.resolvedPhaseIds).size !== run.progress.resolvedPhaseIds.length
             )
               throw new Error("Crew phase resolved twice");
-            if (run.progress.depth > 10 || run.progress.turn > 4)
+            if (run.progress.depth > 7 || run.progress.turn > 6)
               throw new Error("Invalid crew progress");
           }
           next.state.revision = draft.state.revision + 1;
@@ -126,7 +129,7 @@ export function createRoomQueue(
         });
         const audience =
           !globalChange &&
-          draft.state.rulesVersion === "dungeon-v2" &&
+          draft.state.rulesVersion === "dungeon-v4" &&
           draft.state.status !== "lobby"
             ? [
                 ...new Set([
@@ -136,7 +139,7 @@ export function createRoomQueue(
                   ...draft.duels
                     .filter(
                       (duel) =>
-                        ["offered", "active"].includes(duel.status) ||
+                        ["offered", "active", "champion-offer"].includes(duel.status) ||
                         old.duels.some(
                           (previous) => previous.id === duel.id && previous.status !== duel.status,
                         ),
@@ -178,6 +181,7 @@ export function createRoomQueue(
         resolve: (value) => resolve(value as T),
         reject,
       });
+      maximumDepth = Math.max(maximumDepth, active.pending.length);
       if (!active.running) {
         active.running = true;
         setTimeout(() => void flush(code, active), 5);
@@ -186,6 +190,10 @@ export function createRoomQueue(
   }
   return {
     transaction,
+    metrics: () => ({
+      maximumDepth,
+      pending: [...queues.values()].reduce((n, q) => n + q.pending.length, 0),
+    }),
     drain: () =>
       queues.size ? new Promise<void>((resolve) => idle.push(resolve)) : Promise.resolve(),
   };

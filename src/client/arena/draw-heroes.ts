@@ -95,7 +95,7 @@ function drawHero(
       .text(
         x,
         y + 69,
-        h.status === "dead" ? "SPIRIT" : `${h.hp}/${h.maxHp} HP · ${h.stress}/6 stress`,
+        h.status === "dead" ? "SPIRIT" : `${h.hp}/${h.maxHp} HP · ${h.stress}/10 stress`,
         { fontSize: "11px", fontFamily: "Arial", color: NEUTRALS.muted },
       )
       .setOrigin(0.5),

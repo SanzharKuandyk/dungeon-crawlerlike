@@ -6,8 +6,9 @@
   import DungeonProgress from "../components/DungeonProgress.svelte";
   import EventLog from "../components/EventLog.svelte";
   import ExpeditionMap from "../components/ExpeditionMap.svelte";
-  import QuizCard from "../components/QuizCard.svelte";
   import RoundTimer from "../components/RoundTimer.svelte";
+  import TrialPanel from "../components/TrialPanel.svelte";
+  import Button from "../components/ui/Button.svelte";
   import { crewView } from "../crew-view.js";
   import { phaseInstruction, presentation } from "../event-presenter.js";
   import { preferences } from "../room.svelte.js";
@@ -30,6 +31,7 @@
     received = $state(Date.now()),
     selected = $state<string | null>(null),
     tab = $state<"board" | "map" | "log">("board"),
+    chapter = $state(1),
     page = $state(0),
     pageSize = $state(2),
     detail = $state<HTMLDialogElement | null>(null);
@@ -100,7 +102,7 @@
             ? "Gather your crews"
             : view.expeditionMap
               ? view.independent
-                ? "Independent crews · secured treasure wins"
+                ? "Three chapters · bosses, progress, trial points"
                 : `Chapter ${view.expeditionMap.chapter} · Room ${((view.depth - 1) % view.expeditionMap.rows) + 1}`
               : `Depth ${view.depth} · Turn ${view.turn}`}
         </p>
@@ -112,31 +114,31 @@
     </header>
     <nav class="board-tabs" aria-label="Board views">
       {#if view.expeditionMap && view.status !== "lobby" && view.status !== "finished"}
-        <button
+        <Button
           type="button"
-          class:chosen={shownTab === "map"}
           aria-pressed={shownTab === "map"}
           onclick={() => (tab = "map")}
+          class={`${shownTab === "map" ? "chosen" : ""}`}
         >
           Map
-        </button>
+        </Button>
       {/if}
-      <button
+      <Button
         type="button"
-        class:chosen={shownTab === "board"}
         aria-pressed={shownTab === "board"}
         onclick={() => (tab = "board")}
+        class={`${shownTab === "board" ? "chosen" : ""}`}
       >
         Dungeon
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        class:chosen={tab === "log"}
         aria-pressed={tab === "log"}
         onclick={() => (tab = "log")}
+        class={`${tab === "log" ? "chosen" : ""}`}
       >
         Log
-      </button>
+      </Button>
     </nav>
   </div>
   {#if view.status !== "lobby" && !view.expeditionMap}
@@ -146,10 +148,26 @@
     <div hidden={shownTab !== "map"} class="board-panel map-board-panel">
       {#if quiz}
         <section class="inscription-panel">
-          <QuizCard view={{ ...view, role: "projector" }} />
+          <TrialPanel view={{ ...view, role: "projector" }} />
         </section>
       {:else}
-        <ExpeditionMap map={view.expeditionMap} crews={current.arena.crews} />
+        <nav class="board-tabs" aria-label="Chapter maps">
+          {#each view.chapterMaps as map}
+            <Button
+              type="button"
+              aria-pressed={chapter === map.chapter}
+              onclick={() => (chapter = map.chapter)}
+              class={`${chapter === map.chapter ? "chosen" : ""}`}
+            >
+              Chapter {map.chapter}
+            </Button>
+          {/each}
+        </nav>
+        <ExpeditionMap
+          roomId={view.id}
+          map={view.chapterMaps[chapter - 1] ?? view.expeditionMap}
+          crews={current.arena.crews}
+        />
       {/if}
     </div>
   {/if}
@@ -157,7 +175,7 @@
   <div hidden={shownTab !== "board"} class="board-panel">
     {#if quiz}
       <section class="inscription-panel">
-        <QuizCard view={{ ...view, role: "projector" }} />
+        <TrialPanel view={{ ...view, role: "projector" }} />
       </section>
     {/if}
     {#if view.status === "finished"}
@@ -169,7 +187,7 @@
       {/if}
       <div class="crew-pages" class:single-page={pages === 1}>
         {#if pages > 1}
-          <button
+          <Button
             type="button"
             class="page-arrow"
             aria-label="Previous crews"
@@ -177,7 +195,7 @@
             onclick={() => move(-1)}
           >
             ‹
-          </button>
+          </Button>
         {/if}
         <CrewGrid
           {hostController}
@@ -193,7 +211,7 @@
           }}
         />
         {#if pages > 1}
-          <button
+          <Button
             type="button"
             class="page-arrow"
             aria-label="Next crews"
@@ -201,7 +219,7 @@
             onclick={() => move(1)}
           >
             ›
-          </button>
+          </Button>
         {/if}
       </div>
       {#if current.arena.crews.length}
@@ -226,7 +244,7 @@
   >
     <header>
       <h2>{crew?.name ?? "Encounter"} · {encounter?.definition.name ?? "Campfire"}</h2>
-      <button type="button" class="quiet" onclick={() => (selected = null)}>Close</button>
+      <Button type="button" class="quiet" onclick={() => (selected = null)}>Close</Button>
     </header>
     <DungeonArena
       view={selected ? crewView(view, selected) : view}

@@ -1,10 +1,10 @@
-import { crewProgress } from "../game/crew-state.js";
+import { newCrewProgress } from "../game/crew-state.js";
 import type { CrewRun } from "../shared/crew-run-types.js";
 import type { Phase } from "../shared/game-types.js";
 import { freezeClock, newClock, resumeClock } from "./clocks.js";
 import { CREW_CHOICES } from "./crew-decisions.js";
+import { bindProgress } from "./progress-bindings.js";
 import type { StoredRoom } from "./room-types.js";
-
 export function enterCrew(room: StoredRoom, run: CrewRun, phase: Phase, now: number) {
   run.progress.phase = phase;
   run.progress.phaseId = ++room.decisionSerial;
@@ -12,13 +12,18 @@ export function enterCrew(room: StoredRoom, run: CrewRun, phase: Phase, now: num
   run.absentSince = {};
   run.suspended = false;
   const choosing = CREW_CHOICES.has(phase.kind);
-  const duration = choosing
-    ? 60000
-    : phase.kind === "combat-reveal"
-      ? run.progress.events.some((event) => event.cause === "death" || event.cause === "interrupt")
-        ? 8000
-        : 6800
-      : 1200;
+  const duration =
+    phase.kind === "result"
+      ? 60000
+      : choosing
+        ? 45000
+        : phase.kind === "combat-reveal"
+          ? 10000
+          : phase.kind === "extraction"
+            ? 4000
+            : phase.kind === "combat-recap"
+              ? 3000
+              : 1200;
   run.clock = newClock(
     room.speed === "fast" ? (choosing ? 3000 : 500) : duration,
     now,
@@ -26,31 +31,30 @@ export function enterCrew(room: StoredRoom, run: CrewRun, phase: Phase, now: num
       room.state.status === "running" &&
       !room.pauseReasons.length &&
       !run.pauseReasons.length &&
-      !room.state.quizQuestionId &&
+      !room.state.trial &&
       (!choosing || room.inactivityFallback),
   );
 }
-
 export function startCrews(room: StoredRoom, now: number) {
-  room.decisionSerial = Math.max(room.decisionSerial, room.state.phaseId);
   for (const crew of room.state.crews) {
-    const run: CrewRun = {
+    room.state.crewProgress[crew.id] = newCrewProgress();
+    room.state.outcomeRng[crew.id] =
+      (room.state.outcomeSeed ^ ((room.state.crews.indexOf(crew) + 1) * 0x9e3779b9)) >>> 0;
+    room.runs[crew.id] = {
       crewId: crew.id,
-      progress: structuredClone(crewProgress(room.state)),
+      progress: room.state.crewProgress[crew.id],
       clock: newClock(0, now, false),
       pauseReasons: [],
       ready: [],
       absentSince: {},
       suspended: false,
       finished: false,
-      rewardCharges: null,
     };
-    room.runs[crew.id] = run;
-    enterCrew(room, run, { kind: "route" }, now);
   }
+  bindProgress(room);
+  for (const run of Object.values(room.runs)) enterCrew(room, run, { kind: "route" }, now);
   room.deadline = null;
 }
-
 export function freezeCrewClocks(room: StoredRoom, now: number) {
   for (const duel of room.duels)
     if (duel.status === "offered" && duel.remaining === null)
@@ -58,14 +62,13 @@ export function freezeCrewClocks(room: StoredRoom, now: number) {
   for (const run of Object.values(room.runs)) freezeClock(run.clock, now);
 }
 export function resumeCrewClocks(room: StoredRoom, now: number) {
-  if (room.pauseReasons.length || room.state.status !== "running" || room.state.quizQuestionId)
-    return;
+  if (room.pauseReasons.length || room.state.status !== "running" || room.state.trial) return;
   for (const duel of room.duels)
     if (duel.status === "offered" && duel.remaining !== null) {
       duel.expiresAt = now + duel.remaining;
       duel.remaining = null;
     }
-  for (const run of Object.values(room.runs)) {
+  for (const run of Object.values(room.runs))
     if (
       !run.pauseReasons.length &&
       !run.suspended &&
@@ -76,5 +79,4 @@ export function resumeCrewClocks(room: StoredRoom, now: number) {
         room.duels.some((d) => d.status === "active" && d.crewIds.includes(run.crewId)))
     )
       resumeClock(run.clock, now);
-  }
 }

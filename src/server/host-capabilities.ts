@@ -5,7 +5,7 @@ export function hostCapabilities(room: StoredRoom) {
     crews: Object.values(room.runs).map((run) => {
       const duel = room.duels.some((d) => d.status === "active" && d.crewIds.includes(run.crewId));
       const ordinary =
-        !room.state.quizQuestionId &&
+        !room.state.trial?.id &&
         !duel &&
         CREW_CHOICES.has(run.progress.phase.kind) &&
         !run.finished;

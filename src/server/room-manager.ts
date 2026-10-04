@@ -1,13 +1,13 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { createMatch } from "../game/create-match.js";
-import { mergeCrewState } from "../game/crew-state.js";
 import { assertInvariants } from "../game/invariants.js";
 import type { DungeonContent } from "../shared/content-types.js";
 import type { ActionResult, Envelope, Receipt } from "../shared/protocol.js";
 import { newClock } from "./clocks.js";
-import { crewCommandRoom, playerRun } from "./crew-decisions.js";
+import { playerRun } from "./crew-decisions.js";
 import { reject } from "./errors.js";
 import { expeditionDue, progressExpedition } from "./expedition-scheduler.js";
+import { bindProgress } from "./progress-bindings.js";
 import { questionActive } from "./question-coordinator.js";
 import { createLimits } from "./request-limits.js";
 import { advancePhase } from "./room-clock.js";
@@ -20,7 +20,7 @@ import type { Storage } from "./storage.js";
 
 export function emptyRoom(state: StoredRoom["state"], testMode = false): StoredRoom {
   return {
-    schemaVersion: 7,
+    schemaVersion: 9,
     savedAt: 0,
     absentSince: {},
     timer: newClock(0, 0, false),
@@ -41,7 +41,7 @@ export function emptyRoom(state: StoredRoom["state"], testMode = false): StoredR
     processed: {},
     runs: {},
     decisionSerial: state.phaseId,
-    inactivityFallback: true,
+    inactivityFallback: false,
     discovery: null,
     lifecycle: { kind: "live", hostDisconnectedAt: null },
   };
@@ -56,21 +56,26 @@ export function createRoomManager(
   const snapshot = createRoomProjector(rooms, clock);
   let publish: Publisher = () => {};
   let creating: Promise<unknown> = Promise.resolve();
-  const { transaction, drain } = createRoomQueue(rooms, storage, clock, (code, immediate, crews) =>
-    publish(code, immediate, crews),
+  const { transaction, drain, metrics } = createRoomQueue(
+    rooms,
+    storage,
+    clock,
+    (code, immediate, crews) => publish(code, immediate, crews),
   );
   return {
     rooms,
     transaction,
     drain,
+    queueMetrics: metrics,
     setPublisher(callback: typeof publish) {
       publish = callback;
     },
     async restore() {
       for (const room of await storage.load()) {
+        bindProgress(room);
         assertInvariants(room.state);
         if (
-          room.state.rulesVersion === "dungeon-v2" &&
+          room.state.rulesVersion === "dungeon-v4" &&
           room.lifecycle.kind === "live" &&
           ["running", "paused"].includes(room.state.status)
         ) {
@@ -89,11 +94,7 @@ export function createRoomManager(
         rooms.set(room.state.code, room);
       }
     },
-    async create(
-      secret = newToken(),
-      testMode = false,
-      rulesVersion: "dungeon-v1" | "dungeon-v2" = "dungeon-v2",
-    ) {
+    async create(secret = newToken(), testMode = false, rulesVersion: "dungeon-v4" = "dungeon-v4") {
       const task = creating
         .catch(() => {})
         .then(async () => {
@@ -110,7 +111,11 @@ export function createRoomManager(
           const seed = randomBytes(4).readUInt32LE();
           const state = createMatch(randomUUID(), code, content, seed);
           state.rulesVersion = rulesVersion;
+          state.outcomeSeed = randomBytes(4).readUInt32LE();
+          state.trialRng = randomBytes(4).readUInt32LE();
+          state.rewardSeed = randomBytes(4).readUInt32LE();
           const room = emptyRoom(state, testMode);
+          state.learningEnabled = !!content.trialPack && (testMode || !content.trialPack.fixture);
           room.creationKeyHash = tokenHash;
           if (room.lifecycle.kind === "live") room.lifecycle.hostDisconnectedAt = clock();
           room.savedAt = clock();
@@ -173,14 +178,12 @@ export function createRoomManager(
             )
               reject("CLOSED", "Choose a duel action instead.");
             if (run.finished) reject("CLOSED", "Your expedition has ended.");
-            const scoped = crewCommandRoom(room, run);
-            edit(scoped);
-            mergeCrewState(room.state, run, scoped.state);
+            edit(room);
             const playerId = binding.session?.playerId ?? "";
             if (decision === "confirm" && !run.ready.includes(playerId)) run.ready.push(playerId);
             if (decision === "edit") run.ready = run.ready.filter((id) => id !== playerId);
           } else edit(room);
-          if (room.state.rulesVersion === "dungeon-v2") progressExpedition(room, clock());
+          if (room.state.rulesVersion === "dungeon-v4") progressExpedition(room, clock());
           const value = { revision: room.state.revision + 1 };
           room.processed[cacheKey] = { fingerprint, receipt: value };
           return { ok: true, value };
@@ -190,16 +193,16 @@ export function createRoomManager(
       );
     },
     async tick(now: number) {
-      await Promise.allSettled(
+      const results = await Promise.allSettled(
         [...rooms.values()]
           .filter((r) =>
-            r.state.rulesVersion === "dungeon-v2"
+            r.state.rulesVersion === "dungeon-v4"
               ? hostExpired(r, now) || expeditionDue(r, now)
               : r.state.status === "running" && r.deadline !== null && r.deadline <= now,
           )
           .map((r) =>
             transaction(r.state.code, (room) => {
-              if (room.state.rulesVersion === "dungeon-v2") {
+              if (room.state.rulesVersion === "dungeon-v4") {
                 if (hostExpired(room, now)) pauseRoom(room, "host-offline", now);
                 else progressExpedition(room, now);
               } else if (
@@ -211,6 +214,12 @@ export function createRoomManager(
             }),
           ),
       );
+      for (const result of results)
+        if (result.status === "rejected")
+          console.error(
+            "Phase transition rejected:",
+            result.reason instanceof Error ? result.reason.message : "Unknown failure",
+          );
     },
   };
 }

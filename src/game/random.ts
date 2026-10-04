@@ -8,3 +8,8 @@ export function shuffled<T>(values: readonly T[], seed: number): T[] {
   }
   return result;
 }
+
+export function nextRandom(state: number) {
+  const next = (Math.imul(state >>> 0, 1664525) + 1013904223) >>> 0;
+  return { value: next / 4294967296, state: next };
+}

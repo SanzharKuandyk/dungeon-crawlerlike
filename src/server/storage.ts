@@ -33,14 +33,14 @@ export function fileStorage(directory: string): Storage {
         try {
           const room: StoredRoom = JSON.parse(await readFile(join(directory, name), "utf8"));
           if (
-            room.schemaVersion !== 7 ||
-            !["dungeon-v1", "dungeon-v2"].includes(room.state.rulesVersion) ||
+            room.schemaVersion !== 9 ||
+            room.state.rulesVersion !== "dungeon-v4" ||
             room.state.code !== name.slice(0, 6) ||
             !room.sessions ||
             !room.processed ||
             !room.runs ||
             !Array.isArray(room.duels) ||
-            !room.state.answerPacts ||
+            !room.state.crewProgress ||
             !room.lifecycle ||
             !Number.isFinite(room.savedAt) ||
             !Array.isArray(room.pauseReasons) ||

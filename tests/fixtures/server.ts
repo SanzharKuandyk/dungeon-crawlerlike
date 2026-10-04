@@ -12,15 +12,7 @@ export function memoryStorage() {
       if (fail) throw new Error("Disk full");
       if (!r.testMode) saved.set(r.state.code, structuredClone(r));
     },
-    load: async () =>
-      [...saved.values()].map((v) => {
-        const r = structuredClone(v);
-        if (r.state.status === "running") {
-          r.state.status = "paused";
-          r.deadline = null;
-        }
-        return r;
-      }),
+    load: async () => [...saved.values()].map((v) => structuredClone(v)),
   };
   return {
     storage,

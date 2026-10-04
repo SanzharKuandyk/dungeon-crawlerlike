@@ -7,6 +7,7 @@
   import { checkHealth, closeRoom, openRoom } from "./connection.js";
   import { readRoute } from "./navigation.js";
   import { preferences, room } from "./room.svelte.js";
+  import GalleryScreen from "./screens/GalleryScreen.svelte";
   import HomeScreen from "./screens/HomeScreen.svelte";
   import HostScreen from "./screens/HostScreen.svelte";
   import LobbyScreen from "./screens/LobbyScreen.svelte";
@@ -93,6 +94,10 @@
   />
   <main>
     {#if route.screen === "home"}
+      <HomeScreen />
+    {:else if route.screen === "gallery" && room.testEnabled}
+      <GalleryScreen />
+    {:else if route.screen === "gallery"}
       <HomeScreen />
     {:else if route.screen === "test"}
       <TestScreen />
