@@ -4,9 +4,9 @@ import { newClock } from "./clocks.js";
 import { enterCrew } from "./crew-clock.js";
 import { reject } from "./errors.js";
 import { progressExpedition } from "./expedition-scheduler.js";
-import { questionActive } from "./question-coordinator.js";
 import { advancePhase, setDeadline } from "./room-clock.js";
 import type { StoredRoom } from "./room-types.js";
+import { questionActive } from "./shared-event-coordinator.js";
 export function testControl(
   room: StoredRoom,
   input: Envelope & { command: TestCommand },
@@ -14,13 +14,13 @@ export function testControl(
 ) {
   if (!room.testMode) reject("UNAUTHORIZED", "Test controls are unavailable.");
   if (input.command.kind === "advance") {
-    if (room.state.rulesVersion === "dungeon-v4") progressExpedition(room, now, true);
+    if (room.state.rulesVersion === "dungeon-v5") progressExpedition(room, now, true);
     else advancePhase(room, now);
     return;
   }
   room.speed = input.command.speed;
   setDeadline(room, now);
-  if (room.state.rulesVersion === "dungeon-v4" && !questionActive(room)) {
+  if (room.state.rulesVersion === "dungeon-v5" && !questionActive(room)) {
     room.deadline = null;
     for (const run of Object.values(room.runs)) {
       if (run.finished) continue;

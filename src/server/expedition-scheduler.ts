@@ -7,14 +7,14 @@ import {
 } from "./crew-decisions.js";
 import { advanceCrew } from "./crew-transitions.js";
 import { duelHolds, duelsDue, progressDuels } from "./duel-coordinator.js";
+import { closeSession } from "./room-lifecycle.js";
+import type { StoredRoom } from "./room-types.js";
 import {
   advanceQuestion,
   beginQuestion,
   questionActive,
   questionReady,
-} from "./question-coordinator.js";
-import { closeSession } from "./room-lifecycle.js";
-import type { StoredRoom } from "./room-types.js";
+} from "./shared-event-coordinator.js";
 
 export function progressExpedition(room: StoredRoom, now: number, force = false) {
   if (room.state.status !== "running") return;
@@ -27,7 +27,10 @@ export function progressExpedition(room: StoredRoom, now: number, force = false)
       advanceQuestion(room, now);
     return;
   }
+
+  for (const run of Object.values(room.runs)) updateCrewPresence(room, run, now);
   progressDuels(room, now, force);
+
   for (const run of Object.values(room.runs)) {
     if (duelHolds(room, run.crewId)) continue;
     if (run.finished) continue;
@@ -45,8 +48,15 @@ export function progressExpedition(room: StoredRoom, now: number, force = false)
     }
     advanceCrew(room, run, now);
   }
+
   beginQuestion(room, now);
-  if (Object.values(room.runs).length && Object.values(room.runs).every((run) => run.finished)) {
+
+  if (
+    !room.discovery &&
+    !questionActive(room) &&
+    Object.values(room.runs).length &&
+    Object.values(room.runs).every((run) => run.finished)
+  ) {
     room.discovery = null;
     closeSession(room, now, "completed");
     room.deadline = null;
@@ -57,6 +67,7 @@ export function expeditionDue(room: StoredRoom, now: number) {
   if (room.state.status !== "running" || room.speed === "manual") return false;
   if (questionActive(room))
     return questionReady(room) || (room.deadline !== null && room.deadline <= now);
+
   return (
     duelsDue(room, now) ||
     Object.values(room.runs).some(

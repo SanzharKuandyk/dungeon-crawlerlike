@@ -10,6 +10,9 @@ export const CLASS_IDS = [
 ] as const;
 export const POWER = { 1: 12, 2: 6, 3: 4, 4: 3 } as const;
 const normal = {
+  event: 30000,
+  "event-reveal": 3000,
+  "shared-event": 3000,
   route: 25000,
   arrival: 4000,
   combat: 45000,
@@ -27,6 +30,9 @@ const normal = {
   extraction: 10000,
 };
 const fast = {
+  event: 3000,
+  "event-reveal": 500,
+  "shared-event": 500,
   route: 3000,
   arrival: 500,
   combat: 3000,

@@ -10,9 +10,11 @@ export type MapNodeKind =
   | "merchant"
   | "altar"
   | "arena"
-  | "shrine";
+  | "shrine"
+  | "siege";
 
 export type MapNode = {
+  sharedEventId?: import("./shared-event-types.js").SharedEventId;
   eventId?: "coin-fountain" | "trapped-cache" | "sacrificial-altar" | "quiet-shrine";
   id: string;
   row: number;
@@ -23,7 +25,7 @@ export type MapNode = {
 };
 
 export type ExpeditionMap = {
-  version: "branching-v1" | "chapters-v3";
+  version: "branching-v1" | "chapters-v3" | "chapters-v5";
   chapter: number;
   rows: number;
   nodes: MapNode[];
@@ -36,6 +38,7 @@ export type MapPosition = {
 };
 
 export const MAP_NODE_LABELS: Record<MapNodeKind, string> = {
+  siege: "Class siege",
   merchant: "Merchant",
   altar: "Trial altar",
   arena: "Arena",

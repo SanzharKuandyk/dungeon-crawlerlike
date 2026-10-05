@@ -21,20 +21,15 @@ export type DungeonContent = {
   rooms: RoomDefinition[];
   trialPack?: import("./trial-types.js").TrialPack;
   balance?: Balance;
+  enemyPatterns?: import("./enemy-content-types.js").EnemyPatterns;
+  mapTemplates?: { chapter: 1 | 2; rows: import("./map-types.js").MapNodeKind[][] }[];
+  sharedEvents?: import("./shared-event-types.js").SharedEventDefinition[];
 };
 
 export type Balance = {
   ordinaryHealthBase: number;
   eliteHealthBase: number;
   bossHealthBase: number;
-  sealPower: number;
-  strikePower: number;
-  heavyBonusPower: number;
-  shieldPower: number;
-  woundedBonusPower: number;
-  finalPhaseBonusPower: number;
-  seerStress: number;
-  sealedStress: number;
   startingGold: number;
   ordinaryReward: number;
   eliteReward: number;
@@ -42,10 +37,12 @@ export type Balance = {
   cacheReward: number;
   rescueDebt: number;
   ordinaryTurns: number;
+  eliteTurns: number;
   bossTurns: number;
   injuryChance: number;
   backpackSlots: number;
   stackLimit: number;
   signatureCooldown: number;
   skirmishStress: number;
+  trialGoldPer100?: number;
 };

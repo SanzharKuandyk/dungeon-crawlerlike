@@ -19,6 +19,7 @@
     locked,
     onuse,
     details = true,
+    unavailableReason = "Gear can be changed at a safe stop.",
   }: {
     selected: ItemInstance;
     selectedSlot?: EquipmentSlot;
@@ -29,6 +30,7 @@
     locked: boolean;
     onuse: () => void;
     details?: boolean;
+    unavailableReason?: string;
   } = $props();
   let busy = $state(false),
     error = $state("");
@@ -47,6 +49,10 @@
       (a) => a.kind === "use-item" && a.itemId === selected.id && a.targetHeroId === hero.id,
     ),
   );
+  let previous = $derived(
+    !selectedSlot && definition?.slot ? hero.inventory.equipment[definition.slot] : null,
+  );
+  let noSpace = $derived(!!selectedSlot && hero.inventory.backpack.length >= 6);
 </script>
 <section class="item-detail" aria-live="polite">
   {#if details}
@@ -54,7 +60,14 @@
       <GameIcon name={selected.kind} size={28} /><strong>{definition?.name}</strong
       ><small>{selectedSlot ?? "Backpack"}</small>
     </header>
-    <p>{itemDescription(selected.kind, hero.power)}</p>
+    <p>{itemDescription(selected.kind, hero.power, "rank" in selected ? selected.rank : 1)}</p>
+  {:else}
+    <p>{itemDescription(selected.kind, hero.power, "rank" in selected ? selected.rank : 1)}</p>
+  {/if}
+  {#if previous}
+    <p class="swap-destination">
+      Equip replaces {itemDefinition(previous.kind)?.name}; it moves to your Bag.
+    </p>
   {/if}
   <div class="item-operation-row">
     {#if !details}
@@ -64,7 +77,12 @@
       <Button
         type="button"
         pending={busy}
-        disabled={!editable}
+        disabled={!editable || noSpace}
+        disabledReason={!editable
+          ? unavailableReason
+          : noSpace
+            ? "Bag full. Make space before unequipping."
+            : undefined}
         onclick={() => selectedSlot && void inventory({ kind: "unequip", slot: selectedSlot })}
       >
         <GameIcon name="backpack" />Unequip
@@ -75,6 +93,7 @@
         class="primary"
         pending={busy}
         disabled={!editable}
+        disabledReason={!editable ? unavailableReason : undefined}
         onclick={() => void inventory({ kind: "equip", itemId: selected.id })}
       >
         <GameIcon name="equip" />Equip
@@ -110,6 +129,13 @@
       {/each}
     {/if}
   </div>
+  {#if selectedSlot || definition?.slot}
+    {#if !editable}
+      <small class="inventory-lock" role="status">{unavailableReason}</small>
+    {:else if noSpace}
+      <small class="inventory-lock" role="status">Bag full. Make space before unequipping.</small>
+    {/if}
+  {/if}
   {#if (!selectedSlot && (teammates.length || view.shop)) ||
     (!editable && view.phase.kind !== "combat")}
     <InspectPopover label="More">

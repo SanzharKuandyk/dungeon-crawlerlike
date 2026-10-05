@@ -7,8 +7,8 @@ export function actionLabel(action: HeroAction | null, view: PlayerRoomView, act
   if (!actor) return ACTION_NAMES[action.kind];
   const label = ACTION_NAMES[action.kind];
   const target =
-    "part" in action
-      ? ` ${action.part === "body" ? "body" : "seal"}`
+    "enemyId" in action
+      ? ` ${view.encounters.flatMap((e) => e.enemies).find((e) => e.id === action.enemyId)?.name ?? "enemy"}`
       : "targetHeroId" in action
         ? ` ${view.players.find((p) => p.id === view.heroes.find((h) => h.id === action.targetHeroId)?.playerId)?.name ?? "ally"}`
         : "";

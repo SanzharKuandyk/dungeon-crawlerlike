@@ -57,16 +57,16 @@
         <Panel
           ><h2>Cache opened</h2>
           <div class="reward-options">
-            <ItemSlot kind="body-blade" selected /><ItemSlot kind="ward-vest" />
+            <ItemSlot kind="blade" selected /><ItemSlot kind="ward-vest" />
           </div>
-          <ItemDetail kind="body-blade" power={12} comparison="seal-pick" />
+          <ItemDetail kind="blade" power={12} comparison="piercing-blade" />
           <TransactionFeedback
             feedback={{
               requestId: "gallery",
               operation: "equip",
-              item: "body-blade",
+              item: "blade",
               paid: 0,
-              destination: "Equipped in weapon · Seal pick added to backpack",
+              destination: "Equipped in weapon · Piercing blade added to backpack",
             }}
           /><DecisionFooter
             ><ReadyStatus ready={1} total={4} />
@@ -86,7 +86,7 @@
                 turn: 2,
                 entries: [
                   { actor: "Mira", message: "Mira blocked 12 damage." },
-                  { actor: "Ash", message: "Ash broke the seal." },
+                  { actor: "Ash", message: "Ash marked the enemy." },
                   { actor: null, message: "The enemy attack was cancelled." },
                 ],
               }}
@@ -95,8 +95,8 @@
             ><h2>Full backpack</h2>
             <div class="backpack-slots">
               {#each [
-                "body-blade",
-                "seal-pick",
+                "blade",
+                "piercing-blade",
                 "guard-coat",
                 "ward-vest",
                 "calm-charm",
@@ -108,14 +108,14 @@
             <InlineNotice error
               >Choose a backpack item to replace, or save this reward.</InlineNotice
             ><EmptyState message="No new equipment drop · 12 gold earned" />
-            <Button>Save for later</Button></Panel
+            <Button>Leave reward</Button></Panel
           >
         </div>
       {/if}
     {/snippet}</Tabs
   >
-  <Dialog bind:open title="Body blade"
-    ><ItemDetail kind="body-blade" power={12} />
+  <Dialog bind:open title="Blade"
+    ><ItemDetail kind="blade" power={12} />
     {#snippet footer()}
       <Button primary onclick={() => (open = false)}>Equip</Button>
     {/snippet}</Dialog

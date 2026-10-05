@@ -23,16 +23,30 @@ export function validateTrialPack(pack: TrialPack, classroom = false) {
     )
       throw new Error("A reviewed lecture reference and four explained choices are required.");
 }
-export function createTrial(state: MatchState, chapter: 1 | 2, cause: string): Trial {
+export function createTrial(
+  state: MatchState,
+  chapter: 1 | 2,
+  cause: string,
+  eventId: import("../../shared/shared-event-types.js").SharedEventId = "trial-1",
+): Trial {
   validateTrialPack(state.trialPack);
   return {
-    id: `trial:${state.id}:${chapter}`,
+    id: `trial:${state.id}:${eventId}`,
+    eventId,
+    selection: null,
     chapter,
     cause,
     phase: { kind: "intro" },
     questionNumber: 1,
     tiles: state.trialPack.categories.flatMap((category, index) =>
-      ([100, 200, 300] as const).map((value) => ({
+      (
+        state.content.sharedEvents?.find((e) => e.id === eventId)?.bands ??
+        ((eventId === "trial-2"
+          ? [200, 300]
+          : eventId === "trial-3"
+            ? [100, 300]
+            : [100, 200]) as import("../../shared/trial-types.js").TrialValue[])
+      ).map((value) => ({
         id: `tile:${index}:${value}`,
         category,
         value,
@@ -92,6 +106,13 @@ export function chooseTile(state: MatchState, trial: Trial) {
   )[0];
   if (!question) throw new Error("Reviewed question variants exhausted.");
   trial.usedValues.push(tile.value);
+  trial.selection = {
+    tileId: tile.id,
+    crewVotes,
+    reason: winner
+      ? "One vote per crew · ties use rotating crew priority"
+      : "No crew votes · lowest available value",
+  };
   state.usedTrialQuestions.push(question.id);
   trial.wagers = {};
   trial.answers = {};

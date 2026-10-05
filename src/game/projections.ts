@@ -38,16 +38,39 @@ export function projectRoom(
   sharedView?: PublicRoomView,
 ): RoomView {
   const { testMode, readOnly, readyPlayers, operations, moderation, ...clock } = options;
-  const presenting = ["arrival", "combat-reveal", "camp-reveal", "extraction", "return"].includes(
-    s.phase.kind,
-  );
+  const presenting = [
+    "arrival",
+    "combat-reveal",
+    "camp-reveal",
+    "event-reveal",
+    "extraction",
+    "return",
+  ].includes(s.phase.kind);
   const cached = sharedView;
   const base: PublicRoomView = cached
     ? { ...cached, ...clock }
     : {
         role: "projector",
+        sharedEvents: structuredClone(s.sharedEvents),
+        revivalRequests: Object.values(s.crewProgress).flatMap((p) => p.helpRequests),
         chapterMaps: structuredClone(s.chapterMaps),
         trial: projectTrial(s),
+        siege: s.siege,
+        explorations: Object.entries(s.crewProgress).flatMap(([crewId, p]) =>
+          p.exploration
+            ? [
+                {
+                  crewId,
+                  nodeId: p.exploration.nodeId,
+                  choices: p.exploration.choices,
+                  outcomes:
+                    p.exploration.resolved && p.phase.kind !== "event-reveal"
+                      ? p.exploration.outcomes
+                      : [],
+                },
+              ]
+            : [],
+        ),
         trialContentReady: !s.trialPack.fixture,
         skillStress: { skirmish: s.content.balance?.skirmishStress ?? 2 },
         id: s.id,
@@ -155,6 +178,7 @@ export function projectRoom(
       return {
         ...shop,
         offers: { [hero.id]: shop.offers[hero.id] ?? [] },
+        upgrades: { [hero.id]: shop.upgrades[hero.id] ?? [] },
         allowances: { [hero.id]: shop.allowances[hero.id] ?? 0 },
       };
     })(),
@@ -181,12 +205,23 @@ export function projectRoom(
         name: p.name,
         ready: readyPlayers?.includes(p.id) ?? false,
         action: s.crewProgress[self.crewId ?? ""]?.actions[p.id] ?? null,
+        plan: s.crewProgress[self.crewId ?? ""]?.plans[p.id] ?? null,
         route: s.crewProgress[self.crewId ?? ""]?.routeVotes[p.id] ?? null,
         camp: s.crewProgress[self.crewId ?? ""]?.campVotes[p.id] ?? null,
         withdraw: s.crewProgress[self.crewId ?? ""]?.withdrawVotes[p.id] ?? false,
       })),
     legalActions: hero && s.phase.kind === "combat" ? legalActions(s, hero) : [],
     selectedAction: s.crewProgress[self.crewId ?? ""]?.actions[self.id] ?? null,
+    selectedPlan: s.crewProgress[self.crewId ?? ""]?.plans[self.id] ?? null,
+    exploration: (() => {
+      const event = s.crewProgress[self.crewId ?? ""]?.exploration;
+      if (!event) return null;
+      const { rolls: _private, ...visible } = event;
+      return {
+        ...structuredClone(visible),
+        outcomes: s.phase.kind === "event-reveal" ? [] : structuredClone(event.outcomes),
+      };
+    })(),
     winningRoute: self.crewId && s.status !== "lobby" ? winningRoute(s, self.crewId) : null,
     reachableNodeIds: self.crewId ? reachableNodes(s, self.crewId).map((node) => node.id) : [],
     recoveryAvailable: s.crewProgress[self.crewId ?? ""]?.recovering ?? false,

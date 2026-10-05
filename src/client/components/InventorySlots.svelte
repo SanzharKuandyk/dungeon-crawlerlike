@@ -60,6 +60,8 @@
     <ItemDetail
       kind={selected.kind}
       power={hero.power}
+      rank={"rank" in selected ? selected.rank : 1}
+      comparisonRank={equipmentSlot ? (hero.inventory.equipment[equipmentSlot]?.rank ?? 1) : 1}
       comparison={selectedSlot
         ? undefined
         : equipmentSlot
@@ -75,7 +77,7 @@
   {#each hero.inventory.overflow as item}
     <section class="item-detail">
       <strong>{itemDefinition(item.kind)?.name}</strong>
-      <p>{itemDescription(item.kind, hero.power)}</p>
+      <p>{itemDescription(item.kind, hero.power, "rank" in item ? item.rank : 1)}</p>
       <div class="item-operation-row">
         {#if hero.inventory.backpack.length < 6}
           <Button

@@ -1,9 +1,11 @@
 import type { CampChoice, HeroAction } from "./command-types.js";
 import type { GameEvent } from "./event-types.js";
 import type { ArenaState, Phase } from "./game-types.js";
-export type Chapter = 1 | 2 | 3;
+export type Chapter = 1 | 2;
 export type CrewProgress = {
   recovering: boolean;
+  helpRequests: string[];
+  exploration: import("./exploration-types.js").ExplorationState | null;
   result: import("./reward-types.js").CrewResult | null;
   lastTurn: import("./feedback-types.js").TurnSummary | null;
   restedNodeIds: string[];
@@ -18,6 +20,7 @@ export type CrewProgress = {
   phase: Phase;
   phaseId: number;
   actions: Record<string, HeroAction>;
+  plans: Record<string, import("./turn-plans.js").TurnPlan>;
   routeVotes: Record<string, string>;
   campVotes: Record<string, CampChoice>;
   withdrawVotes: Record<string, boolean>;

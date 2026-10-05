@@ -4,7 +4,7 @@ import { assertInvariants } from "../../src/game/invariants.js";
 import { freezeCrewClocks, resumeCrewClocks } from "../../src/server/crew-clock.js";
 import { challenge, queueArena, submitDuel, voteDuel } from "../../src/server/duel-commands.js";
 import { cancelDuel, duelsDue, progressDuels } from "../../src/server/duel-coordinator.js";
-import { beginQuestion } from "../../src/server/question-coordinator.js";
+import { beginQuestion } from "../../src/server/shared-event-coordinator.js";
 import { createTestRoom } from "../../src/server/test-mode/create-test-room.js";
 import type { Ack, Envelope } from "../../src/shared/protocol.js";
 import { serverFixture } from "../fixtures/server.js";

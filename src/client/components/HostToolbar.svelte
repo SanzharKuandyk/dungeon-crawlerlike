@@ -63,22 +63,25 @@
           void controller.command({ kind: "pvp-policy", enabled: e.currentTarget.checked })}
       >New crew challenges</label
     >
-    {#if view.quizActive}
+    {#if view.quizActive || view.sharedEvents.some((e) => e.status === "pending")}
       <Button
         type="button"
-        disabled={locked || !view.trial}
+        disabled={locked}
         onclick={() => {
-          const id = view.trial?.id;
+          const id =
+            view.trial?.id ??
+            view.siege?.id ??
+            view.sharedEvents.find((e) => e.status === "pending")?.id;
           if (
             id &&
             confirm(
-              "End this trial? Completed answers and rewards stay; unresolved questions award nothing.",
+              "Skip this shared event? Completed outcomes stay; unresolved choices award nothing.",
             )
           )
             void controller.command({ kind: "question-skip", questionId: id });
         }}
       >
-        End current trial
+        Skip shared event
       </Button>
     {/if}
     {#if view.status === "running" || view.status === "paused"}

@@ -1,9 +1,10 @@
 import type { BlessingKind } from "../../shared/condition-types.js";
 import type { MatchState } from "../../shared/game-types.js";
+import { expeditionEvent } from "../progression/events.js";
 import { nextRandom, shuffled } from "../random.js";
 export const BLESSINGS: BlessingKind[] = [
   "iron-nerve",
-  "sealbreaker",
+  "opener",
   "last-stand",
   "field-medic",
   "clear-purpose",
@@ -24,7 +25,12 @@ export function createBlessingOffers(state: MatchState) {
     state.trialRng = rng.state;
     trial.offers[hero.playerId] = shuffled(eligible, rng.state)
       .slice(0, trial.totals[hero.crewId] === best ? 3 : 2)
-      .map((kind, index) => ({ id: `${trial.id}:${hero.id}:${index}`, kind, rank }));
+      .map((kind, index) => ({
+        id: `${trial.id}:${hero.id}:${index}`,
+        groupId: trial.id,
+        kind,
+        rank,
+      }));
   }
 }
 export function grantBlessings(state: MatchState) {
@@ -50,6 +56,14 @@ export function grantBlessings(state: MatchState) {
         spent: hero.expeditionUses.includes(offer.kind),
       });
     }
+    expeditionEvent(
+      state,
+      hero.crewId,
+      { kind: "hero", actor: hero.id, hero },
+      `${state.players.find((p) => p.id === hero.playerId)?.name}: ${offer.kind.replaceAll("-", " ")} rank ${offer.rank === 2 ? "II" : "I"}.`,
+      0.85,
+      "blessing",
+    );
   }
   trial.rewardsGranted = true;
 }

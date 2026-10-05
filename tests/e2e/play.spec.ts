@@ -75,7 +75,7 @@ test("one Start automatically finishes a finite expedition with a persistent are
   let questionSeen = false;
   for (let i = 0; i < 720; i++) {
     if (await page.locator(".phone-panel .results").count()) break;
-    if ((await page.locator(".phone-panel").getAttribute("data-phase")) === "question")
+    if ((await page.locator(".phone-panel").getAttribute("data-phase")) === "shared-event")
       questionSeen = true;
     await page.waitForTimeout(250);
   }
@@ -102,7 +102,11 @@ test("spirits, private questions, equipment and scenario resets use the same con
     .click();
   await page.getByLabel("Scenario", { exact: true }).selectOption("trial-answer");
   await page.getByRole("button", { name: "Load scenario" }).click();
-  await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "question");
+  await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "shared-event");
+  await expect(page.locator(".phone-panel .trial-problem")).toContainText(
+    /Subway Surfers|Angry Birds|Candy Crush|Clash Royale|Brawl Stars/,
+  );
+  await expect(page.locator(".phone-panel .trial-panel")).not.toContainText("DEV FIXTURE");
   await page.getByText("Test debugger", { exact: true }).click();
   await page.getByLabel("Speed", { exact: true }).selectOption("manual");
   await page.getByRole("button", { name: "Manual all characters" }).click();
@@ -113,7 +117,10 @@ test("spirits, private questions, equipment and scenario resets use the same con
   await page.locator(".phone-panel .trial-options button").nth(choice).click();
   await expect(page.locator(".phone-panel .trial-panel")).toContainText("Answer locked");
   await page.getByRole("button", { name: "Next phase" }).click();
-  await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "explanation");
+  await expect(page.locator(".phone-panel")).toHaveAttribute("data-phase", "shared-event");
+  await expect(page.locator(".phone-panel .trial-options button")).toHaveCount(4);
+  await expect(page.locator(".phone-panel .trial-options button.correct")).toHaveCount(1);
+  await expect(page.locator(".phone-panel .trial-panel")).toContainText("MGD_5_week.pptx");
   await page.getByRole("button", { name: "Next phase" }).click();
   await expect(page.locator(".phone-panel .trial-board")).toBeVisible();
   await page.screenshot({ path: "test-results/dungeon-question.png", fullPage: true });

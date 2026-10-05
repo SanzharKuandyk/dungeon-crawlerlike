@@ -1,0 +1,6 @@
+[
+  { "id": "trial-1", "chapter": 1, "row": 5, "bands": [100, 200] },
+  { "id": "trial-2", "chapter": 1, "row": 10, "bands": [200, 300] },
+  { "id": "trial-3", "chapter": 2, "row": 6, "bands": [100, 300] },
+  { "id": "siege-1", "chapter": 2, "row": 10, "bands": [] }
+]

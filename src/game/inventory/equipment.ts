@@ -1,6 +1,6 @@
 import type { Hero, MatchState } from "../../shared/game-types.js";
 import type { InventoryCommand } from "../../shared/inventory-types.js";
-import { itemDefinition } from "./catalog.js";
+import { equipmentItem, itemDefinition } from "./catalog.js";
 import { addItem, consumeItem } from "./inventory.js";
 
 export function applyInventoryCommand(
@@ -11,6 +11,11 @@ export function applyInventoryCommand(
 ) {
   if (hero.inventory.revision !== revision) throw new Error("Your backpack changed. Choose again.");
   if (command.kind === "blessing") {
+    const chosen =
+      command.offerId === "decline"
+        ? hero.pendingBlessings[0]
+        : hero.pendingBlessings.find((o) => o.id === command.offerId);
+    if (!chosen) throw new Error("This Blessing offer is closed.");
     if (command.offerId !== "decline") {
       const offer = hero.pendingBlessings.find((o) => o.id === command.offerId);
       if (!offer) throw new Error("This Blessing offer is closed.");
@@ -29,7 +34,8 @@ export function applyInventoryCommand(
         });
       }
     }
-    hero.pendingBlessings = [];
+    const group = chosen.groupId ?? chosen.id;
+    hero.pendingBlessings = hero.pendingBlessings.filter((o) => (o.groupId ?? o.id) !== group);
     hero.inventory.revision++;
     return;
   }
@@ -80,11 +86,14 @@ export function applyInventoryCommand(
       if (!definition.slot) throw new Error("Consumables belong in the backpack.");
       const previous = next.equipment[definition.slot];
       if (previous) next.backpack.push(previous);
-      next.equipment[definition.slot] = item;
+      next.equipment[definition.slot] = equipmentItem(item);
     } else if (command.kind === "sell") {
       const crew = state.crews.find((c) => c.id === hero.crewId);
       if (!crew?.shop) throw new Error("Sell at a merchant.");
-      crew.economy.gold += Math.floor((definition.pricePower * hero.power * item.count) / 2);
+      crew.economy.gold +=
+        "rank" in item
+          ? item.rank * hero.power
+          : Math.floor((definition.pricePower * hero.power * item.count) / 2);
     } else {
       const target = state.heroes.find(
         (h) => h.id === command.targetHeroId && h.crewId === hero.crewId && h.id !== hero.id,

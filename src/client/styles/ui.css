@@ -144,6 +144,21 @@
   background: var(--health-fill);
   transition: width 160ms ease;
 }
+.block-meter {
+  display: grid;
+  gap: var(--space-1);
+  color: #24739b;
+}
+.block-meter > span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 12px;
+  line-height: 1;
+}
+.block-meter .stat-track i {
+  background: #24739b;
+}
 .ui-status[data-stat="stress"] .stat-track i {
   background: var(--stress-fill);
 }

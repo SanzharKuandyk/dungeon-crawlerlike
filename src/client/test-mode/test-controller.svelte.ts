@@ -6,7 +6,7 @@ import { type PlayerController, playerController } from "../player-controller.js
 import { type ConnectionStatus, room } from "../room.svelte.js";
 import { type ClientSession, createClientSession } from "../session.js";
 import { browserStorage } from "../storage.js";
-import { botAction, botCamp, botPreparation, botRoute } from "./bots.js";
+import { botCamp, botPlan, botPreparation, botRoute } from "./bots.js";
 
 export type TestActor = {
   playerId: string;
@@ -158,13 +158,20 @@ export function createTestController() {
         continue;
       }
       if (!v.trial && ["result", "route", "camp"].includes(v.phase.kind) && !v.decisionReady) {
-        const reward = v.rewards.find((o) => !o.deferred);
+        const reward = v.rewards[0];
         if (reward && v.hero) {
           void c.claimReward(
             {
               offerId: reward.id,
               optionId: reward.options[0].id,
-              disposition: v.hero.inventory.backpack.length >= 6 ? "defer" : "equip",
+              disposition:
+                reward.options[0].type === "equipment" && reward.options[0].upgradeItemId
+                  ? "upgrade"
+                  : v.hero.inventory.backpack.length >= 6
+                    ? "leave"
+                    : reward.options[0].type === "supplies"
+                      ? "keep"
+                      : "equip",
               replacementItemId: null,
             },
             v.hero.inventory.revision,
@@ -186,7 +193,9 @@ export function createTestController() {
                     { kind: "equip", itemId: preparation.itemId },
                     v.hero?.inventory.revision ?? 0,
                   )
-                : c.treat(preparation.treatment);
+                : preparation.kind === "revive"
+                  ? c.revive(preparation.targetHeroId, preparation.payment)
+                  : c.treat(preparation.treatment);
         void task;
         continue;
       }
@@ -209,8 +218,17 @@ export function createTestController() {
             duel.id,
             rival ? { kind: "strike", targetHeroId: rival.id } : { kind: "guard" },
           );
-        } else task = c.action(botAction(v));
+        } else task = c.plan(botPlan(v));
       }
+      if (v.siege?.phase === "choice")
+        task = c.siege(
+          v.hero?.status === "dead"
+            ? "supply"
+            : (["attack", "protect", "supply"][
+                (v.self.name.length + v.siege.round) % 3
+              ] as import("../../shared/siege-types.js").SiegeRole),
+        );
+      if (!v.trial && !v.siege && v.phase.kind === "event") task = c.event({ kind: "leave" });
       if (v.trial) {
         const t = v.trial;
         if (t.phase.kind === "board-vote")

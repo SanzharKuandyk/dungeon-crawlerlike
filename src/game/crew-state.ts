@@ -3,6 +3,8 @@ import type { MatchState } from "../shared/game-types.js";
 export function newCrewProgress(): CrewProgress {
   return {
     recovering: false,
+    helpRequests: [],
+    exploration: null,
     result: null,
     lastTurn: null,
     restedNodeIds: [],
@@ -17,6 +19,7 @@ export function newCrewProgress(): CrewProgress {
     phase: { kind: "route" },
     phaseId: 0,
     actions: {},
+    plans: {},
     routeVotes: {},
     campVotes: {},
     withdrawVotes: {},

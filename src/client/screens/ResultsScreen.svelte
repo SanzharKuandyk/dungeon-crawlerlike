@@ -1,16 +1,13 @@
 <script lang="ts">
   import { itemDefinition, itemDescription } from "../../game/inventory/catalog.js";
+  import { completedProgress } from "../../game/progression/scoring.js";
   import { CLASS_NAMES } from "../../shared/display-names.js";
   import type { RoomView } from "../../shared/view-types.js";
   import GameIcon from "../components/GameIcon.svelte";
   import InspectPopover from "../components/ui/InspectPopover.svelte";
 
   let { view }: { view: RoomView } = $props();
-  const progress = (ids: string[]) =>
-    ids.reduce(
-      (max, id) => Math.max(max, Number(id.split("-")[1]) * 7 + Number(id.split("-")[2])),
-      0,
-    );
+  const progress = (ids: string[]) => completedProgress(view.chapterMaps, ids);
   let ranked = $derived(
     [...view.crews].sort(
       (a, b) =>
@@ -35,7 +32,7 @@
       <strong>{crew.symbol} · {crew.name}</strong
       ><span class="result-stats"
         ><span title="Bosses defeated"
-          ><GameIcon name="boss" size={16} />{crew.bossesDefeated}/3</span
+          ><GameIcon name="boss" size={16} />{crew.bossesDefeated}/2</span
         ><span title="Completed rooms"
           ><GameIcon name="forward" size={16} />{crew.completedNodeIds.length}</span
         ><span title="Trial points"
@@ -59,7 +56,11 @@
           {/snippet}
           <p>
             {item
-              ? itemDescription(item.kind, view.role === "player" ? (view.hero?.power ?? 12) : 12)
+              ? itemDescription(
+                  item.kind,
+                  view.role === "player" ? (view.hero?.power ?? 12) : 12,
+                  item.rank,
+                )
               : `Empty ${slot} slot`}
           </p>
         </InspectPopover>

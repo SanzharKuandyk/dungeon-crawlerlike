@@ -152,18 +152,17 @@ test("combat targets are on the scene and four heroes fit desktop and mobile", a
   const change = page.getByRole("button", { name: "Change", exact: true });
   if (await change.isVisible()) await change.click();
   await page.getByRole("button", { name: "Protect", exact: true }).click();
-  await expect(page.locator(".character-targets button:visible")).toHaveCount(4);
+  await expect(page.locator(".scene-target[data-hero-id]:enabled")).toHaveCount(4);
   await page
-    .locator(".character-targets")
+    .locator(".scene-targets")
     .getByRole("button", { name: /Explorer 4.2/ })
     .click();
   await page.getByRole("button", { name: /(?:Ready|Play turn) · Protect Explorer 4.2/ }).click();
   await expect(page.locator(".own-order button")).toHaveAccessibleName(/Protect Explorer 4.2/);
   await page.getByRole("button", { name: "Change", exact: true }).click();
   await page.getByRole("button", { name: "Attack", exact: true }).click();
-  await page.getByRole("button", { name: "Seal", exact: true }).click();
-  await page.getByRole("button", { name: /(?:Ready|Play turn) · Attack seal/ }).click();
-  await expect(page.locator(".own-order button")).toHaveAccessibleName(/Attack seal/);
+  await page.getByRole("button", { name: /(?:Ready|Play turn) · Attack/ }).click();
+  await expect(page.locator(".own-order button")).toHaveAccessibleName(/Attack/);
   await page.getByRole("button", { name: /^Backpack/ }).click();
   await expect(page.getByRole("dialog", { name: "Backpack" })).toBeVisible();
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
@@ -185,7 +184,7 @@ test("combat targets are on the scene and four heroes fit desktop and mobile", a
   }
 });
 
-test("host pages crews, separates the log and fits four heroes on a laptop screen", async ({
+test("host and projector show every crew in rows and preserve details across resizing", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
@@ -204,16 +203,35 @@ test("host pages crews, separates the log and fits four heroes on a laptop scree
   );
   await page.goto(`/#/host/${code}`);
   const board = page.locator(".expedition-board");
-  await expect(board.locator(".expedition-heading")).toContainText("Three chapters");
-  await expect(board.locator(".board-panel .crew-stage")).toHaveCount(2);
-  await expect(board.getByRole("button", { name: "Previous crews" })).toBeDisabled();
-  await board.getByRole("button", { name: "Next crews" }).click();
+  await expect(board.locator(".expedition-heading")).toContainText("Two chapters");
+  await expect(board.locator(".board-panel .crew-stage")).toHaveCount(4);
+  await expect(board.getByRole("button", { name: /^(Previous|Next) crews$/ })).toHaveCount(0);
+  const stages = board.locator(".board-panel .crew-stage");
+  const positions = await stages.evaluateAll((nodes) =>
+    nodes.map((node) => ({ x: node.getBoundingClientRect().x, y: node.getBoundingClientRect().y })),
+  );
+  expect(positions[0].y).toBe(positions[1].y);
+  expect(positions[2].y).toBeGreaterThan(positions[0].y);
+  expect(positions[2].x).toBe(positions[0].x);
   const four = board
     .locator(".crew-stage")
     .filter({ has: page.getByRole("button", { name: "View Crew 4", exact: true }) });
+  await four.scrollIntoViewIfNeeded();
   await expect(four.locator("canvas")).toBeVisible();
-  expect(await four.evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
-  await page.screenshot({ path: "test-results/host-paged-board.png" });
+  const canvas = await four.locator("canvas").elementHandle();
+  for (const viewport of [
+    { width: 360, height: 800 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(stages).toHaveCount(4);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    expect(await canvas?.evaluate((node) => node.isConnected)).toBe(true);
+  }
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.screenshot({ path: "test-results/host-crew-grid.png", fullPage: true });
   await board.getByRole("button", { name: "Log", exact: true }).click();
   await expect(board.locator(".event-log")).toBeVisible();
   await expect(board.locator(".crew-grid")).not.toBeVisible();
@@ -225,6 +243,11 @@ test("host pages crews, separates the log and fits four heroes on a laptop scree
   await expect(page.locator("dialog canvas")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
+  const projector = await page.context().newPage();
+  await projector.goto(`/#/board/${code}`);
+  await expect(projector.locator(".crew-grid .crew-stage")).toHaveCount(4);
+  await expect(projector.getByRole("button", { name: /^(Previous|Next) crews$/ })).toHaveCount(0);
+  await projector.close();
 });
 
 test("team door highlighting distinguishes the crew result from a personal vote", async ({

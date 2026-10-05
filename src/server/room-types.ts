@@ -5,7 +5,7 @@ import type { Receipt } from "../shared/protocol.js";
 import type { Session } from "./sessions.js";
 
 export type StoredRoom = {
-  schemaVersion: 9;
+  schemaVersion: 10;
   savedAt: number;
   absentSince: Record<string, number>;
   pauseReasons: import("../shared/host-types.js").RoomPauseReason[];
@@ -27,7 +27,11 @@ export type StoredRoom = {
   runs: Record<string, CrewRun>;
   decisionSerial: number;
   inactivityFallback: boolean;
-  discovery: { cause: string; depth: number } | null;
+  discovery: {
+    cause: string;
+    depth: number;
+    eventId?: import("../shared/shared-event-types.js").SharedEventId;
+  } | null;
   lifecycle: import("../shared/host-types.js").RoomLifecycle;
 };
 export type Binding = {

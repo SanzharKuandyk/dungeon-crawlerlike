@@ -1,4 +1,4 @@
-import type { CampChoice, HeroAction } from "./command-types.js";
+import type { CampChoice } from "./command-types.js";
 import type { ClassId } from "./content-types.js";
 import type { DuelAction } from "./duel-types.js";
 import type { GameEvent } from "./event-types.js";
@@ -35,6 +35,18 @@ export type RosterChange =
   | { action: "delete-crew"; crewId: string };
 export type RosterInput = Envelope & RosterChange;
 export interface ClientEvents {
+  "shop:upgrade": (
+    input: Envelope & { offerId: string; targetItemId: string; inventoryRevision: number },
+    ack: Ack,
+  ) => void;
+  "event:choose": (
+    input: Envelope & { choice: import("./exploration-types.js").ExplorationChoice },
+    ack: Ack,
+  ) => void;
+  "siege:choose": (
+    input: Envelope & { siegeId: "siege-1"; role: import("./siege-types.js").SiegeRole },
+    ack: Ack,
+  ) => void;
   "reward:claim": (
     input: Envelope & { claim: import("./reward-types.js").RewardClaim; inventoryRevision: number },
     ack: Ack,
@@ -52,7 +64,10 @@ export interface ClientEvents {
     input: Envelope & { treatment: import("./inventory-types.js").Treatment },
     ack: Ack,
   ) => void;
-  "camp:rescue": (input: Envelope, ack: Ack) => void;
+  "crew:recover": (
+    input: Envelope & { command: import("./crew-recovery-types.js").CrewRecoveryCommand },
+    ack: Ack,
+  ) => void;
   "trial:vote": (input: Envelope & { trialId: string; tileId: string }, ack: Ack) => void;
   "trial:wager": (
     input: Envelope & { trialId: string; wager: import("./trial-types.js").WagerLevel },
@@ -83,7 +98,7 @@ export interface ClientEvents {
   "crew:join": (input: Envelope & { crewId: string }, ack: Ack) => void;
   "hero:class": (input: Envelope & { classId: ClassId }, ack: Ack) => void;
   "route:vote": (input: Envelope & { roomId: string }, ack: Ack) => void;
-  "hero:action": (input: Envelope & { action: HeroAction }, ack: Ack) => void;
+  "hero:plan": (input: Envelope & { plan: import("./turn-plans.js").TurnPlan }, ack: Ack) => void;
   "pvp:queue": (input: Envelope, ack: Ack) => void;
   "pvp:challenge": (input: Envelope & { targetCrewId: string }, ack: Ack) => void;
   "pvp:vote": (input: Envelope & { duelId: string; accept: boolean }, ack: Ack) => void;
@@ -121,6 +136,9 @@ export interface ServerEvents {
   "session:error": (error: { code: ErrorCode; message: string }) => void;
 }
 export type TestScenario =
+  | "combo"
+  | "coin"
+  | "siege"
   | "reward"
   | "reward-full"
   | "result"

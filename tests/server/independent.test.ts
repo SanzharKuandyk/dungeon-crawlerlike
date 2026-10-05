@@ -81,8 +81,16 @@ it("a crew resolves immediately without advancing another crew; retries do not r
   expect(
     await ack((done) =>
       player.emit(
-        "hero:action",
-        { ...f.env(combat.phaseId), action: { kind: "attack", part: "body" } },
+        "hero:plan",
+        {
+          ...f.env(combat.phaseId),
+          plan: {
+            kind: "hero",
+            actions: [{ kind: "attack", enemyId: combat.encounters[0].enemies[0].id }],
+            activation: null,
+            inventoryRevision: 0,
+          },
+        },
         done,
       ),
     ),
@@ -177,7 +185,7 @@ it("trial questions hide solutions and resume exactly the same crew decisions", 
     await f.advance(required(f.current().deadline));
   }
   expect(f.current().state.trial).toBeNull();
-  expect(f.current().state.usedTrialQuestions).toHaveLength(3);
+  expect(f.current().state.usedTrialQuestions).toHaveLength(2);
   expect(f.current().state.crews[0].trialScoreUnits).toBeGreaterThan(0);
   expect(f.current().state.crews[1].trialScoreUnits).toBe(0);
   expect(Object.values(f.current().runs).map((r) => r.progress.phaseId)).toEqual(phases);

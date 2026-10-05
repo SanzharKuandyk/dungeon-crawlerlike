@@ -1,11 +1,11 @@
-.map-panel > .phase-pane {
+.map-panel > .combat-main > .phase-pane {
   inset: 0;
   border-radius: 8px;
   border-top: 0;
   max-height: none;
 }
 
-.map-panel > .crew-stage {
+.map-panel > .combat-main > .crew-stage {
   visibility: hidden;
 }
 
@@ -64,11 +64,13 @@
 
 .map-toolbar {
   min-height: 44px;
+  white-space: nowrap;
   border-bottom: 1px solid var(--border);
 }
 
 .map-toolbar strong {
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .map-pan {
@@ -225,6 +227,9 @@
   text-align: center;
   font-size: 12px;
   color: var(--node-color, var(--muted));
+  background: var(--surface);
+  line-height: 20px;
+  border-radius: 4px;
 }
 
 .map-markers {
@@ -237,7 +242,7 @@
 }
 .map-here {
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% + 20px);
   left: 50%;
   transform: translateX(-50%);
   font-size: 12px;
@@ -248,7 +253,8 @@
   justify-content: flex-end;
 }
 .map-route-picker .decision-footer .primary {
-  flex: 0 1 280px;
+  flex: 1;
+  min-width: 0;
 }
 
 .map-markers > span {
@@ -290,7 +296,9 @@
 }
 
 .map-inspection {
-  height: 60px;
+  height: auto;
+  min-height: 32px;
+  max-height: 72px;
   padding: var(--space-2) var(--space-3);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -312,7 +320,7 @@
 }
 
 .map-inspection > small:only-child {
-  line-height: 42px;
+  line-height: 1.4;
 }
 
 .voting-map .map-viewport {
@@ -404,4 +412,44 @@
 
 .map-board-panel .map-crew-label {
   flex-shrink: 0;
+}
+
+@media (orientation: landscape) and (max-height: 700px) and (max-width: 1100px) {
+  .map-route-picker {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-rows: 52px minmax(0, 1fr) auto;
+  }
+  .map-route-picker .expedition-map {
+    display: contents;
+  }
+  .map-route-picker .map-toolbar {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .map-route-picker .map-viewport {
+    grid-column: 1;
+    grid-row: 2 / 4;
+  }
+  .map-route-picker .map-inspection {
+    grid-column: 2;
+    grid-row: 2;
+    height: auto;
+    max-height: none;
+    border-left: 1px solid var(--border);
+    border-top: 0;
+  }
+  .map-route-picker > .decision-footer {
+    grid-column: 2;
+    grid-row: 3;
+    border-left: 1px solid var(--border);
+    padding: var(--space-2);
+  }
+  .map-route-picker .decision-footer > div {
+    flex-wrap: nowrap;
+  }
+  .map-route-picker .decision-footer .primary {
+    font-size: 12px;
+    padding-inline: var(--space-2);
+  }
 }

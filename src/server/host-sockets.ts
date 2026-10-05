@@ -8,6 +8,7 @@ import type { RoomManager } from "./room-manager.js";
 import { hashToken } from "./sessions.js";
 import type { BindingGetter, GameSocket, Responder } from "./socket-types.js";
 import { testControl } from "./test-controls.js";
+
 export function attachHostSockets(
   socket: GameSocket,
   manager: RoomManager,

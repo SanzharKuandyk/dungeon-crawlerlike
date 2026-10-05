@@ -18,7 +18,7 @@ export async function createTestRoom(manager: RoomManager, input: BootstrapInput
     await manager.transaction(created.code, (room) => {
       room.state.seed = 12345;
       room.state.outcomeSeed = 98765;
-      room.state.chapterMaps = ([1, 2, 3] as const).map((c) =>
+      room.state.chapterMaps = ([1, 2] as const).map((c) =>
         chapterMap(room.state.content, 12345, c),
       );
       room.state.expeditionMap = room.state.chapterMaps[0];

@@ -10,14 +10,6 @@ const balanceSchema = z
     ordinaryHealthBase: z.number().int().positive(),
     eliteHealthBase: z.number().int().positive(),
     bossHealthBase: z.number().int().positive(),
-    sealPower: z.number().int().positive(),
-    strikePower: z.number().int().nonnegative(),
-    heavyBonusPower: z.number().int().nonnegative(),
-    shieldPower: z.number().int().nonnegative(),
-    woundedBonusPower: z.number().int().nonnegative(),
-    finalPhaseBonusPower: z.number().int().nonnegative(),
-    seerStress: z.number().int().nonnegative(),
-    sealedStress: z.number().int().nonnegative(),
     startingGold: z.number().int().positive(),
     ordinaryReward: z.number().int().positive(),
     eliteReward: z.number().int().positive(),
@@ -25,12 +17,47 @@ const balanceSchema = z
     cacheReward: z.number().int().positive(),
     rescueDebt: z.number().int().positive(),
     ordinaryTurns: z.number().int().positive(),
+    eliteTurns: z.number().int().positive(),
     bossTurns: z.number().int().positive(),
     injuryChance: z.number().min(0).max(100),
     backpackSlots: z.literal(6),
     stackLimit: z.literal(3),
     signatureCooldown: z.literal(2),
     skirmishStress: z.number().int().min(0).max(3),
+    trialGoldPer100: z.number().int().nonnegative().optional(),
+  })
+  .strict();
+const enemyMoveSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    target: z.enum(["rotating", "wounded", "none"]),
+    damagePower: z.number().nonnegative(),
+    stress: z.number().int().nonnegative(),
+    stressPerPhase: z.boolean(),
+    blockPower: z.number().nonnegative(),
+    recipient: z.enum(["self", "ally"]).nullable(),
+    bleed: z.boolean(),
+    injury: z.enum(["arm", "leg"]).nullable(),
+    injuryChance: z.number().min(0).max(100),
+    finalPhaseDamagePower: z.number().nonnegative(),
+  })
+  .strict();
+const enemyPatternSchema = z
+  .object({
+    name: z.string().min(1),
+    moves: z.tuple([enemyMoveSchema, enemyMoveSchema, enemyMoveSchema]),
+  })
+  .strict();
+const enemyPatternsSchema = z
+  .object({
+    raider: enemyPatternSchema,
+    guard: enemyPatternSchema,
+    whisperer: enemyPatternSchema,
+    supporter: enemyPatternSchema,
+    devourer: enemyPatternSchema,
+    "iron-warden": enemyPatternSchema,
+    "hollow-regent": enemyPatternSchema,
   })
   .strict();
 export async function loadContent(): Promise<DungeonContent> {
@@ -51,5 +78,48 @@ export async function loadContent(): Promise<DungeonContent> {
     rooms,
     trialPack,
     balance: balanceSchema.parse(await read("content/dungeon/balance.json")),
+    enemyPatterns: enemyPatternsSchema.parse(await read("content/dungeon/enemies.json")),
+    mapTemplates: z
+      .array(
+        z
+          .object({
+            chapter: z.union([z.literal(1), z.literal(2)]),
+            rows: z
+              .array(
+                z.array(
+                  z.enum([
+                    "battle",
+                    "elite",
+                    "merchant",
+                    "treasure",
+                    "event",
+                    "altar",
+                    "siege",
+                    "camp",
+                    "arena",
+                    "shrine",
+                    "boss",
+                  ]),
+                ),
+              )
+              .length(12),
+          })
+          .strict(),
+      )
+      .length(2)
+      .parse(await read("content/dungeon/maps.json")),
+    sharedEvents: z
+      .array(
+        z
+          .object({
+            id: z.enum(["trial-1", "trial-2", "trial-3", "siege-1"]),
+            chapter: z.union([z.literal(1), z.literal(2)]),
+            row: z.number().int().min(1).max(12),
+            bands: z.array(z.union([z.literal(100), z.literal(200), z.literal(300)])),
+          })
+          .strict(),
+      )
+      .length(4)
+      .parse(await read("content/dungeon/shared-events.json")),
   };
 }

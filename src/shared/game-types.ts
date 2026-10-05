@@ -11,6 +11,11 @@ export type Phase =
   | { kind: "combat-recap" }
   | { kind: "floor-result" }
   | { kind: "result" }
+  | {
+      kind: "shared-event";
+      eventId: import("./shared-event-types.js").SharedEventId;
+      stage: string;
+    }
   | { kind: "question-intro"; questionId: string }
   | { kind: "question"; questionId: string }
   | { kind: "explanation"; questionId: string }
@@ -18,6 +23,8 @@ export type Phase =
   | { kind: "return" }
   | { kind: "camp" }
   | { kind: "camp-reveal" }
+  | { kind: "event" }
+  | { kind: "event-reveal" }
   | { kind: "extraction" };
 
 export type PhaseKind = Phase["kind"];
@@ -68,10 +75,9 @@ export type RoomEncounter = import("./encounter-types.js").EncounterBuild & {
   crewIds: string[];
   enteringPower: Record<string, number>;
   spawnPower: number;
-  bodyHp: number;
-  maxBodyHp: number;
-  weakHp: number;
-  maxWeakHp: number;
+  hp: number;
+  maxHp: number;
+  enemies: import("./encounter-types.js").EnemyInstance[];
   status: "active" | "defeated" | "abandoned" | "timed-out";
   contribution: Record<string, number>;
   purseAwarded: boolean;
@@ -86,7 +92,8 @@ export type MatchState = ArenaState & {
   chapterMaps: import("./map-types.js").ExpeditionMap[];
   trialPack: import("./trial-types.js").TrialPack;
   trial: import("./trial-types.js").Trial | null;
-  completedTrials: number[];
+  sharedEvents: import("./shared-event-types.js").SharedEventRecord[];
+  siege: import("./siege-types.js").SiegeState | null;
   usedTrialQuestions: string[];
   outcomeRng: Record<string, number>;
   trialRng: number;
@@ -96,7 +103,7 @@ export type MatchState = ArenaState & {
   rewardOffers: import("./reward-types.js").RewardOffer[];
   id: string;
   code: string;
-  rulesVersion: "dungeon-v4";
+  rulesVersion: "dungeon-v5";
   expeditionMap?: ExpeditionMap;
   seed: number;
   outcomeSeed: number;

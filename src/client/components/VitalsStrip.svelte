@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Hero } from "../../shared/game-types.js";
+  import BlockMeter from "./BlockMeter.svelte";
   import HeroEffects from "./HeroEffects.svelte";
   import StatusBar from "./ui/StatusBar.svelte";
 
@@ -7,7 +8,10 @@
 </script>
 
 <div class="vitals-strip">
-  <StatusBar label="HP" ariaLabel="Your health" value={hero.hp} max={hero.maxHp} />
+  <div class="health-vital">
+    <StatusBar label="HP" ariaLabel="Your health" value={hero.hp} max={hero.maxHp} />
+    <BlockMeter value={hero.block} health={hero.maxHp} />
+  </div>
   <StatusBar label="Stress" icon="stress" ariaLabel="Your stress" value={hero.stress} max={10} />
 </div>
 

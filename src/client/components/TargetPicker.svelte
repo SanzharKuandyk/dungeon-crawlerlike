@@ -17,7 +17,10 @@
     locked: boolean;
   } = $props();
   function label(a: HeroAction) {
-    if ("part" in a) return a.part === "body" ? "Body" : "Weak point";
+    if ("enemyId" in a)
+      return (
+        view.encounters.flatMap((e) => e.enemies).find((e) => e.id === a.enemyId)?.name ?? "Enemy"
+      );
     if ("targetHeroId" in a) {
       const h = view.heroes.find((h) => h.id === a.targetHeroId);
       return `${view.players.find((p) => p.id === h?.playerId)?.name ?? "Character"} · ${h?.hp}/${h?.maxHp} health`;

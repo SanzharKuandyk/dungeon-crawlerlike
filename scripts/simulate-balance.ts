@@ -1,11 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { botAction, botCamp, botPreparation, botRoute } from "../src/client/test-mode/bots.js";
+import { botCamp, botPlan, botPreparation, botRoute } from "../src/client/test-mode/bots.js";
 import { startMatch } from "../src/game/create-match.js";
 import { applyInventoryCommand } from "../src/game/inventory/equipment.js";
 import { applyPurchase } from "../src/game/inventory/shops.js";
 import { claimReward } from "../src/game/progression/equipment-rewards.js";
 import { chapterMap } from "../src/game/progression/maps.js";
-import { applyRescue, applyTreatment } from "../src/game/progression/recovery.js";
+import { applyRescue, applyTreatment, reviveAlly } from "../src/game/progression/recovery.js";
 import { loadContent } from "../src/server/content.js";
 import { startCrews } from "../src/server/crew-clock.js";
 import { advanceCrew } from "../src/server/crew-transitions.js";
@@ -49,7 +49,7 @@ for (const classes of compositions) {
     room.state.seed = seed;
     room.state.outcomeSeed = seed * 719;
     room.state.rewardSeed = seed * 193;
-    room.state.chapterMaps = ([1, 2, 3] as const).map((c) => chapterMap(content, seed, c));
+    room.state.chapterMaps = ([1, 2] as const).map((c) => chapterMap(content, seed, c));
     room.state.expeditionMap = room.state.chapterMaps[0];
     let crewId = "";
     const players = classes.map((classId, index) => {
@@ -102,7 +102,14 @@ for (const classes of compositions) {
                 {
                   offerId: offer.id,
                   optionId: option.id,
-                  disposition: full ? "defer" : "equip",
+                  disposition:
+                    option.type === "equipment" && option.upgradeItemId
+                      ? "upgrade"
+                      : full
+                        ? "leave"
+                        : option.type === "supplies"
+                          ? "keep"
+                          : "equip",
                   replacementItemId: null,
                 },
                 hero.inventory.revision,
@@ -117,7 +124,8 @@ for (const classes of compositions) {
               hero = room.state.heroes.find((h) => h.playerId === id);
             if (!op || !hero) break;
             if (op.kind === "rescue") {
-              applyRescue(room.state, crewId, hero.id);
+              if (room.state.heroes.every((h) => h.status === "dead"))
+                applyRescue(room.state, crewId);
               rescues++;
             } else if (op.kind === "buy") {
               const price =
@@ -133,12 +141,14 @@ for (const classes of compositions) {
                 { kind: "equip", itemId: op.itemId },
                 hero.inventory.revision,
               );
+            else if (op.kind === "revive")
+              reviveAlly(room.state, hero, op.targetHeroId, op.payment);
             else applyTreatment(room.state, hero, op.treatment);
             v = view(id);
           }
         if (phase === "route" && v.hero?.status === "alive")
           run.progress.routeVotes[id] = botRoute(v) ?? "";
-        if (phase === "combat") run.progress.actions[id] = botAction(v);
+        if (phase === "combat") run.progress.plans[id] = botPlan(v);
         if (phase === "camp" && v.hero?.status === "alive") {
           run.progress.campVotes[id] = botCamp(v);
         }

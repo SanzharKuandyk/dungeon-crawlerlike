@@ -29,15 +29,16 @@
     stress: "stress",
     gold: "gold",
     bleed: "bandage",
+    mark: "marked",
   };
 </script>
-<div class="order-preview">
+<div class="order-preview" class:multiple-effects={effects.length > 2}>
   {#if action}
     <strong
       >{ACTION_NAMES[action.kind]}{action && "targetHeroId" in action
         ? ` · ${view.players.find((p) => p.id === target?.playerId)?.name ?? "You"}`
-        : action && "part" in action
-          ? ` · ${action.part === "body" ? "Body" : "Seal"}`
+        : action && "enemyId" in action
+          ? ` · ${view.encounters.flatMap((e) => e.enemies).find((e) => e.id === action.enemyId)?.name ?? "Enemy"}`
           : ""}</strong
     >
   {/if}
@@ -60,10 +61,12 @@
                     : effect.value}</span
             ><small
               >{effect.stat === "barrier"
-                ? "protection · this turn"
-                : effect.stat === "bleed"
-                  ? "remove Bleed"
-                  : effect.stat}</small
+                ? "block"
+                : effect.stat === "healing"
+                  ? "heal"
+                  : effect.stat === "bleed"
+                    ? "Bleed"
+                    : effect.stat}</small
             ></span
           >
         {/each}

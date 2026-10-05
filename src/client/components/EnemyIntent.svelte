@@ -1,24 +1,32 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { publishedIntent } from "../../game/combat/enemy-patterns.js";
-  import type { Hero, RoomEncounter } from "../../shared/game-types.js";
+  import type { Hero, Player, RoomEncounter } from "../../shared/game-types.js";
+  import { actorY, enemyX, sceneFrame } from "../arena/scene-layout.js";
   import GameIcon from "./GameIcon.svelte";
   import InspectPopover from "./ui/InspectPopover.svelte";
 
-  let { enemy, hero, turn }: { enemy: RoomEncounter; hero: Hero; turn: number } = $props();
-  let intent = $derived(publishedIntent(enemy, [hero], turn));
-  let target = $derived(intent.targets[0]);
-  let element: HTMLDivElement;
-  let width = $state(0),
+  let {
+    enemy,
+    hero,
+    players,
+    combatHud = false,
+    rows = false,
+  }: {
+    enemy: RoomEncounter;
+    hero: Hero;
+    players: Pick<Player, "id" | "name">[];
+    combatHud?: boolean;
+    rows?: boolean;
+  } = $props();
+  let element: HTMLDivElement,
+    width = $state(0),
     height = $state(0);
-  let scale = $derived(Math.min(width / 1200, height / 580));
-  let x = $derived((width - 1200 * scale) / 2 + 245 * scale);
-  let top = $derived(Math.max(0, (height - 580 * scale) / 2 + 220 * scale - 44));
-  let bottom = $derived(Math.min(height - 44, (height - 580 * scale) / 2 + 520 * scale - 22));
+  let frame = $derived(sceneFrame(width, height, rows, combatHud));
+  let scale = $derived(frame.scale);
   onMount(() => {
-    const observer = new ResizeObserver(([entry]) => {
-      width = entry.contentRect.width;
-      height = entry.contentRect.height;
+    const observer = new ResizeObserver(([e]) => {
+      width = e.contentRect.width;
+      height = e.contentRect.height;
     });
     observer.observe(element);
     return () => observer.disconnect();
@@ -26,70 +34,103 @@
 </script>
 <div
   class="enemy-readout"
+  class:compact-intents={enemy.enemies.length > 1 && width < 600}
   bind:this={element}
-  style:--enemy-x={`${x}px`}
-  style:--intent-top={`${top}px`}
-  style:--effect-top={`${bottom}px`}
 >
-  <div class="intent-hud">
-    <InspectPopover label={`Next move: ${intent.name}`}>
-      {#snippet trigger()}
-        <span class="intent-symbols">
-          {#if target?.damage}
-            <span><GameIcon name="weapon" /><strong>{target.damage}</strong></span>
+  {#each enemy.enemies as mob, index (mob.id)}
+    {#if mob.hp > 0}
+      {@const intent = mob.intent}
+      {@const x = frame.left + enemyX(index, enemy.enemies.length, rows) * scale}
+      <div
+        class="intent-hud"
+        style:left={`${x}px`}
+        style:top={`${Math.max(4, frame.top + (actorY(index, rows) - 200) * scale - 44)}px`}
+      >
+        <InspectPopover label={`${mob.name}: ${intent.name}`}>
+          {#snippet trigger()}
+            <span class="intent-symbols">
+              {#if intent.targets.length}
+                <span><GameIcon name="weapon" /><strong>{intent.targets[0].damage}</strong></span>
+                {#if intent.targets[0].stress}
+                  <span
+                    ><GameIcon name="stress" /><strong>+{intent.targets[0].stress}</strong></span
+                  >
+                {/if}
+                {#if intent.targets[0].bleed}
+                  <GameIcon name="bleed" />
+                {/if}
+              {:else if intent.blockGain}
+                <span><GameIcon name="shield" /><strong>+{intent.blockGain}</strong></span>
+              {:else}
+                <GameIcon name="clock" />
+              {/if}
+            </span>
+          {/snippet}
+          <strong>{mob.name} · {intent.name}</strong>
+          {#each mob.effects as effect}
+            <p>
+              {effect.kind === "marked"
+                ? `Marked: next eligible attack gains ${effect.magnitude} damage.`
+                : `Temporary Block: ${effect.magnitude}.`}
+            </p>
+          {/each}
+          {#each intent.targets as target}
+            <p>
+              {target.heroId === hero.id
+                ? "You"
+                : (players.find((p) => `hero:${p.id}` === target.heroId)?.name ?? "Ally")}:
+              {target.damage}
+              damage{target.stress ? ` · +${target.stress} stress` : ""}.
+            </p>
+            {#if target.bleed}
+              <p>Health damage adds Bleed for two turns.</p>
+            {/if}
+            {#if target.injury}
+              <p>{target.injuryChance}% {target.injury} injury chance only after health damage.</p>
+            {/if}
+          {/each}
+          {#if intent.blockGain}
+            <p>
+              Gain {intent.blockGain} Block{intent.recipientEnemyId !== mob.id
+                ? " for an ally"
+                : ""}. It protects the next player phase, then expires.
+            </p>
           {/if}
-          {#if target?.stress}
-            <span><GameIcon name="stress" /><strong>+{target.stress}</strong></span>
+          {#if !intent.targets.length && !intent.blockGain}
+            <p>Preparing a heavy strike; no damage this turn.</p>
           {/if}
-          {#if target?.bleed}
-            <span><GameIcon name="bleed" /><strong>2t</strong></span>
-          {/if}
-          {#if target?.injury}
-            <span><GameIcon name={target.injury} /><strong>{target.injuryChance}%</strong></span>
-          {/if}
-          {#if intent.shieldGain}
-            <span><GameIcon name="shield" /><strong>+{intent.shieldGain}</strong></span>
-          {/if}
-        </span>
-      {/snippet}
-      <strong>{intent.name}</strong>
-      {#if target?.damage}
-        <p>{target.damage} damage to this character.</p>
+        </InspectPopover>
+      </div>
+      {#if !rows}
+        <div
+          class="enemy-applied-effects"
+          style:left={`${x}px`}
+          style:top={`${Math.max(0, frame.top + (combatHud ? actorY(index, rows) * scale + 44 : 355 * scale))}px`}
+        >
+          {#each mob.effects as effect}
+            <InspectPopover label={effect.kind}>
+              {#snippet trigger()}
+                <span class="enemy-effect-chip"
+                  ><GameIcon name={effect.kind === "marked" ? "marked" : "shield"} size={18} />
+                  <strong>{effect.magnitude}</strong></span
+                >
+              {/snippet}
+              <p>
+                {effect.kind === "marked"
+                  ? "Next eligible attack gains " +
+                    effect.magnitude +
+                    " damage. Creator cannot consume it with the same action."
+                  : "Temporary Block protects health."}
+              </p>
+              <small
+                >{effect.kind === "marked"
+                  ? `Expires after player actions on turn ${effect.expiresAfterTurn}`
+                  : "Expires at the next enemy phase."}</small
+              >
+            </InspectPopover>
+          {/each}
+        </div>
       {/if}
-      {#if target?.stress}
-        <p>Gain {target.stress} stress.</p>
-      {/if}
-      {#if target?.bleed}
-        <p>
-          Health damage adds Bleed: up to {hero.power} damage per turn for two turns, starting this
-          turn.
-        </p>
-      {/if}
-      {#if target?.injury}
-        <p>{target.injuryChance}% chance of {target.injury} injury if health is lost.</p>
-      {/if}
-      {#if intent.shieldGain}
-        <p>The enemy gains {intent.shieldGain} shield.</p>
-      {/if}
-      {#if intent.sealModifier}
-        <p>Seal: {intent.sealModifier}. Break it to remove this modifier before the move.</p>
-      {/if}
-    </InspectPopover>
-  </div>
-  {#if enemy.weakHp === 0 && enemy.bodyHp > 0}
-    <div class="enemy-applied-effects">
-      <InspectPopover label="Seal broken">
-        {#snippet trigger()}
-          <span class="enemy-effect-chip"><GameIcon name="seal" size={18} /></span>
-        {/snippet}
-        <strong>Seal broken</strong>
-        <p>
-          Your crew disabled the seal's attack bonus.
-          {enemy.kind === "boss"
-            ? "A new boss phase can restore it."
-            : "It stays broken for this fight."}
-        </p>
-      </InspectPopover>
-    </div>
-  {/if}
+    {/if}
+  {/each}
 </div>

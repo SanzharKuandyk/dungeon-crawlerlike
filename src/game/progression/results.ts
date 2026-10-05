@@ -46,7 +46,7 @@ export function createCrewResult(
     rewardIds: state.rewardOffers
       .filter(
         (o) =>
-          o.sourceNodeId === nodeId &&
+          (o.sourceNodeId === nodeId || o.sourceNodeId.startsWith(`${nodeId}:sacrifice:`)) &&
           state.heroes.some((h) => h.id === o.ownerHeroId && h.crewId === crewId),
       )
       .map((o) => o.id),

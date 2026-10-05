@@ -40,7 +40,7 @@
   } = $props();
 
   let viewport = $state<HTMLElement | null>(null);
-  let overview = $state(false),
+  let overview = $state(true),
     viewportHeight = $state(0);
   onMount(() => {
     if (!viewport) return;
@@ -66,10 +66,10 @@
   );
 
   const x = (node: MapNode) => 64 + node.lane * 116;
-  let rowSpacing = $derived(overview ? Math.max(52, (viewportHeight - 64) / (map.rows - 1)) : 96);
-  const y = (node: MapNode) => (overview ? 24 : 48) + (map.rows - node.row) * rowSpacing;
+  let rowSpacing = $derived(overview ? Math.max(96, (viewportHeight - 96) / (map.rows - 1)) : 128);
+  const y = (node: MapNode) => (overview ? 40 : 48) + (map.rows - node.row) * rowSpacing;
   let startY = $derived((overview ? 28 : 48) + (map.rows - 1) * rowSpacing + (overview ? 48 : 80));
-  let mapHeight = $derived(overview ? 64 + (map.rows - 1) * rowSpacing : startY + 58);
+  let mapHeight = $derived(overview ? 96 + (map.rows - 1) * rowSpacing : startY + 58);
   let currentNodeId = $derived(crew?.mapPosition?.nodeId ?? null);
 
   let browseKey = $derived(
@@ -80,7 +80,7 @@
     const element = viewport;
     if (!element) return;
     let canceled = false;
-    void tick().then(() => {
+    void tick().then(async () => {
       if (canceled) return;
       let saved: string | null = null;
       try {
@@ -88,8 +88,17 @@
       } catch {
         /* Browsing still works without storage. */
       }
-      if (saved !== null && Number.isFinite(Number(saved))) element.scrollTop = Number(saved);
-      else untrack(focusPosition);
+      if (saved !== null) {
+        try {
+          const position: { top: number; overview: boolean } = JSON.parse(saved);
+          if (typeof position.overview === "boolean") overview = position.overview;
+          await tick();
+          if (Number.isFinite(position.top)) element.scrollTop = position.top;
+          else if (Number.isFinite(Number(saved))) element.scrollTop = Number(saved);
+        } catch {
+          if (Number.isFinite(Number(saved))) element.scrollTop = Number(saved);
+        }
+      } else untrack(focusPosition);
     });
     return () => {
       canceled = true;
@@ -98,7 +107,7 @@
   function rememberScroll() {
     if (!viewport) return;
     try {
-      localStorage.setItem(browseKey, String(viewport.scrollTop));
+      localStorage.setItem(browseKey, JSON.stringify({ top: viewport.scrollTop, overview }));
     } catch {
       /* Storage is optional for browsing. */
     }
@@ -108,7 +117,7 @@
     const node =
       map.nodes.find((node) => node.id === currentNodeId) ?? map.nodes.find((n) => n.row === 1);
     if (!viewport) return;
-    viewport.scrollTop = (node ? y(node) : startY) - viewport.clientHeight * 0.72;
+    viewport.scrollTop = (node ? y(node) : startY) - Math.max(32, viewport.clientHeight - 96);
   }
 
   function routePath(from: MapNode, to: MapNode) {
@@ -145,15 +154,16 @@
     <strong>Chapter {map.chapter}{floor ? ` · ${floor}/${map.rows}` : ""}</strong>
     <Button
       type="button"
-      variant="quiet"
+      variant={overview ? "secondary" : "quiet"}
       class="map-overview-toggle"
-      aria-label={overview ? "Show route detail" : "Show whole route"}
+      aria-label={overview ? "Show route detail" : "Show compact route"}
       aria-pressed={overview}
       onclick={() => {
         overview = !overview;
         void tick().then(() => {
           if (overview && viewport) viewport.scrollTop = 0;
           else focusPosition();
+          rememberScroll();
         });
       }}
     >

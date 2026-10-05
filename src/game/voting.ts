@@ -13,7 +13,10 @@ export function plurality<T extends string>(
   votes: Record<string, T>,
   fallback: T,
 ): T {
-  const members = livingMembers(s, id);
+  const members =
+    s.crews.find((c) => c.id === id)?.status === "eliminated"
+      ? s.players.filter((p) => p.crewId === id)
+      : livingMembers(s, id);
   if (!members.length) return fallback;
   const start = (s.crewProgress[id]?.depth ?? 1) % members.length;
   const ordered = [...members.slice(start), ...members.slice(0, start)];
@@ -42,14 +45,21 @@ export function winningRoute(s: MatchState, id: string) {
 export function winningCamp(s: MatchState, id: string): CampChoice {
   const crew = s.crews.find((c) => c.id === id),
     p = s.crewProgress[id];
+  if (!s.heroes.some((h) => h.crewId === id && h.status === "alive")) {
+    const votes = Object.values(p?.campVotes ?? {});
+    return votes.filter((v) => v === "wait").length > votes.filter((v) => v === "rescue").length
+      ? "wait"
+      : "rescue";
+  }
   return plurality(
     s,
     id,
     p?.campVotes ?? {},
     crew?.status === "eliminated"
       ? "rescue"
-      : p?.recovering ||
-          ["camp", "altar", "shrine"].includes(
+      : !p?.restedNodeIds.includes(p.nodeId ?? "") &&
+          !p?.recovering &&
+          ["camp"].includes(
             s.chapterMaps[(p?.chapter ?? 1) - 1]?.nodes.find((n) => n.id === p?.nodeId)?.kind ?? "",
           )
         ? "rest"

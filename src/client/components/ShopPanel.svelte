@@ -21,7 +21,7 @@
     view: PlayerRoomView;
     controller: PlayerController;
     locked: boolean;
-    service?: "supplies" | "treatment";
+    service?: "supplies" | "treatment" | "upgrades";
   } = $props();
   let selectedTreatment = $state<Treatment | null>(null);
   let busy = $state(false),
@@ -52,12 +52,34 @@
     ),
   );
   let disabled = $derived(locked || view.decisionReady);
+  let upgradeId = $state("");
+  let upgrades = $derived(view.shop?.upgrades[hero?.id ?? ""] ?? []);
+  let upgrade = $derived(upgrades.find((o) => o.id === upgradeId));
+  let upgradeItem = $derived(
+    hero &&
+      [...hero.inventory.backpack, ...Object.values(hero.inventory.equipment)].find(
+        (i) => i?.id === upgrade?.targetItemId,
+      ),
+  );
+  async function upgradeSelected() {
+    if (!upgrade || !hero) return;
+    busy = true;
+    error = "";
+    const ok = await controller.upgrade(upgrade.id, upgrade.targetItemId, hero.inventory.revision);
+    busy = false;
+    if (!ok) error = controller.error;
+  }
 </script>
 {#if hero && view.shop}
   <section class="shop-panel decision-layout" aria-label="Merchant">
     <div class="shop-heading">
       <GameIcon name="merchant" />
-      <strong>{service === "supplies" ? "Supplies" : "Treatment"}</strong
+      <strong
+        >{service === "supplies"
+          ? "Supplies"
+          : service === "upgrades"
+            ? "Upgrade gear"
+            : "Treatment"}</strong
       ><span class="budget" title="Your budget"><GameIcon name="gold" size={16} />{allowance}</span>
       <InspectPopover label="Your budget"
         ><p>
@@ -66,7 +88,30 @@
       >
     </div>
     <div class="decision-body">
-      {#if service === "supplies"}
+      {#if service === "upgrades"}
+        <div class="shop-stock">
+          {#each upgrades as offer}
+            {@const item =
+              hero &&
+              [...hero.inventory.backpack, ...Object.values(hero.inventory.equipment)].find(
+                (i) => i?.id === offer.targetItemId,
+              )}
+            {#if item}
+              <Button
+                class="item-tile"
+                disabled={disabled || offer.used}
+                aria-pressed={upgradeId === offer.id}
+                onclick={() => (upgradeId = offer.id)}
+                ><ItemArtwork kind={item.kind} size={32} />
+                <span>{itemDefinition(item.kind)?.name}</span
+                ><span>I → II · {offer.price} gold</span></Button
+              >
+            {/if}
+          {:else}
+            <p>No rank-I gear was owned on arrival.</p>
+          {/each}
+        </div>
+      {:else if service === "supplies"}
         <div class="shop-stock">
           {#each offers as offer}
             <Button
@@ -88,18 +133,7 @@
           <GameIcon name="heart" size={16} /><strong>Treatment</strong>
         </div>
         <div class="treatment-row">
-          {#if hero.status === "dead"}
-            <Button
-              type="button"
-              aria-label="Revive"
-              title="Return at half health and 3 stress"
-              disabled={disabled || busy || allowance < 2 * hero.power}
-              onclick={() => (selectedTreatment = { kind: "revive" })}
-            >
-              <GameIcon name="revive" /><span>Revive</span
-              ><span class="cost"><GameIcon name="gold" size={14} />{2 * hero.power}</span>
-            </Button>
-          {:else}
+          {#if hero.status === "alive"}
             <Button
               type="button"
               aria-label={`Heal ${Math.min(2 * hero.power, hero.maxHp - hero.hp)}`}
@@ -148,7 +182,14 @@
       {/if}
     </div>
     <section class="shop-inspector" aria-live="polite" aria-label="Selected item">
-      {#if service === "supplies" && selected}
+      {#if service === "upgrades" && upgradeItem}
+        <ItemArtwork kind={upgradeItem.kind} size={32} />
+        <div>
+          <strong>{itemDefinition(upgradeItem.kind)?.name} · rank II</strong>
+          <p>{itemDescription(upgradeItem.kind, hero.power, 2)}</p>
+          <small>Same item and slot · no Bag space needed.</small>
+        </div>
+      {:else if service === "supplies" && selected}
         <ItemArtwork kind={selected.kind} size={32} />
         <div>
           <strong>{itemDefinition(selected.kind)?.name}</strong>
@@ -164,9 +205,7 @@
             ? `Restore ${Math.min(2 * hero.power, hero.maxHp - hero.hp)} health`
             : selectedTreatment.kind === "calm"
               ? `Remove ${Math.min(3, hero.stress)} stress`
-              : selectedTreatment.kind === "revive"
-                ? "Return at half health and 3 stress"
-                : "Remove the selected condition"}
+              : "Remove the selected condition"}
         </p>
       {:else}
         <small
@@ -189,7 +228,15 @@
           />
         {/if}
       </div>
-      {#if service === "supplies"}
+      {#if service === "upgrades"}
+        <Button
+          primary
+          pending={busy}
+          disabled={disabled || !upgrade || upgrade.used || upgrade.price > allowance}
+          onclick={() => void upgradeSelected()}
+          >Confirm upgrade{upgrade ? ` · ${upgrade.price} gold` : ""}</Button
+        >
+      {:else if service === "supplies"}
         <Button
           primary
           pending={busy}

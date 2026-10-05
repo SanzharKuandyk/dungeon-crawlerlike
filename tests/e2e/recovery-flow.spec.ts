@@ -5,7 +5,7 @@ import type { Ack, ClientEvents, ServerEvents } from "../../src/shared/protocol.
 import type { RoomView } from "../../src/shared/view-types.js";
 import { fixture, identity } from "../fixtures/layout-fixture.js";
 
-for (const method of ["paid", "rescue"] as const) {
+for (const method of ["rescue"] as const) {
   test(`${method} revival lets a wiped solo crew retry and fight`, async ({
     page,
     browser,
@@ -67,26 +67,16 @@ for (const method of ["paid", "rescue"] as const) {
       const crewId = initial.players.find((p) => p.id === data.players[0].playerId)?.crewId;
       if (!crewId) throw new Error("Missing solo crew");
       const wallet = () => sync().then((v) => v.crews.find((c) => c.id === crewId)?.economy);
-      if (method === "paid") {
-        await actor.page.getByRole("button", { name: "Treatment", exact: true }).click();
-        await actor.page.getByRole("button", { name: "Revive", exact: true }).click();
-        await actor.page.getByRole("button", { name: /Confirm treatment/ }).click();
-        await expect(actor.page.locator(".transaction-feedback")).toContainText(
-          "Revived · 24 HP · 3 stress",
-        );
-        await actor.page.getByRole("button", { name: "← Services", exact: true }).click();
-      } else {
-        await actor.page.getByRole("button", { name: "Rest / Retry", exact: true }).click();
-        await actor.page.getByRole("button", { name: "Accept rescue", exact: true }).click();
-        await actor.page.getByRole("button", { name: "Ready", exact: true }).click();
-        await advance();
-        await resultToNext();
-      }
-      const economy = method === "paid" ? { gold: 0, rescueDebt: 0 } : { gold: 12, rescueDebt: 24 };
+      await actor.page.getByRole("button", { name: "Retry / recovery", exact: true }).click();
+      await actor.page.getByRole("button", { name: "Accept rescue", exact: true }).click();
+      await actor.page.getByRole("button", { name: "Ready", exact: true }).click();
+      await advance();
+      await resultToNext();
+      const economy = { gold: 12, rescueDebt: 24 };
       expect(await wallet()).toEqual(economy);
       await actor.page.reload();
       await expect(actor.page.locator(".phone-panel")).toHaveAttribute("data-phase", "camp");
-      await actor.page.getByRole("button", { name: "Rest / Retry", exact: true }).click();
+      await actor.page.getByRole("button", { name: "Retry / recovery", exact: true }).click();
       await expect(
         actor.page.getByRole("button", { name: "Accept rescue", exact: true }),
       ).toHaveCount(0);
@@ -97,7 +87,7 @@ for (const method of ["paid", "rescue"] as const) {
       await expect(actor.page.locator(".phone-panel")).toHaveAttribute("data-phase", "combat");
       expect(await wallet()).toEqual(economy);
       await actor.page.getByRole("button", { name: "Attack", exact: true }).click();
-      await actor.page.getByRole("button", { name: /Play turn · Attack body/ }).click();
+      await actor.page.getByRole("button", { name: /Play turn · Attack/ }).click();
       await advance();
       await expect(actor.page.locator(".phone-panel")).toHaveAttribute(
         "data-phase",

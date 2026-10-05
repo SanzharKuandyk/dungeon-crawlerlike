@@ -8,18 +8,20 @@
     children,
     footer,
     context,
+    class: css = "",
   }: {
     open?: boolean;
     title: string;
     children: Snippet;
     footer?: Snippet;
     context?: Snippet;
+    class?: string;
   } = $props();
 </script>
 <Bits.Root bind:open>
   <Bits.Portal>
     <Bits.Overlay class="ui-dialog-overlay" />
-    <Bits.Content class="ui-dialog">
+    <Bits.Content class={`ui-dialog ${css}`}>
       <header>
         <Bits.Title>{title}</Bits.Title><Bits.Close aria-label="Close dialog">×</Bits.Close>
       </header>

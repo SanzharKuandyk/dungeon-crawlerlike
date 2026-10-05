@@ -97,6 +97,9 @@
           <option value="split">Split rooms</option>
           <option value="shop">Merchant budgets</option>
           <option value="critical">Critical health</option>
+          <option value="combo">Mark, Haste and multiple enemies</option>
+          <option value="coin">Personal coin fountain</option>
+          <option value="siege">Whole-class gate siege</option>
           <option value="question">Question reward</option>
           <option value="duel">Consensual crew duel</option>
           <option value="final">Final boss</option>

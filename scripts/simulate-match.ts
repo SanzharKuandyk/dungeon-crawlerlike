@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import { io, type Socket } from "socket.io-client";
-import { botAction, botCamp, botPreparation, botRoute } from "../src/client/test-mode/bots.js";
+import { botCamp, botPlan, botPreparation, botRoute } from "../src/client/test-mode/bots.js";
 import { chapterMap } from "../src/game/progression/maps.js";
 import { createGameServer } from "../src/server/app.js";
 import { fileStorage } from "../src/server/storage.js";
@@ -94,7 +94,7 @@ async function simulate(count: number) {
       r.state.seed = 12345;
       r.state.outcomeSeed = 98765;
       r.state.trialRng = 13579;
-      r.state.chapterMaps = ([1, 2, 3] as const).map((c) =>
+      r.state.chapterMaps = ([1, 2] as const).map((c) =>
         chapterMap(r.state.content, r.state.seed, c),
       );
       r.state.expeditionMap = r.state.chapterMaps[0];
@@ -246,7 +246,12 @@ async function simulate(count: number) {
             if (!operation) break;
             const input = { ...env, requestId: secret() };
             await ack((done) => {
-              if (operation.kind === "rescue") p.socket.emit("camp:rescue", input, done);
+              if (operation.kind === "rescue")
+                p.socket.emit(
+                  "crew:recover",
+                  { ...input, command: { kind: "request-help" } },
+                  done,
+                );
               else if (operation.kind === "buy")
                 p.socket.emit(
                   "shop:buy",
@@ -264,6 +269,19 @@ async function simulate(count: number) {
                     ...input,
                     command: { kind: "equip", itemId: operation.itemId },
                     inventoryRevision: prepared.hero?.inventory.revision ?? 0,
+                  },
+                  done,
+                );
+              else if (operation.kind === "revive")
+                p.socket.emit(
+                  "crew:recover",
+                  {
+                    ...input,
+                    command: {
+                      kind: "revive",
+                      targetHeroId: operation.targetHeroId,
+                      payment: operation.payment,
+                    },
                   },
                   done,
                 );
@@ -341,9 +359,7 @@ async function simulate(count: number) {
                 p.socket.emit("route:vote", { ...env, roomId: destination }, done),
               );
           } else if (v.phase.kind === "combat")
-            await ack((done) =>
-              p.socket.emit("hero:action", { ...env, action: botAction(v) }, done),
-            );
+            await ack((done) => p.socket.emit("hero:plan", { ...env, plan: botPlan(v) }, done));
           else if (v.phase.kind === "camp") {
             if (
               v.hero?.status === "dead" &&

@@ -1,15 +1,16 @@
 import { startMatch } from "../../game/create-match.js";
 import { addItem } from "../../game/inventory/inventory.js";
 import { createShop } from "../../game/inventory/shops.js";
-import { enterNode } from "../../game/progression/encounters.js";
+import { enterNode, refreshEncounter } from "../../game/progression/encounters.js";
+import { createExploration } from "../../game/progression/exploration.js";
 import { createCrewResult } from "../../game/progression/results.js";
 import { awardEncounter } from "../../game/progression/rewards.js";
 import type { TestScenario } from "../../shared/protocol.js";
 import { enterCrew, startCrews } from "../crew-clock.js";
 import { challenge, voteDuel } from "../duel-commands.js";
 import { progressDuels } from "../duel-coordinator.js";
-import { advanceQuestion, beginQuestion } from "../question-coordinator.js";
 import type { StoredRoom } from "../room-types.js";
+import { advanceQuestion, beginQuestion } from "../shared-event-coordinator.js";
 export function applyScenario(room: StoredRoom, scenario: TestScenario, now: number) {
   if (scenario === "fresh") return;
   room.speed = "manual";
@@ -19,40 +20,74 @@ export function applyScenario(room: StoredRoom, scenario: TestScenario, now: num
     const p = run.progress,
       crew = room.state.crews.find((c) => c.id === run.crewId);
     if (!crew) continue;
-    if (scenario === "final") {
-      p.chapter = 3;
-      crew.bossesDefeated = 2;
-      p.bossesDefeated = 2;
-      crew.mapPosition = { chapter: 3, nodeId: null, trail: [] };
+    if (scenario === "final" || scenario === "duel") {
+      p.chapter = 2;
+      crew.bossesDefeated = 1;
+      p.bossesDefeated = 1;
+      crew.mapPosition = { chapter: 2, nodeId: null, trail: [] };
     }
     const map = room.state.chapterMaps[p.chapter - 1];
     const node = map.nodes.find((n) =>
       scenario === "final"
         ? n.kind === "boss"
-        : ["shop", "revival"].includes(scenario)
-          ? n.kind === "merchant"
-          : scenario === "duel"
-            ? n.kind === "arena"
-            : n.row === 1,
+        : scenario === "combo"
+          ? n.kind === "elite"
+          : scenario === "coin"
+            ? n.kind === "event"
+            : ["shop", "revival"].includes(scenario)
+              ? n.kind === "merchant"
+              : scenario === "duel"
+                ? n.kind === "arena"
+                : n.row === 1,
     );
     if (!node) throw new Error("Scenario node missing");
+    if (scenario === "coin") {
+      node.eventId = "coin-fountain";
+      node.room.name = "Coin fountain";
+    }
     enterNode(room.state, run.crewId, node.id);
     p.before = null;
     p.events = [];
     const heroes = room.state.heroes.filter((h) => h.crewId === run.crewId);
+    if (scenario === "coin") p.exploration = createExploration(room.state, run.crewId, node.id);
+    if (scenario === "combo") {
+      heroes[0].classId = "occultist";
+      heroes[0].inventory.equipment.charm = {
+        id: `haste:${run.crewId}`,
+        kind: "haste-charm",
+        count: 1,
+        rank: 2,
+      };
+      heroes[0].conditions.blessings = [{ kind: "last-stand", rank: 1, spent: false }];
+      heroes[0].conditions.afflictions = [{ kind: "shaken" }];
+      const encounter = room.state.encounters.find((e) => e.id === p.encounterId);
+      if (encounter) {
+        encounter.enemies[0].block = 6;
+        encounter.enemies[1].effects.push({
+          kind: "marked",
+          magnitude: heroes[0].power,
+          sourceHeroId: heroes[0].id,
+          sourceActionId: "previous-turn",
+          expiresAfterTurn: 2,
+        });
+        refreshEncounter(encounter);
+      }
+    }
     if (["reward", "reward-full", "result"].includes(scenario)) {
       if (scenario === "reward-full")
         for (let i = 0; heroes[0].inventory.backpack.length < 6; i++)
           heroes[0].inventory = addItem(heroes[0].inventory, {
             id: `full:${run.crewId}:${i}`,
-            kind: "body-blade",
+            kind: "blade",
             count: 1,
+            rank: 1,
           });
       const enemy = room.state.encounters.find((e) => e.id === p.encounterId);
       if (enemy) {
         p.before = structuredClone({ heroes, crews: [crew], encounters: [enemy] });
         enemy.kind = scenario === "result" ? "battle" : "elite";
-        enemy.bodyHp = 0;
+        enemy.hp = 0;
+        for (const mob of enemy.enemies) mob.hp = 0;
         enemy.status = "defeated";
         awardEncounter(room.state, run.crewId, enemy);
       }
@@ -72,8 +107,9 @@ export function applyScenario(room: StoredRoom, scenario: TestScenario, now: num
       for (let i = 0; i < 7; i++)
         heroes[0].inventory = addItem(heroes[0].inventory, {
           id: `overflow:${run.crewId}:${i}`,
-          kind: "body-blade",
+          kind: "blade",
           count: 1,
+          rank: 1,
         });
     if (scenario === "revival") {
       heroes[0].hp = 0;
@@ -91,7 +127,8 @@ export function applyScenario(room: StoredRoom, scenario: TestScenario, now: num
       const enemy = room.state.encounters.find((e) => e.id === p.encounterId);
       if (enemy) {
         enemy.status = "abandoned";
-        enemy.bodyHp = 9;
+        enemy.hp = 9;
+        for (const [i, mob] of enemy.enemies.entries()) mob.hp = i === 0 ? 9 : 0;
       }
       crew.shop = createShop(room.state, run.crewId, node.id);
     }
@@ -99,7 +136,8 @@ export function applyScenario(room: StoredRoom, scenario: TestScenario, now: num
       const enemy = room.state.encounters.find((e) => e.id === p.encounterId);
       if (enemy) {
         enemy.kind = "boss";
-        enemy.bodyHp = Math.floor(enemy.maxBodyHp / 3);
+        enemy.hp = Math.floor(enemy.maxHp / 3);
+        for (const [i, mob] of enemy.enemies.entries()) mob.hp = i === 0 ? enemy.hp : 0;
         enemy.pendingBossPhase = 3;
       }
     }
@@ -107,11 +145,14 @@ export function applyScenario(room: StoredRoom, scenario: TestScenario, now: num
       room,
       run,
       {
-        kind: ["reward", "reward-full", "result"].includes(scenario)
-          ? "result"
-          : ["shop", "duel", "revival", "rescue"].includes(scenario)
-            ? "camp"
-            : "combat",
+        kind:
+          scenario === "coin"
+            ? "event"
+            : ["reward", "reward-full", "result"].includes(scenario)
+              ? "result"
+              : ["shop", "duel", "revival", "rescue"].includes(scenario)
+                ? "camp"
+                : "combat",
       },
       now,
     );
@@ -122,6 +163,11 @@ export function applyScenario(room: StoredRoom, scenario: TestScenario, now: num
     const duel = room.duels[0];
     for (const id of [...a.playerIds, ...b.playerIds]) voteDuel(room, id, duel.id, true, now);
     progressDuels(room, now);
+  }
+  if (scenario === "siege") {
+    room.discovery = { cause: "Crew A awakened the Gate Siege.", depth: 2, eventId: "siege-1" };
+    beginQuestion(room, now);
+    advanceQuestion(room, now);
   }
   if (scenario === "question" || scenario.startsWith("trial-")) {
     room.discovery = { cause: "A crew awakened the First Trial.", depth: 1 };
@@ -140,7 +186,7 @@ export function applyScenario(room: StoredRoom, scenario: TestScenario, now: num
     if (["trial-reward", "trial-return"].includes(scenario)) {
       const trial = room.state.trial;
       if (trial) {
-        trial.questionNumber = 3;
+        trial.questionNumber = 2;
         for (const player of room.state.players) trial.favour[player.id] = 4;
       }
       advanceQuestion(room, now);

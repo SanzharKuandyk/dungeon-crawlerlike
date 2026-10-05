@@ -3,6 +3,8 @@
 
   let { name, size = 20 }: { name: string; size?: number } = $props();
   const paths: Record<string, string> = {
+    "haste-charm": "m13 2-8 12h6l-1 8 9-13h-7Z",
+    marked: "M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18ZM12 7v10M7 12h10",
     "map-overview": "M3 3h18v18H3ZM9 3v18m6-18v18M3 10h18",
     heart: "M12 20S3 14 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12-9 12Z",
     stress: "M8 21v-4H5V9a7 7 0 0 1 14 0v4l-3 3v5M10 6l-2 4 4 2-2 4M16 8h1",
@@ -40,14 +42,14 @@
     ready: "m4 12 5 5L20 5",
   };
   const aliases: Record<string, string> = {
-    "body-blade": "weapon",
-    "seal-pick": "seal",
+    blade: "weapon",
+    "piercing-blade": "weapon",
     "guard-coat": "armor",
     "ward-vest": "shield",
     "calm-charm": "stress",
     "healer-charm": "heart",
     "iron-nerve": "stress",
-    sealbreaker: "seal",
+    opener: "weapon",
     "last-stand": "shield",
     "field-medic": "heart",
     "clear-purpose": "ready",

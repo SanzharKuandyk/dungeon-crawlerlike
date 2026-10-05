@@ -1,73 +1,76 @@
-import DEFAULT_BALANCE from "../../../content/dungeon/balance.json" with { type: "json" };
-import type { StructuredIntent } from "../../shared/encounter-types.js";
+import DEFAULT_PATTERNS from "../../../content/dungeon/enemies.json" with { type: "json" };
+import type { EnemyInstance, StructuredIntent } from "../../shared/encounter-types.js";
+import type { EnemyPatternId, EnemyPatterns } from "../../shared/enemy-content-types.js";
 import type { Hero, RoomEncounter } from "../../shared/game-types.js";
-export function publishedIntent(
-  enemy: RoomEncounter,
+
+export function enemyMove(
+  enemy: EnemyInstance,
+  encounter: RoomEncounter,
   heroes: Hero[],
   turn: number,
-  injuryChance?: number,
+  index = 0,
 ): StructuredIntent {
-  const rules = enemy.rules ?? DEFAULT_BALANCE;
-  injuryChance ??= rules.injuryChance;
-  const family = enemy.definition.family;
-  const sealed = enemy.weakHp > 0;
-  const boss = enemy.kind === "boss";
-  const phase = enemy.bossPhase;
-  const cycle = (turn - 1) % 3;
-  const defensive = family === "sentinel" ? cycle === 2 : family === "seer" && cycle === 1;
-  const heavy = family === "sentinel" && cycle === 1;
-  const regentStress = boss && family === "devourer" && cycle === 1;
-  const name = defensive
-    ? "Raise shield"
-    : heavy
-      ? "Crushing blow"
-      : regentStress
-        ? "Dread summons"
-        : family === "seer"
-          ? "Ash whisper"
-          : family === "devourer"
-            ? "Rending bite"
-            : "Iron strike";
+  const patternId: EnemyPatternId =
+    encounter.kind === "boss"
+      ? encounter.chapter === 1
+        ? "iron-warden"
+        : "hollow-regent"
+      : enemy.role;
+  const pattern = encounter.patterns?.[patternId] ?? (DEFAULT_PATTERNS as EnemyPatterns)[patternId];
+  const move = pattern.moves[(turn - 1) % 3];
+  const living = heroes.filter((hero) => hero.status === "alive");
+  const target =
+    move.target === "none"
+      ? null
+      : move.target === "wounded"
+        ? living
+            .slice()
+            .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp || a.id.localeCompare(b.id))[0]
+        : living[(turn - 1 + index) % Math.max(1, living.length)];
+  const recipient =
+    move.recipient === "self"
+      ? enemy
+      : move.recipient === "ally"
+        ? encounter.enemies.find((other) => other.id !== enemy.id && other.hp > 0)
+        : null;
   return {
-    moveId: `${family}:${cycle}:${phase}`,
-    name,
-    shieldGain: defensive ? enemy.spawnPower * rules.shieldPower : 0,
-    sealModifier: sealed
-      ? family === "sentinel"
-        ? "Heavy blows add damage and can injure"
-        : family === "seer"
-          ? "Whispers add stress"
-          : "Bites cause wounds and Bleed"
-      : null,
-    targets: heroes
-      .filter((h) => h.status === "alive")
-      .map((h) => ({
-        heroId: h.id,
-        damage:
-          (defensive || regentStress ? 0 : h.power * rules.strikePower) +
-          (heavy && sealed ? h.power * rules.heavyBonusPower : 0) +
-          (family === "devourer" && !regentStress && sealed && h.hp <= h.maxHp / 2
-            ? h.power * rules.woundedBonusPower
-            : 0) +
-          (boss &&
-          phase === 3 &&
-          ((family === "devourer" && !regentStress) ||
-            (family === "sentinel" && heavy && sealed)) &&
-          !defensive
-            ? h.power * rules.finalPhaseBonusPower
-            : 0),
-        stress: defensive
-          ? 0
-          : family === "seer"
-            ? rules.seerStress + (sealed ? rules.sealedStress : 0) + (boss ? phase - 1 : 0)
-            : boss && family === "devourer" && cycle === 1
-              ? phase
-              : 0,
-        bleed: family === "devourer" && sealed && !defensive && !regentStress,
-        injury:
-          heavy && sealed ? "arm" : family === "devourer" && sealed && cycle === 2 ? "leg" : null,
-        injuryChance:
-          (heavy && sealed) || (family === "devourer" && sealed && cycle === 2) ? injuryChance : 0,
-      })),
+    moveId: `${patternId}:${move.id}:${encounter.bossPhase}`,
+    name: move.name,
+    blockGain: recipient ? Math.ceil(encounter.spawnPower * move.blockPower) : 0,
+    recipientEnemyId: recipient?.id ?? null,
+    targets: !target
+      ? []
+      : [
+          {
+            heroId: target.id,
+            damage: Math.floor(
+              target.power *
+                (move.damagePower + (encounter.bossPhase === 3 ? move.finalPhaseDamagePower : 0)),
+            ),
+            stress: move.stress + (move.stressPerPhase ? encounter.bossPhase : 0),
+            bleed: move.bleed,
+            injury: move.injury,
+            injuryChance: move.injuryChance,
+          },
+        ],
+  };
+}
+export function publishIntents(encounter: RoomEncounter, heroes: Hero[], turn: number) {
+  encounter.enemies.forEach((enemy, index) => {
+    enemy.intent = enemyMove(enemy, encounter, heroes, turn, index);
+  });
+}
+export function publishedIntent(
+  encounter: RoomEncounter,
+  _heroes: Hero[],
+  _turn: number,
+): StructuredIntent {
+  const living = encounter.enemies.filter((e) => e.hp > 0);
+  return {
+    moveId: living.map((e) => e.intent.moveId).join("+"),
+    name: living.map((e) => `${e.name}: ${e.intent.name}`).join(" · "),
+    targets: living.flatMap((e) => e.intent.targets),
+    blockGain: living.reduce((sum, e) => sum + e.intent.blockGain, 0),
+    recipientEnemyId: null,
   };
 }

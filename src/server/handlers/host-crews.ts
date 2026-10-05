@@ -4,8 +4,8 @@ import { resumeCrewClocks } from "../crew-clock.js";
 import { CREW_CHOICES, eligibleMembers, fillMissingChoice } from "../crew-decisions.js";
 import { advanceCrew } from "../crew-transitions.js";
 import { reject } from "../errors.js";
-import { questionActive } from "../question-coordinator.js";
 import type { StoredRoom } from "../room-types.js";
+import { questionActive } from "../shared-event-coordinator.js";
 
 type Command = Extract<HostCommand, { crewId: string }>;
 export function hostCrewControl(room: StoredRoom, command: Command, now: number) {

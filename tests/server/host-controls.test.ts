@@ -7,12 +7,12 @@ import { progressDuels } from "../../src/server/duel-coordinator.js";
 import { progressExpedition } from "../../src/server/expedition-scheduler.js";
 import { hostControl } from "../../src/server/handlers/host.js";
 import { requireHostAccess } from "../../src/server/host-access.js";
-import { beginQuestion, skipQuestion } from "../../src/server/question-coordinator.js";
 import { issueRecovery, recoverHost, redeemRecovery } from "../../src/server/recovery.js";
 import { createLimits } from "../../src/server/request-limits.js";
 import { pauseRoom, resumeRoom } from "../../src/server/room-lifecycle.js";
 import { createRoomManager } from "../../src/server/room-manager.js";
 import { hashToken } from "../../src/server/sessions.js";
+import { beginQuestion, skipQuestion } from "../../src/server/shared-event-coordinator.js";
 import { createTestRoom } from "../../src/server/test-mode/create-test-room.js";
 import type { HostCommand } from "../../src/shared/host-types.js";
 import { memoryStorage, serverFixture } from "../fixtures/server.js";
@@ -87,12 +87,24 @@ it("forced defaults preserve accepted actions, and extension adds exactly 30 sec
   const run = Object.values(room.runs)[3];
   const hero = room.state.heroes.find((h) => h.crewId === run.crewId);
   if (!hero) throw new Error("No hero");
-  run.progress.actions[hero.playerId] = { kind: "attack", part: "body" };
+  const attack = {
+    kind: "attack" as const,
+    enemyId:
+      room.state.encounters.find((e) => e.id === run.progress.encounterId)?.enemies[0].id ??
+      "missing",
+  };
+  run.progress.actions[hero.playerId] = attack;
+  run.progress.plans[hero.playerId] = {
+    kind: "hero",
+    actions: [attack],
+    activation: null,
+    inventoryRevision: hero.inventory.revision,
+  };
   const original = run.clock.deadline;
   command({ kind: "crew-extend", crewId: run.crewId, expectedCrewPhaseId: run.progress.phaseId });
   expect(run.clock.deadline).toBe((original ?? 0) + 30000);
   command({ kind: "crew-resolve", crewId: run.crewId, expectedCrewPhaseId: run.progress.phaseId });
-  expect(run.progress.resolvedActions[hero.playerId]).toEqual({ kind: "attack", part: "body" });
+  expect(run.progress.resolvedActions[hero.playerId]).toEqual(attack);
   expect(run.progress.phase.kind).toBe("combat-reveal");
 });
 it("trial skip consumes the altar without wager costs or rewards", async () => {
@@ -108,7 +120,7 @@ it("trial skip consumes the altar without wager costs or rewards", async () => {
   command({ kind: "question-skip", questionId: id });
   expect(hero.hp).toBe(hp);
   expect(hero.conditions.blessings).toEqual([]);
-  expect(room.state.completedTrials).toContain(1);
+  expect(room.state.sharedEvents.find((e) => e.id === "trial-1")?.status).toBe("skipped");
   expect(room.state.trial).toBeNull();
 });
 it("cancelled duel refunds once, retains damage, restores both phases, and refuses settled cancellation", async () => {
@@ -263,7 +275,12 @@ it.each([
   room.state.phase = phase;
   room.timer = newClock(10000, 1000, true);
   room.processed.saved = { fingerprint: "accepted", receipt: { revision: 7 } };
-  run.progress.actions[room.state.heroes[0].playerId] = { kind: "attack", part: "body" };
+  run.progress.actions[room.state.heroes[0].playerId] = {
+    kind: "attack",
+    enemyId:
+      room.state.encounters.find((e) => e.id === run.progress.encounterId)?.enemies[0].id ??
+      "missing",
+  };
   const markers = structuredClone(run.progress.resolvedPhaseIds);
   const memory = memoryStorage();
   await memory.storage.save(room);

@@ -35,6 +35,7 @@ export const NODE_COLORS: Record<MapNodeKind, string> = {
   camp: "#4c7252",
   shrine: "#4c7252",
   altar: "#6d5797",
+  siege: "#286e9b",
   event: "#6d5797",
 };
 export const TEAM_COLORS = [
@@ -68,10 +69,9 @@ export function iconColor(name: string): string | undefined {
     return GAME_COLORS.healing;
   if (["shield", "armor", "ward-vest", "guard-coat", "last-stand"].includes(name))
     return GAME_COLORS.protection;
-  if (["weapon", "body-blade", "bleed", "arm", "leg", "curse"].includes(name))
-    return GAME_COLORS.attack;
+  if (["weapon", "blade", "bleed", "arm", "leg", "curse"].includes(name)) return GAME_COLORS.attack;
   if (["stress", "tonic", "calm-charm", "iron-nerve"].includes(name)) return GAME_COLORS.stress;
-  if (["seal", "seal-pick", "blessing", "charm"].includes(name)) return GAME_COLORS.magic;
+  if (["seal", "piercing-blade", "blessing", "charm"].includes(name)) return GAME_COLORS.magic;
   if (["gold", "merchant", "boss"].includes(name)) return GAME_COLORS.gold;
 }
 

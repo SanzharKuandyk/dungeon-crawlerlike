@@ -19,6 +19,26 @@ export function projectTrial(state: MatchState): TrialView | null {
         }
       : null;
   return {
+    eventId: trial.eventId,
+    questionCount: 2,
+    crewVotes: state.crews.map((crew) => {
+      const counts = new Map<string, number>();
+      for (const id of crew.playerIds)
+        if (trial.votes[id]) counts.set(trial.votes[id], (counts.get(trial.votes[id]) ?? 0) + 1);
+      const max = Math.max(0, ...counts.values()),
+        shift = (trial.questionNumber - 1) % crew.playerIds.length;
+      const ordered = [...crew.playerIds.slice(shift), ...crew.playerIds.slice(0, shift)];
+      const tileId =
+        ordered.map((id) => trial.votes[id]).find((id) => counts.get(id) === max) ?? null;
+      return {
+        crewId: crew.id,
+        tileId: trial.selection?.crewVotes[crew.id] ?? tileId,
+        submitted: crew.playerIds.filter((id) => trial.votes[id]).length,
+        total: crew.playerIds.length,
+      };
+    }),
+    selectionReason: trial.selection?.reason ?? null,
+    wagers: Object.entries(trial.wagers).map(([playerId, wager]) => ({ playerId, wager })),
     selectedTile: question
       ? (trial.tiles.find((t) => t.category === question.category && t.value === question.value) ??
         null)
@@ -37,6 +57,8 @@ export function projectTrial(state: MatchState): TrialView | null {
     distractors: reveal ? (question?.distractors ?? []) : [],
     totals: trial.totals,
     oath: trial.oath,
+    goldPer100: state.content.balance?.trialGoldPer100 ?? 0,
+    goldRewards: reveal ? (trial.questionGold ?? {}) : {},
     accuracy: reveal
       ? state.crews.map((c) => ({
           crewId: c.id,

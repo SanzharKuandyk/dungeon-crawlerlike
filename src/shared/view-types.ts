@@ -7,8 +7,17 @@ import type { ArenaState, Hero, MatchState, Player } from "./game-types.js";
 import type { ExpeditionMap } from "./map-types.js";
 
 export type PublicRoomView = ArenaState & {
+  sharedEvents: import("./shared-event-types.js").SharedEventRecord[];
+  revivalRequests: string[];
   chapterMaps: ExpeditionMap[];
   trial: import("./trial-types.js").TrialView | null;
+  siege: import("./siege-types.js").SiegeState | null;
+  explorations: {
+    crewId: string;
+    nodeId: string;
+    choices: import("./exploration-types.js").ExplorationState["choices"];
+    outcomes: import("./exploration-types.js").ExplorationState["outcomes"];
+  }[];
   trialContentReady: boolean;
   skillStress: { skirmish: number };
   role: "projector";
@@ -74,12 +83,15 @@ export type PlayerRoomView = Omit<PublicRoomView, "role"> & {
     name: string;
     ready: boolean;
     action: HeroAction | null;
+    plan: import("./turn-plans.js").TurnPlan | null;
     route: string | null;
     camp: CampChoice | null;
     withdraw: boolean;
   }[];
   legalActions: HeroAction[];
   selectedAction: HeroAction | null;
+  selectedPlan: import("./turn-plans.js").TurnPlan | null;
+  exploration: Omit<import("./exploration-types.js").ExplorationState, "rolls"> | null;
   winningRoute: string | null;
   reachableNodeIds: string[];
   recoveryAvailable: boolean;

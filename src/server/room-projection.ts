@@ -5,8 +5,8 @@ import { clockView } from "./clocks.js";
 import { eligibleMembers, playerRun } from "./crew-decisions.js";
 import { reject } from "./errors.js";
 import { hostCapabilities } from "./host-capabilities.js";
-import { questionActive } from "./question-coordinator.js";
 import type { Binding, StoredRoom } from "./room-types.js";
+import { questionActive } from "./shared-event-coordinator.js";
 
 export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () => number) {
   const publicViews = new WeakMap<
@@ -39,6 +39,7 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
             "combat-reveal",
             "combat-recap",
             "camp-reveal",
+            "event-reveal",
             "extraction",
             "return",
           ].includes(run.progress.phase.kind)
@@ -49,6 +50,7 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
             "combat-reveal",
             "combat-recap",
             "camp-reveal",
+            "event-reveal",
             "extraction",
             "return",
           ].includes(run.progress.phase.kind)
@@ -112,7 +114,7 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
         absentMs: p.connected ? 0 : Math.max(0, clock() - (room.absentSince[p.id] ?? clock())),
       })),
       readOnly: binding.readOnly,
-      independent: room.state.rulesVersion === "dungeon-v4",
+      independent: room.state.rulesVersion === "dungeon-v5",
       quizActive: questionActive(room),
       intermissionPending: room.discovery !== null,
       hostReconnectUntil:
@@ -153,6 +155,7 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
           "combat-reveal",
           "combat-recap",
           "camp-reveal",
+          "event-reveal",
           "extraction",
           "return",
         ].includes(run.progress.phase.kind)
@@ -163,6 +166,7 @@ export function createRoomProjector(rooms: Map<string, StoredRoom>, clock: () =>
           "combat-reveal",
           "combat-recap",
           "camp-reveal",
+          "event-reveal",
           "extraction",
           "return",
         ].includes(run.progress.phase.kind)

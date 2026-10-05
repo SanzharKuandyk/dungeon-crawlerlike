@@ -35,8 +35,8 @@ export const CLASS_SKILLS = {
 export const CLASS_PURPOSES: Record<ClassId, string> = {
   knight: "Protect a character from this turn’s attack.",
   physician: "Restore a character’s health and stop Bleed.",
-  occultist: "Heavy damage at the cost of personal stress.",
-  scavenger: "Attack and take gold once per fight.",
-  wanderer: "Attack while protecting yourself.",
+  occultist: "Damage and Mark an enemy so a follow-up hit is stronger. Costs stress.",
+  scavenger: "Attack and take gold once per room, including retries.",
+  wanderer: "Attack while protecting yourself. Costs stress.",
   exorcist: "Attack, heal yourself and reduce stress.",
 };

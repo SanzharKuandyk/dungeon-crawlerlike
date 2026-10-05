@@ -1,7 +1,7 @@
 import type { AfflictionKind, InjuryKind } from "../../shared/condition-types.js";
 import type { Hero } from "../../shared/game-types.js";
 import { nextRandom } from "../random.js";
-import { calculateDamage } from "./damage.js";
+import { calculateDamage, itemRank } from "./damage.js";
 export const hasAffliction = (hero: Hero, kind: AfflictionKind) =>
   hero.conditions.afflictions.some((a) => a.kind === kind);
 export function useOnce(hero: Hero, key: string) {
@@ -18,7 +18,7 @@ export function applyStress(hero: Hero, amount: number) {
       hero.inventory.equipment.charm?.kind === "calm-charm" &&
       useOnce(hero, "calm-charm")
     )
-      amount = Math.max(0, amount - 1);
+      amount = Math.max(0, amount - itemRank(hero.inventory.equipment.charm));
   }
   hero.stress = Math.max(0, hero.stress + amount);
 }

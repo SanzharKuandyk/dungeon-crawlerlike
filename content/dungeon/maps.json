@@ -1,0 +1,36 @@
+[
+  {
+    "chapter": 1,
+    "rows": [
+      ["battle"],
+      ["battle"],
+      ["merchant", "treasure", "event"],
+      ["battle", "battle", "elite"],
+      ["altar"],
+      ["camp", "event"],
+      ["battle", "elite"],
+      ["merchant"],
+      ["battle", "elite"],
+      ["altar"],
+      ["camp", "elite"],
+      ["boss"]
+    ]
+  },
+  {
+    "chapter": 2,
+    "rows": [
+      ["battle"],
+      ["treasure", "event"],
+      ["battle", "elite"],
+      ["merchant"],
+      ["battle", "elite"],
+      ["altar"],
+      ["camp", "event"],
+      ["battle", "elite", "arena"],
+      ["merchant", "treasure", "event"],
+      ["siege"],
+      ["camp", "elite"],
+      ["boss"]
+    ]
+  }
+]

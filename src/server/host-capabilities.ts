@@ -1,11 +1,12 @@
 import { CREW_CHOICES } from "./crew-decisions.js";
 import type { StoredRoom } from "./room-types.js";
+
 export function hostCapabilities(room: StoredRoom) {
   return {
     crews: Object.values(room.runs).map((run) => {
       const duel = room.duels.some((d) => d.status === "active" && d.crewIds.includes(run.crewId));
       const ordinary =
-        !room.state.trial?.id &&
+        !(room.state.trial || room.state.siege)?.id &&
         !duel &&
         CREW_CHOICES.has(run.progress.phase.kind) &&
         !run.finished;

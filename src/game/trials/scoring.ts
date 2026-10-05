@@ -2,6 +2,8 @@ import type { MatchState } from "../../shared/game-types.js";
 import type { WagerLevel } from "../../shared/trial-types.js";
 import { applyAffliction, applyStress, resolvePanic } from "../combat/conditions.js";
 import { preventDeath } from "../combat/protection.js";
+import { goldReward } from "../progression/economy.js";
+import { expeditionEvent } from "../progression/events.js";
 import { trialQuestion } from "./board.js";
 export const MULTIPLIERS = { steady: 1, bold: 2, oath: 3 } as const;
 export function scoreTrialAnswer(value: number, wager: WagerLevel, correct: boolean, size: number) {
@@ -28,9 +30,11 @@ export function lockTrialQuestion(state: MatchState) {
     else {
       if (wager === "oath") applyAffliction(hero, trial.oath);
       else applyStress(hero, wager === "bold" ? 3 : 1);
-      resolvePanic(hero);
-      preventDeath(hero);
-      if (hero.hp === 0) hero.status = "dead";
+      if (hero.status === "alive") {
+        resolvePanic(hero);
+        preventDeath(hero);
+        if (hero.hp === 0) hero.status = "dead";
+      } else hero.stress = Math.min(9, hero.stress);
     }
     trial.results.push({
       playerId: player.id,
@@ -47,8 +51,29 @@ export function lockTrialQuestion(state: MatchState) {
             : "+1 stress",
     });
   }
-  for (const crew of state.crews)
+  trial.questionGold = {};
+  for (const crew of state.crews) {
+    const multipliers = trial.results
+      .filter((r) => crew.playerIds.includes(r.playerId) && r.correct)
+      .reduce((sum, r) => sum + MULTIPLIERS[r.wager], 0);
+    const earned = Math.floor(
+      ((q.value / 100) * (state.content.balance?.trialGoldPer100 ?? 0) * multipliers) /
+        crew.startingSize,
+    );
+    const debtPaid = Math.min(crew.economy.rescueDebt, earned);
+    crew.economy = goldReward(crew, earned);
+    trial.questionGold[crew.id] = { earned, debtPaid };
+    if (earned)
+      expeditionEvent(
+        state,
+        crew.id,
+        { kind: "crew", actor: crew.id, crew },
+        `Trial: +${earned} gold${debtPaid ? ` · ${debtPaid} repays rescue debt` : ""}.`,
+        0.85,
+        "trial-gold",
+      );
     crew.status = state.heroes.some((h) => h.crewId === crew.id && h.status === "alive")
       ? "active"
       : "eliminated";
+  }
 }

@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { reject } from "./errors.js";
 import { hashToken, newToken } from "./sessions.js";
+
 export async function loadHostAccess() {
   const path = resolve("data/host-access.key");
   await mkdir(resolve("data"), { recursive: true });
@@ -16,6 +17,7 @@ export async function loadHostAccess() {
   console.info(`Host recovery key file: ${path}`);
   return key;
 }
+
 export function requireHostAccess(expected: string, supplied: unknown) {
   if (
     typeof supplied !== "string" ||

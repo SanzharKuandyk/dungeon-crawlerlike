@@ -12,6 +12,8 @@
     actor,
     crewId = null,
     targetId = null,
+    combatHud = false,
+    rows = false,
   }: {
     view: RoomView;
     arena: ArenaState;
@@ -19,6 +21,8 @@
     actor: string | null;
     crewId?: string | null;
     targetId?: string | null;
+    combatHud?: boolean;
+    rows?: boolean;
   } = $props();
   let parent: HTMLDivElement,
     renderer = $state<ReturnType<typeof createArena> | null>(null);
@@ -41,12 +45,15 @@
       preferences.reducedMotion,
       crewId,
       targetId,
+      combatHud,
+      rows,
     ),
   );
 </script>
 <div
   class="dungeon-arena"
+  class:combat-art={combatHud}
   bind:this={parent}
   role="img"
-  aria-label="Dungeon encounter. Colored character portraits match crew badges. Enemy health and seal health are shown."
+  aria-label="Dungeon encounter. Colored character portraits match crew badges. Enemy health, Block and announced moves are shown."
 ></div>

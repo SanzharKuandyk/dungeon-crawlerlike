@@ -49,14 +49,37 @@
       (selectedSlot ? hero?.inventory.equipment[selectedSlot] : null),
   );
   let selectedTab = $state("gear");
+  let safeDecision = $derived(
+    ["camp", "route", "result", "floor-result"].includes(view.phase.kind),
+  );
+  let duel = $derived(
+    view.duels.some((d) => d.status === "active" && d.crewIds.includes(view.self.crewId ?? "")),
+  );
+  let unavailableReason = $derived(
+    view.readOnly
+      ? "Another tab controls this character."
+      : view.status !== "running"
+        ? "Gear changes are locked while the expedition is paused or finished."
+        : view.trial || view.siege
+          ? "Finish the shared event before changing gear."
+          : duel || !safeDecision
+            ? "Gear stays fixed during a fight. Change it after the fight or at a safe stop."
+            : view.decisionReady
+              ? "You are Ready. Press Change to reopen your gear choices."
+              : locked
+                ? "Waiting for your request to be confirmed."
+                : "",
+  );
   let editable = $derived(
     !locked &&
       !view.trial &&
+      !view.siege &&
+      !duel &&
       !view.decisionReady &&
       ["camp", "route", "result", "floor-result"].includes(view.phase.kind),
   );
 </script>
-<Dialog bind:open title="Backpack">
+<Dialog bind:open title="Backpack" class="inventory-dialog">
   {#snippet context()}
     {#if hero}
       <div class="build-identity">
@@ -104,11 +127,15 @@
             {controller}
             {editable}
             {locked}
+            {unavailableReason}
             details={false}
             onuse={() => (open = false)}
           />
         {/if}
       </div>
+      {#if safeDecision && view.decisionReady && !view.trial && !view.siege && !duel}
+        <Button disabled={locked} onclick={() => void controller.edit()}>Change</Button>
+      {/if}
       <Button variant="quiet" onclick={() => (open = false)}>Done</Button>
     </div>
   {/snippet}

@@ -6,11 +6,14 @@
   import { teamColor } from "../../shared/palette.js";
   import type { RoomView } from "../../shared/view-types.js";
   import DungeonArena from "../arena/DungeonArena.svelte";
+  import { actorY, SCENE_READOUT_HEIGHT, sceneFrame, sceneHeight } from "../arena/scene-layout.js";
   import { crewView } from "../crew-view.js";
   import { phaseInstruction, presentation } from "../event-presenter.js";
   import CrewOrders from "./CrewOrders.svelte";
   import EnemyIntent from "./EnemyIntent.svelte";
   import GameIcon from "./GameIcon.svelte";
+  import HeroInspect from "./HeroInspect.svelte";
+  import SceneTargets from "./SceneTargets.svelte";
   import Button from "./ui/Button.svelte";
   import StatusBar from "./ui/StatusBar.svelte";
 
@@ -25,6 +28,7 @@
     selectedAction = null,
     locked = false,
     obscured = false,
+    combatHud = false,
     onchoose,
   }: {
     view: RoomView;
@@ -37,8 +41,13 @@
     selectedAction?: HeroAction | null;
     locked?: boolean;
     obscured?: boolean;
+    combatHud?: boolean;
     onchoose?: (action: HeroAction) => void;
   } = $props();
+  let battle: HTMLDivElement;
+  let width = $state(0),
+    height = $state(0);
+  let portrait = $state(false);
   let now = $state(Date.now());
   let received = $state(Date.now());
   $effect(() => {
@@ -46,8 +55,23 @@
     received = Date.now();
   });
   onMount(() => {
+    const observer = new ResizeObserver(([entry]) => {
+      width = entry.borderBoxSize[0].inlineSize;
+      height = entry.borderBoxSize[0].blockSize;
+    });
+    observer.observe(battle, { box: "border-box" });
+    const query = matchMedia("(max-width: 600px) and (orientation: portrait)");
+    const update = () => {
+      portrait = query.matches;
+    };
+    update();
+    query.addEventListener("change", update);
     const timer = setInterval(() => (now = Date.now()), 50);
-    return () => clearInterval(timer);
+    return () => {
+      observer.disconnect();
+      clearInterval(timer);
+      query.removeEventListener("change", update);
+    };
   });
   let local = $derived(crewView(view, crew.id));
   let display = $derived(
@@ -62,10 +86,14 @@
       (entry) => shownCrew.location.kind === "room" && entry.id === shownCrew.location.roomId,
     ),
   );
+  let rows = $derived(
+    combatHud && portrait && Math.max(heroes.length, encounter?.enemies.length ?? 0) > 2,
+  );
   let fighting = $derived(encounter?.status === "active" && shownCrew.location.kind === "room");
   let own = $derived(view.role === "player" && view.self.crewId === crew.id);
   let run = $derived(view.crewRuns.find((entry) => entry.crewId === crew.id));
   let ready = $derived(view.participation.find((entry) => entry.crewId === crew.id));
+  let exploration = $derived(view.explorations.find((event) => event.crewId === crew.id));
   let targetHero = $derived(
     (view.role === "player"
       ? heroes.find((h) => h.playerId === view.self.id && h.status === "alive")
@@ -79,6 +107,8 @@
   class="crew-stage"
   class:selected={selected}
   class:own={own}
+  class:combat-scene={combatHud}
+  class:rows-of-two={rows}
   style:--team={teamColor(crew.colorId).hex}
 >
   <header>
@@ -103,8 +133,15 @@
           : `Room ${local.depth} · ${encounter?.definition.name ?? "Camp"}`}</span
     >
   </header>
-  <div class="crew-battle animated-battle">
+  <div
+    class="crew-battle animated-battle"
+    bind:this={battle}
+    style:--combat-art-height={`${sceneFrame(width, height, rows, combatHud).artHeight}px`}
+    style:--scene-hud-space={`${Math.max(0, SCENE_READOUT_HEIGHT - ((sceneHeight(rows) - actorY(rows ? 2 : 0, rows)) * width) / 1200)}px`}
+  >
     <DungeonArena
+      {combatHud}
+      {rows}
       view={local}
       arena={display.arena}
       roomId={encounter?.id ?? null}
@@ -112,22 +149,63 @@
       crewId={crew.id}
       targetId={selectedAction && "targetHeroId" in selectedAction
         ? selectedAction.targetHeroId
-        : null}
+        : selectedAction && "enemyId" in selectedAction
+          ? selectedAction.enemyId
+          : null}
     />
     {#if fighting && encounter && !encounter.rivalry && targetHero && !view.quizActive}
-      <EnemyIntent enemy={encounter} hero={targetHero} turn={local.turn} />
+      <EnemyIntent {combatHud} {rows} enemy={encounter} hero={targetHero} players={view.players} />
+    {/if}
+    {#if combatHud && encounter && !encounter.rivalry}
+      <SceneTargets
+        {rows}
+        {encounter}
+        {heroes}
+        players={view.players}
+        {targetActions}
+        {selectedAction}
+        {locked}
+        {onchoose}
+        selfId={view.role === "player" ? view.self.id : null}
+      />
     {/if}
     <p class="battle-narration" aria-live="polite">
       {run?.suspended ? "Waiting for reconnection" : display.message}
     </p>
+    <HeroInspect {combatHud} {rows} {heroes} players={view.players} />
   </div>
+  {#if exploration &&
+    view.role !== "player" &&
+    ["event", "event-reveal", "result"].includes(local.phase.kind)}
+    <section class="crew-exploration" aria-label={`${crew.name} event choices`}>
+      {#each Object.entries(exploration.choices) as [playerId, choice]}
+        {@const member = heroes.find((hero) => hero.playerId === playerId)}
+        {@const revealed = local.events.find(
+          (event) =>
+            event.cause === "event-outcome" &&
+            event.actor === member?.id &&
+            event.sequence <= ("cursor" in display ? display.cursor : Infinity),
+        )}
+        <p>
+          <GameIcon name={choice.kind === "coin" ? "gold" : "dice"} size={16} />
+          <strong>{view.players.find((player) => player.id === playerId)?.name}</strong>
+          {choice.kind === "coin"
+            ? `${choice.side} · ${member?.power ?? 0} stake · ${choice.prize}`
+            : choice.kind.replaceAll("-", " ")}
+          {#if revealed}
+            <span>{revealed.message}</span>
+          {/if}
+        </p>
+      {/each}
+    </section>
+  {/if}
   {#if own &&
     view.role === "player" &&
     !view.quizActive &&
     ["combat", "combat-reveal", "combat-recap"].includes(local.phase.kind)}
     <CrewOrders {view} arena={display.arena} />
   {/if}
-  {#if targetActions.some((action) => "targetHeroId" in action)}
+  {#if !combatHud && targetActions.some((action) => "targetHeroId" in action)}
     <fieldset class="character-targets" aria-label="Choose a character">
       {#each targetActions as action}
         {#if "targetHeroId" in action}
@@ -145,34 +223,23 @@
       {/each}
     </fieldset>
   {/if}
-  {#if encounter && !encounter.rivalry && !view.quizActive}
-    <div
-      class="enemy-bars"
-      style:--shield={`${Math.min(100, (encounter.shield / encounter.maxBodyHp) * 100)}%`}
-    >
+  {#if !combatHud && encounter && !encounter.rivalry && !view.quizActive}
+    <div class="enemy-bars">
       <StatusBar
         label="Enemy health"
         caption={encounter.definition.family}
         ariaLabel="Enemy health"
-        value={encounter.bodyHp}
-        max={encounter.maxBodyHp}
+        value={encounter.hp}
+        max={encounter.maxHp}
       />
-      <StatusBar
-        label="Enemy seal"
-        caption="Seal"
-        ariaLabel="Enemy seal"
-        icon="seal"
-        value={encounter.weakHp}
-        max={encounter.maxWeakHp}
-      />
-      <div class="shield-badge" title="Enemy shield">
-        <GameIcon name="shield" size={16} /><strong>{encounter.shield}</strong>
+      <div class="shield-badge" title="Enemy Block expires after the next player phase">
+        <GameIcon name="shield" size={16} /><strong>{encounter.block}</strong><span>Block</span>
       </div>
     </div>
   {/if}
   <footer>
     <span
-      ><GameIcon name="boss" size={16} /><strong>{shownCrew.bossesDefeated}/3</strong>
+      ><GameIcon name="boss" size={16} /><strong>{shownCrew.bossesDefeated}/2</strong>
       <GameIcon name="gold" size={16} />{shownCrew.economy.gold}</span
     >
     <span

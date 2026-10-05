@@ -33,12 +33,13 @@ it("full-backpack equipment swaps are atomic and require explicit replacement", 
   const o = s.rewardOffers[0],
     option = o.options[0],
     slot = itemDefinition(option.kind)?.slot;
-  if (!slot) throw new Error("Equipment required");
-  h.inventory.equipment[slot] = { id: "old", kind: option.kind, count: 1 };
+  if (!slot || option.type !== "equipment") throw new Error("Equipment required");
+  h.inventory.equipment[slot] = { id: "old", kind: option.kind, count: 1, rank: 1 };
   h.inventory.backpack = Array.from({ length: 6 }, (_, i) => ({
     id: `bag-${i}`,
-    kind: "body-blade",
-    count: 1,
+    kind: "blade" as const,
+    count: 1 as const,
+    rank: 1 as const,
   }));
   const before = structuredClone(h.inventory);
   const claim = {
@@ -47,7 +48,7 @@ it("full-backpack equipment swaps are atomic and require explicit replacement", 
     disposition: "equip" as const,
     replacementItemId: null,
   };
-  expect(() => claimReward(h, o, claim, h.inventory.revision)).toThrow("Backpack full");
+  expect(() => claimReward(h, o, claim, h.inventory.revision)).toThrow("Bag full");
   expect(h.inventory).toEqual(before);
   expect(o.status).toBe("pending");
   claimReward(h, o, { ...claim, replacementItemId: "bag-0" }, h.inventory.revision);
@@ -56,15 +57,15 @@ it("full-backpack equipment swaps are atomic and require explicit replacement", 
   expect(h.inventory.backpack).toHaveLength(6);
   expect(() => claimReward(h, o, claim, h.inventory.revision)).toThrow("unavailable");
 });
-it("ordinary and failed encounters never imply equipment; elite rewards do not farm", () => {
+it("ordinary victories grant equipment; elite rewards do not farm", () => {
   const s = fixture(1);
   const e = s.encounters[0];
-  e.bodyHp = 0;
+  e.hp = 0;
   awardEncounter(s, "c0", e);
-  expect(s.rewardOffers).toEqual([]);
+  expect(s.rewardOffers).toHaveLength(1);
   const elite = fixture(1);
   elite.encounters[0].kind = "elite";
-  elite.encounters[0].bodyHp = 0;
+  elite.encounters[0].hp = 0;
   awardEncounter(elite, "c0", elite.encounters[0]);
   const gold = elite.crews[0].economy.gold;
   awardEncounter(elite, "c0", elite.encounters[0]);
@@ -73,19 +74,13 @@ it("ordinary and failed encounters never imply equipment; elite rewards do not f
   createCrewResult(elite, "c0", "victory", "encounter");
   expect(elite.crewProgress.c0.result?.rewardIds).toHaveLength(1);
 });
-it("defer retains an entitlement and leave explicitly declines without taking inventory space", () => {
+it("leave explicitly declines a preserved entitlement without taking inventory space", () => {
   const s = fixture(1);
   grantEquipmentOffers(s, "c0", "cache");
   const h = s.heroes[0],
     o = s.rewardOffers[0];
-  claimReward(
-    h,
-    o,
-    { offerId: o.id, optionId: null, disposition: "defer", replacementItemId: null },
-    h.inventory.revision,
-  );
-  expect(o.status).toBe("pending");
-  expect(o.deferred).toBe(true);
+  o.deferred = true;
+  const inventory = structuredClone(h.inventory);
   claimReward(
     h,
     o,
@@ -93,4 +88,5 @@ it("defer retains an entitlement and leave explicitly declines without taking in
     h.inventory.revision,
   );
   expect(o.status).toBe("declined");
+  expect(h.inventory).toEqual(inventory);
 });

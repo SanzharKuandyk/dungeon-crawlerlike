@@ -24,17 +24,35 @@ test("personal reward, committed equip feedback, crew readiness and reachable fo
     "player",
   );
   try {
-    await expect(actor.page.getByRole("heading", { name: "Victory", exact: true })).toBeVisible();
+    await expect(
+      actor.page.getByRole("dialog", { name: "Choose your reward", exact: true }),
+    ).toBeVisible();
+    const canvas = await actor.page.locator(".phone-panel canvas").elementHandle();
+    const choices = await actor.page.locator(".reward-options").innerText();
+    await actor.page.getByRole("button", { name: "Close dialog", exact: true }).click();
+    await expect(actor.page.getByRole("dialog")).toHaveCount(0);
+    await actor.page.getByRole("button", { name: "Choose reward", exact: true }).click();
+    await expect(actor.page.locator(".reward-options")).toContainText(
+      choices.replace(/\s+/g, " ").trim(),
+    );
+    expect(
+      await canvas?.evaluate((el) => el === document.querySelector(".phone-panel canvas")),
+    ).toBe(true);
     await mkdir(".Codex/ui-v4", { recursive: true });
     for (const size of sizes) {
       await actor.page.setViewportSize(size);
       await noOverflow(actor.page);
-      const save = actor.page.getByRole("button", { name: "Save for later", exact: true });
-      await expect(save).toBeInViewport();
+      await expect(actor.page.locator(".reward-options")).toBeVisible();
+      await expect(actor.page.locator(".reward-detail")).toBeVisible();
+      const leave = actor.page.getByRole("button", { name: "Leave reward", exact: true });
+      await expect(leave).toBeInViewport();
+      await expect(
+        actor.page.getByRole("button", { name: "Decide later", exact: true }),
+      ).toHaveCount(0);
       await expect(
         actor.page.getByRole("button", { name: "Ready to travel", exact: true }),
       ).toHaveCount(0);
-      const box = await save.boundingBox();
+      const box = await leave.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
       await actor.page.screenshot({
         path: `.Codex/ui-v4/reward-${size.width}.png`,
@@ -46,8 +64,9 @@ test("personal reward, committed equip feedback, crew readiness and reachable fo
     await expect(actor.page.locator(".item-detail")).toBeVisible();
     await actor.page.getByRole("button", { name: "Equip", exact: true }).click();
     await expect(
-      actor.page.locator(".transaction-feedback").filter({ hasText: "Equipped in" }),
+      actor.page.locator(".transaction-feedback").filter({ hasText: "Equipped" }),
     ).toBeVisible();
+    await expect(actor.page.getByRole("dialog")).toHaveCount(0);
     await actor.page.getByRole("button", { name: "Ready to travel", exact: true }).click();
     await expect(actor.page.getByRole("button", { name: "Change", exact: true })).toBeVisible();
     await actor.page.reload();
@@ -72,7 +91,7 @@ test("full backpack reward stays pending until explicit replacement", async ({
   );
   try {
     await actor.page.locator(".reward-options button").first().click();
-    await actor.page.getByRole("button", { name: "Keep", exact: true }).click();
+    await actor.page.getByRole("button", { name: "Store in Bag", exact: true }).click();
     await expect(actor.page.getByRole("alert")).toContainText("Backpack full");
     await actor.page.reload();
     await expect(actor.page.locator(".reward-options")).toBeVisible();
@@ -80,8 +99,8 @@ test("full backpack reward stays pending until explicit replacement", async ({
     await actor.page
       .getByLabel("Replace a backpack item if space is needed")
       .selectOption({ index: 1 });
-    await actor.page.getByRole("button", { name: "Keep", exact: true }).click();
-    await expect(actor.page.locator(".transaction-feedback")).toContainText("Added to backpack");
+    await actor.page.getByRole("button", { name: "Store in Bag", exact: true }).click();
+    await expect(actor.page.locator(".transaction-feedback")).toContainText("Added to Bag");
   } finally {
     await actor.context.close();
   }
@@ -164,12 +183,12 @@ test("inventory operations stay reachable and swapped equipment returns to the b
     "player",
   );
   try {
-    await actor.page.getByRole("button", { name: "Save for later", exact: true }).click();
+    await actor.page.getByRole("button", { name: "Leave reward", exact: true }).click();
     await actor.page.getByRole("button", { name: "Backpack", exact: true }).click();
     const dialog = actor.page.getByRole("dialog");
     await dialog
       .locator(".backpack-slots")
-      .getByRole("button", { name: "Body blade", exact: true })
+      .getByRole("button", { name: "Blade", exact: true })
       .first()
       .click();
     for (const size of sizes) {
@@ -182,14 +201,14 @@ test("inventory operations stay reachable and swapped equipment returns to the b
     await actor.page.setViewportSize(sizes[0]);
     await dialog.getByRole("button", { name: "Equip", exact: true }).click();
     await expect(
-      dialog.locator(".gear-slots").getByRole("button", { name: "Body blade", exact: true }),
+      dialog.locator(".gear-slots").getByRole("button", { name: "Blade", exact: true }),
     ).toBeVisible();
     await expect(
       dialog.locator(".build-section-label").filter({ hasText: "Backpack" }),
     ).toContainText("5/6");
     await dialog
       .locator(".backpack-slots")
-      .getByRole("button", { name: "Body blade", exact: true })
+      .getByRole("button", { name: "Blade", exact: true })
       .first()
       .click();
     await expect(dialog.locator(".item-comparison")).toContainText("Currently equipped");
@@ -206,13 +225,26 @@ test("inventory operations stay reachable and swapped equipment returns to the b
       actor.page
         .getByRole("dialog")
         .locator(".gear-slots")
-        .getByRole("button", { name: "Body blade", exact: true }),
+        .getByRole("button", { name: "Blade", exact: true }),
     ).toBeVisible();
+    await actor.page.getByRole("button", { name: "Done", exact: true }).click();
+    await actor.page.getByRole("button", { name: "Ready to travel", exact: true }).click();
+    await actor.page.getByRole("button", { name: "Backpack", exact: true }).click();
+    await dialog.locator(".gear-slots").getByRole("button", { name: "Blade", exact: true }).click();
+    await expect(dialog.getByRole("button", { name: "Unequip", exact: true })).toBeDisabled();
+    await expect(dialog.locator(".inventory-lock")).toContainText("You are Ready");
+    await dialog.getByRole("button", { name: "Change", exact: true }).click();
+    await expect(dialog.getByRole("button", { name: "Unequip", exact: true })).toBeEnabled();
+    await dialog.getByRole("button", { name: "Unequip", exact: true }).click();
+    await expect(dialog.locator(".transaction-feedback")).toContainText("Added to backpack");
+    await expect(
+      dialog.locator(".gear-slots").getByRole("button", { name: "Empty weapon slot", exact: true }),
+    ).toBeDisabled();
   } finally {
     await actor.context.close();
   }
 });
-test("a spirit can use private treatment and trial reveal retains every answer option", async ({
+test("a spirit requests ally revival and trial reveal retains every answer option", async ({
   page,
   browser,
   baseURL,
@@ -229,19 +261,23 @@ test("a spirit can use private treatment and trial reveal retains every answer o
     );
     try {
       if (scenario === "revival") {
-        await actor.page.getByRole("button", { name: "Treatment", exact: true }).click();
-        await actor.page.getByRole("button", { name: "Revive", exact: true }).click();
+        await expect(
+          actor.page.getByText("Fallen · a living teammate can revive you here."),
+        ).toBeVisible();
         for (const size of sizes) {
           await actor.page.setViewportSize(size);
+          await actor.page
+            .getByRole("button", { name: "Request revival", exact: true })
+            .scrollIntoViewIfNeeded();
           await expect(
-            actor.page.getByRole("button", { name: /Confirm treatment/ }),
+            actor.page.getByRole("button", { name: "Request revival", exact: true }),
           ).toBeInViewport();
           await noOverflow(actor.page);
         }
-        await actor.page.getByRole("button", { name: /Confirm treatment/ }).click();
-        await expect(actor.page.locator(".transaction-feedback")).toContainText(
-          "Revived · 12 HP · 3 stress",
-        );
+        await actor.page.getByRole("button", { name: "Request revival", exact: true }).click();
+        await expect(
+          actor.page.getByRole("button", { name: "Teammates notified", exact: true }),
+        ).toBeVisible();
       } else {
         for (const size of sizes) {
           await actor.page.setViewportSize(size);

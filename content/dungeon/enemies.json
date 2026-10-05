@@ -1,0 +1,331 @@
+{
+  "raider": {
+    "name": "Raider",
+    "moves": [
+      {
+        "id": "strike",
+        "name": "Strike",
+        "target": "rotating",
+        "damagePower": 1,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "windup",
+        "name": "Wind up",
+        "target": "none",
+        "damagePower": 0,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "heavy",
+        "name": "Heavy strike",
+        "target": "rotating",
+        "damagePower": 2,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": "arm",
+        "injuryChance": 25,
+        "finalPhaseDamagePower": 0
+      }
+    ]
+  },
+  "guard": {
+    "name": "Guard",
+    "moves": [
+      {
+        "id": "block",
+        "name": "Raise Block",
+        "target": "none",
+        "damagePower": 0,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 1,
+        "recipient": "self",
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "strike",
+        "name": "Strike",
+        "target": "rotating",
+        "damagePower": 1,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "heavy",
+        "name": "Heavy strike",
+        "target": "rotating",
+        "damagePower": 2,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": "arm",
+        "injuryChance": 25,
+        "finalPhaseDamagePower": 0
+      }
+    ]
+  },
+  "whisperer": {
+    "name": "Whisperer",
+    "moves": [
+      {
+        "id": "whisper-0",
+        "name": "Dread whisper",
+        "target": "rotating",
+        "damagePower": 1,
+        "stress": 2,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "whisper-1",
+        "name": "Dread whisper",
+        "target": "rotating",
+        "damagePower": 1,
+        "stress": 2,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "whisper-2",
+        "name": "Dread whisper",
+        "target": "rotating",
+        "damagePower": 1,
+        "stress": 2,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      }
+    ]
+  },
+  "supporter": {
+    "name": "Supporter",
+    "moves": [
+      {
+        "id": "support-0",
+        "name": "Protect ally",
+        "target": "none",
+        "damagePower": 0,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0.5,
+        "recipient": "ally",
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "support-1",
+        "name": "Protect ally",
+        "target": "none",
+        "damagePower": 0,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0.5,
+        "recipient": "ally",
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "support-2",
+        "name": "Protect ally",
+        "target": "none",
+        "damagePower": 0,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0.5,
+        "recipient": "ally",
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      }
+    ]
+  },
+  "devourer": {
+    "name": "Devourer",
+    "moves": [
+      {
+        "id": "bite-0",
+        "name": "Rending bite",
+        "target": "wounded",
+        "damagePower": 1,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "bite-1",
+        "name": "Rending bite",
+        "target": "wounded",
+        "damagePower": 1,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": true,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "bite-2",
+        "name": "Rending bite",
+        "target": "wounded",
+        "damagePower": 1,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": true,
+        "injury": "leg",
+        "injuryChance": 25,
+        "finalPhaseDamagePower": 0
+      }
+    ]
+  },
+  "iron-warden": {
+    "name": "Iron Warden",
+    "moves": [
+      {
+        "id": "block",
+        "name": "Raise Block",
+        "target": "none",
+        "damagePower": 0,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 1,
+        "recipient": "self",
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "heavy",
+        "name": "Heavy strike",
+        "target": "rotating",
+        "damagePower": 2,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": "arm",
+        "injuryChance": 25,
+        "finalPhaseDamagePower": 1
+      },
+      {
+        "id": "strike",
+        "name": "Strike",
+        "target": "rotating",
+        "damagePower": 1,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      }
+    ]
+  },
+  "hollow-regent": {
+    "name": "Hollow Regent",
+    "moves": [
+      {
+        "id": "bite",
+        "name": "Rending bite",
+        "target": "wounded",
+        "damagePower": 1,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": false,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "dread",
+        "name": "Dread whisper",
+        "target": "wounded",
+        "damagePower": 1,
+        "stress": 0,
+        "stressPerPhase": true,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": true,
+        "injury": null,
+        "injuryChance": 0,
+        "finalPhaseDamagePower": 0
+      },
+      {
+        "id": "rend",
+        "name": "Rending bite",
+        "target": "wounded",
+        "damagePower": 1,
+        "stress": 0,
+        "stressPerPhase": false,
+        "blockPower": 0,
+        "recipient": null,
+        "bleed": true,
+        "injury": "leg",
+        "injuryChance": 25,
+        "finalPhaseDamagePower": 0
+      }
+    ]
+  }
+}

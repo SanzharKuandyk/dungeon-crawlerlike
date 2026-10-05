@@ -1,9 +1,9 @@
 import type { DungeonContent } from "../shared/content-types.js";
 import type { Crew, MatchState } from "../shared/game-types.js";
 import { chapterMap } from "./progression/maps.js";
-export const CHAPTER_ROWS = 7;
+export const CHAPTER_ROWS = 12;
 export const createExpeditionMap = (content: DungeonContent, seed: number, chapter = 1) =>
-  chapterMap(content, seed, chapter as 1 | 2 | 3);
+  chapterMap(content, seed, chapter as 1 | 2);
 export function currentMapNode(state: MatchState, crew: Crew) {
   return state.chapterMaps[(crew.mapPosition?.chapter ?? 1) - 1]?.nodes.find(
     (n) => n.id === crew.mapPosition?.nodeId,

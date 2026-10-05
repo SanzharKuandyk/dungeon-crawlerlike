@@ -2,10 +2,10 @@ import { z } from "zod";
 import { CLASS_IDS } from "./constants.js";
 
 export const classSchema = z.enum(CLASS_IDS);
-const part = z.enum(["body", "weak-point"]);
-const target = z.string().min(1).max(100);
+// Reward item IDs include the match, source node and hero; accept those same IDs in plans.
+const target = z.string().min(1).max(200);
 export const actionSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("attack"), part }).strict(),
+  z.object({ kind: z.literal("attack"), enemyId: target }).strict(),
   z.object({ kind: z.literal("brace") }).strict(),
   z
     .object({
@@ -17,23 +17,43 @@ export const actionSchema = z.discriminatedUnion("kind", [
     .strict(),
   z.object({ kind: z.literal("protect"), targetHeroId: target }).strict(),
   z.object({ kind: z.literal("mend"), targetHeroId: target }).strict(),
-  z.object({ kind: z.literal("hex"), part }).strict(),
-  z.object({ kind: z.literal("pilfer") }).strict(),
-  z.object({ kind: z.literal("skirmish"), part }).strict(),
-  z.object({ kind: z.literal("channel"), part }).strict(),
+  z.object({ kind: z.literal("hex"), enemyId: target }).strict(),
+  z.object({ kind: z.literal("pilfer"), enemyId: target }).strict(),
+  z.object({ kind: z.literal("skirmish"), enemyId: target }).strict(),
+  z.object({ kind: z.literal("channel"), enemyId: target }).strict(),
   z.object({ kind: z.literal("ward"), targetHeroId: target }).strict(),
   z.object({ kind: z.literal("observe") }).strict(),
 ]);
-export const campSchema = z.enum([
-  "rest",
-  "continue",
-  "rescue",
-  "leave",
-  "risk",
-  "recover-health",
-  "recover-stress",
-  "sacrifice",
+const combatActionSchema = actionSchema.refine(
+  (a) => a.kind !== "ward" && a.kind !== "observe",
+  "Choose a living character action",
+);
+export const planSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("hero"),
+      actions: z.union([
+        z.tuple([combatActionSchema]),
+        z.tuple([combatActionSchema, combatActionSchema]),
+      ]),
+      activation: z
+        .object({ kind: z.literal("haste"), itemId: target })
+        .strict()
+        .nullable(),
+      inventoryRevision: z.number().int().min(0),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("spirit"),
+      action: z.discriminatedUnion("kind", [
+        z.object({ kind: z.literal("ward"), targetHeroId: target }).strict(),
+        z.object({ kind: z.literal("observe") }).strict(),
+      ]),
+    })
+    .strict(),
 ]);
+export const campSchema = z.enum(["rest", "continue", "rescue", "leave", "wait"]);
 export const classDefinitionSchema = z
   .object({
     id: classSchema,
@@ -66,6 +86,9 @@ export const rosterSchema = z.discriminatedUnion("action", [
   envelopeSchema.extend({ action: z.literal("delete-crew"), crewId: target }).strict(),
 ]);
 export const scenarioSchema = z.enum([
+  "combo",
+  "coin",
+  "siege",
   "duel",
   "reward",
   "reward-full",

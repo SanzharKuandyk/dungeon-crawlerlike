@@ -14,7 +14,7 @@ export function addItem(inventory: Inventory, item: ItemInstance): Inventory {
   let serial = 0;
   while (remaining > 0) {
     const count = Math.min(stackable ? 3 : 1, remaining);
-    const entry = { ...item, id: serial ? `${item.id}:${serial}` : item.id, count };
+    const entry = { ...item, id: serial ? `${item.id}:${serial}` : item.id, count } as ItemInstance;
     (next.backpack.length < 6 ? next.backpack : next.overflow).push(entry);
     remaining -= count;
     serial++;

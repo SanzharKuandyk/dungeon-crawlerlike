@@ -51,8 +51,7 @@ export function phaseInstruction(view: RoomView) {
   if (view.role === "player" && view.phase.kind === "camp") {
     const crew = view.crews.find((c) => c.id === view.self.crewId);
     const node = view.expeditionMap?.nodes.find((n) => n.id === crew?.mapPosition?.nodeId);
-    if (["merchant", "altar", "shrine"].includes(node?.kind ?? "") && !view.recoveryAvailable)
-      return "At the trading post";
+    if (node?.kind === "merchant" && !view.recoveryAvailable) return "At the trading post";
     if (node?.kind === "event") return node.room.name;
   }
   const names = {
@@ -72,6 +71,9 @@ export function phaseInstruction(view: RoomView) {
     camp: view.role === "player" ? "At the campfire" : "Crews are choosing at camp",
     "camp-reveal": "Camp decisions revealed",
     extraction: "The survivors return",
+    event: "Choose your own risk",
+    "event-reveal": "The outcome is revealed",
+    "shared-event": view.siege ? "Class siege" : "Trial of Wagers",
   };
   return names[view.phase.kind];
 }
@@ -116,8 +118,9 @@ export function presentation(
     return { arena, actor: null, message: phaseInstruction(view), cursor: Infinity, roomId: null };
   }
   const reveal =
-    ["arrival", "combat-reveal", "camp-reveal", "extraction", "return"].includes(view.phase.kind) &&
-    view.before !== null;
+    ["arrival", "combat-reveal", "camp-reveal", "event-reveal", "extraction", "return"].includes(
+      view.phase.kind,
+    ) && view.before !== null;
   const final: ArenaState = { heroes: view.heroes, crews: view.crews, encounters: view.encounters };
   if (!reveal || !view.before)
     return {

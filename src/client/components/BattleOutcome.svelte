@@ -11,6 +11,14 @@
     message,
   }: { view: PlayerRoomView; arena: ArenaState; cursor: number; message: string } = $props();
   let before = $derived(view.before);
+  let explorationOutcome = $derived(
+    view.events.find(
+      (e) => e.cause === "event-outcome" && e.actor === view.hero?.id && e.sequence <= cursor,
+    ),
+  );
+  let coinOutcome = $derived(
+    explorationOutcome?.kind === "hero" ? explorationOutcome.exploration : null,
+  );
   let hero = $derived(arena.heroes.find((h) => h.playerId === view.self.id));
   let oldHero = $derived(before?.heroes.find((h) => h.playerId === view.self.id));
   let visible = $derived(
@@ -34,12 +42,30 @@
     if (event.kind !== "effect") return event.message;
     const e = event.effect;
     if (e.type === "hit")
-      return `${name(e.target)} −${e.damage}${e.part === "weak-point" ? " seal / HP" : " HP"}${e.blocked ? ` · ${e.blocked} blocked` : ""}`;
+      return `${name(e.target)} −${e.damage} HP${e.blocked ? ` · ${e.blocked} blocked` : ""}`;
     if (e.type === "barrier" || e.type === "ward") return `${name(e.target)} +${e.amount} guard`;
     return event.message;
   }
 </script>
 <section class="battle-outcome" aria-label="Turn outcome" aria-live="polite">
+  {#if view.phase.kind === "event-reveal"}
+    {#if coinOutcome?.landing}
+      <div class="coin-outcome">
+        <span class="landed-coin" aria-hidden="true"><GameIcon name="gold" size={32} /></span>
+        <strong
+          >{coinOutcome.landing === "heads" ? "Heads" : "Tails"}
+          · {coinOutcome.success ? "Won" : "Lost"}</strong
+        >
+      </div>
+    {:else if view.exploration?.choices[view.self.id]?.kind === "coin"}
+      <div class="coin-outcome">
+        <span class="landed-coin tossing-coin" aria-hidden="true"
+          ><GameIcon name="gold" size={32} /></span
+        ><strong>Tossing…</strong>
+      </div>
+    {/if}
+    <p>{explorationOutcome?.message ?? "Resolving your choice…"}</p>
+  {/if}
   <strong
     >{view.phase.kind === "combat-reveal"
       ? "Resolving turn"

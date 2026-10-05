@@ -1,5 +1,7 @@
+import { refreshChampionIntent } from "../game/arena/champion.js";
 import { addItem } from "../game/inventory/inventory.js";
 import { goldReward } from "../game/progression/economy.js";
+import { grantEquipmentOffers } from "../game/progression/equipment-rewards.js";
 import { expeditionEvent } from "../game/progression/events.js";
 import { resolveDuel } from "../game/resolve-duel.js";
 import type { Duel } from "../shared/duel-types.js";
@@ -16,6 +18,7 @@ export const duelHolds = (room: StoredRoom, id: string) =>
   );
 function phase(room: StoredRoom, duel: Duel, now: number, reveal: boolean) {
   duel.phase = reveal ? "reveal" : "choice";
+  if (!reveal) refreshChampionIntent(room.state, duel);
   for (const id of crewIds(room, duel)) {
     const run = room.runs[id];
     enterCrew(room, run, { kind: reveal ? "combat-reveal" : "combat" }, now);
@@ -26,7 +29,7 @@ function phase(room: StoredRoom, duel: Duel, now: number, reveal: boolean) {
       room.speed !== "manual" &&
         !room.pauseReasons.length &&
         !run.pauseReasons.length &&
-        !room.state.trial,
+        !(room.state.trial || room.state.siege),
     );
   }
 }
@@ -63,15 +66,41 @@ function start(room: StoredRoom, duel: Duel, now: number) {
     crewIds: duel.crewIds,
     enteringPower: {},
     spawnPower: 24,
-    bodyHp: duel.npc?.hp ?? 1,
-    maxBodyHp: duel.npc?.maxHp ?? 1,
-    weakHp: 0,
-    maxWeakHp: 0,
+    hp: duel.npc?.hp ?? 1,
+    maxHp: duel.npc?.maxHp ?? 1,
+    enemies: duel.npc
+      ? [
+          {
+            id: duel.id,
+            role: "guard",
+            name: "Arena champion",
+            family: "sentinel",
+            hp: duel.npc.hp,
+            maxHp: duel.npc.maxHp,
+            block: 0,
+            effects: [],
+            intent: {
+              moveId: "champion-strike",
+              name: "Strike",
+              blockGain: 0,
+              recipientEnemyId: null,
+              targets: duelHeroes(room, duel).map((h) => ({
+                heroId: h.id,
+                damage: 2 * h.power,
+                stress: 0,
+                bleed: false,
+                injury: null,
+                injuryChance: 0,
+              })),
+            },
+          },
+        ]
+      : [],
     status: "active",
     contribution: {},
     purseAwarded: true,
     rivalry: { winnerCrewId: null },
-    shield: 0,
+    block: 0,
     bossPhase: 1,
     pendingBossPhase: 1,
     attempt: 1,
@@ -117,15 +146,19 @@ export function progressDuels(room: StoredRoom, now: number, force = false) {
       if (
         consent &&
         !room.discovery &&
-        !room.state.trial &&
-        !crewIds(room, duel).some((id) => room.runs[id].pauseReasons.length)
+        !(room.state.trial || room.state.siege) &&
+        !crewIds(room, duel).some(
+          (id) => room.runs[id].pauseReasons.length || room.runs[id].suspended,
+        )
       )
         start(room, duel, now);
       continue;
     }
     if (
       duel.status !== "active" ||
-      crewIds(room, duel).some((id) => room.runs[id].pauseReasons.length) ||
+      crewIds(room, duel).some(
+        (id) => room.runs[id].pauseReasons.length || room.runs[id].suspended,
+      ) ||
       (room.discovery && duel.phase === "choice")
     )
       continue;
@@ -153,6 +186,7 @@ export function progressDuels(room: StoredRoom, now: number, force = false) {
         const crew = room.state.crews.find((c) => c.id === id);
         if (!crew) continue;
         crew.economy = goldReward(crew, duel.winner === id ? 12 : 6);
+        if (duel.winner === id) grantEquipmentOffers(room.state, id, `arena:${duel.id}`);
         for (const hero of duelHeroes(room, duel).filter((h) => h.crewId === id))
           hero.inventory = addItem(hero.inventory, {
             id: `arena:${duel.id}:${hero.id}`,
@@ -186,7 +220,9 @@ export function duelsDue(room: StoredRoom, now: number) {
         ? duelHeroes(room, d).filter((h) => d.votes[h.playerId]).length >
           duelHeroes(room, d).length / 2
         : d.status === "active" &&
-          !crewIds(room, d).some((id) => room.runs[id].pauseReasons.length) &&
+          !crewIds(room, d).some(
+            (id) => room.runs[id].pauseReasons.length || room.runs[id].suspended,
+          ) &&
           (!room.discovery || d.phase === "reveal") &&
           ((d.phase === "choice" && duelHeroes(room, d).every((h) => d.actions[h.playerId])) ||
             (room.runs[d.crewIds[0]].clock.deadline ?? Infinity) <= now),

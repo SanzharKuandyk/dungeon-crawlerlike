@@ -21,12 +21,41 @@
 {#if trial}
   <section class="trial-panel" aria-label="Trial of Wagers">
     <header class="section-heading">
-      <strong>Trial {trial.chapter} · {trial.questionNumber}/3</strong><RoundTimer {view} />
+      <strong
+        >{trial.eventId.replace("trial-", "Trial ")}
+        · {trial.questionNumber}/{trial.questionCount}</strong
+      ><RoundTimer {view} />
     </header>
-    <p class="trial-context">{trial.cause}{trial.fixture ? " · DEVELOPMENT FIXTURES" : ""}</p>
+    {#if trial.phase.kind === "board-vote"}
+      <div class="trial-votes">
+        {#each trial.crewVotes as vote}
+          <span
+            ><strong>{view.crews.find((c) => c.id === vote.crewId)?.symbol}</strong>
+            ·
+            {vote.tileId
+              ? trial.tiles.find((t) => t.id === vote.tileId)?.category +
+                " / " +
+                trial.tiles.find((t) => t.id === vote.tileId)?.value
+              : "Choosing"}
+            · {vote.submitted}/{vote.total}</span
+          >
+        {/each}
+      </div>
+    {/if}
+    {#if trial.selectionReason && trial.phase.kind === "wager"}
+      <small>{trial.selectionReason}</small>
+    {/if}
+    {#if trial.phase.kind === "intro" || trial.fixture}
+      <p class="trial-context">{trial.cause}{trial.fixture ? " · DEVELOPMENT FIXTURES" : ""}</p>
+    {/if}
     {#if trial.phase.kind === "intro"}
       <h2>Trial of Wagers</h2>
-      <p>One vote per crew. Choose your own stakes.</p>
+      <p>
+        One vote per crew. Everyone answers. Accuracy and stakes earn points{trial.goldPer100
+          ? ", gold"
+          : ""}
+        and lasting Blessings.
+      </p>
     {:else if trial.phase.kind === "board-vote"}
       <h3>Choose a question</h3>
       <div class="trial-board">
@@ -40,6 +69,12 @@
               class={`${player?.trialInput.vote === tile.id ? "chosen" : ""}`}
             >
               <strong>{tile.value}</strong>
+              <small
+                >{trial.crewVotes
+                  .filter((vote) => vote.tileId === tile.id)
+                  .map((vote) => view.crews.find((crew) => crew.id === vote.crewId)?.symbol)
+                  .join(" · ")}</small
+              >
             </Button>
           {/each}
         {/each}
@@ -69,8 +104,9 @@
                 <span>{wager === "oath" ? trial?.oath : wager === "bold" ? "+3" : "+1"}</span>
               {/snippet}
               <p>
-                Correct: {wager === "steady" ? "1×" : wager === "bold" ? "2×" : "3×"} question
-                value.
+                Correct: {wager === "steady" ? "1×" : wager === "bold" ? "2×" : "3×"} question value{trial.goldPer100
+                  ? ", with the same multiplier on gold"
+                  : ""}.
               </p>
               <p>
                 Incorrect or missing:
@@ -89,7 +125,7 @@
           >{trial.question.category}
           · {trial.question.value} · {player?.trialInput.wager ?? "steady"}</small
         >
-        <h3>{trial.question.prompt}</h3>
+        <p class="trial-problem">{trial.question.prompt}</p>
         {#if trial.question.code}
           <pre><code>{trial.question.code}</code></pre>
         {/if}
@@ -129,10 +165,15 @@
           </details>
           <small>{trial.question.reference.file} · {trial.question.reference.slide}</small>
           {#each trial.accuracy as row}
+            {@const gold = trial.goldRewards[row.crewId]}
             <p>
               {view.crews.find((c) => c.id === row.crewId)?.symbol}
               · {row.correct}/{row.total}
               correct · {(trial.totals[row.crewId] ?? 0) / 12} points
+              {#if gold?.earned}
+                · <GameIcon name="gold" size={16} />+{gold.earned}
+                {gold.debtPaid ? ` (${gold.debtPaid} repays debt)` : ""}
+              {/if}
             </p>
           {/each}
           {#if player}
@@ -212,5 +253,32 @@
     {:else}
       <h3>The expedition continues</h3>
     {/if}
+    <details class="trial-wagers">
+      <summary>Committed stakes · {trial.wagers.length}/{view.players.length}</summary>
+      {#each trial.wagers as wager}
+        <span>{view.players.find((p) => p.id === wager.playerId)?.name} · {wager.wager}</span>
+      {/each}
+    </details>
+    <details class="trial-rules">
+      <summary>Accuracy + wagers · {trial.goldPer100 ? "gold + " : ""}Blessings</summary>
+      <p>
+        Every member answers privately. Answers lock on submission; reveal begins when everyone
+        answers or time runs out. Speed gives no bonus.
+      </p>
+      <p>
+        Crew points are the average of members’ correct-answer values × stakes. Larger crews do not
+        get a size bonus. Points break expedition-ranking ties.
+      </p>
+      {#if trial.goldPer100}
+        <p>
+          Gold: {trial.goldPer100} per 100 question value × correct stakes, averaged across the
+          registered crew and rounded down once. Rescue debt is repaid first.
+        </p>
+      {/if}
+      <p>
+        At least one correct answer earns a lasting Blessing choice. Correct stakes totaling 4+ earn
+        rank II. Winning crews get three choices instead of two.
+      </p>
+    </details>
   </section>
 {/if}

@@ -2,7 +2,7 @@ export type InjuryKind = "arm" | "leg";
 export type TraitRank = 1 | 2;
 export type BlessingKind =
   | "iron-nerve"
-  | "sealbreaker"
+  | "opener"
   | "last-stand"
   | "field-medic"
   | "clear-purpose"

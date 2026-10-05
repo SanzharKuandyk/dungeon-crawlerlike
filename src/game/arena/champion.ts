@@ -2,6 +2,30 @@ import { CLASS_NAMES } from "../../shared/display-names.js";
 import type { Duel } from "../../shared/duel-types.js";
 import type { MatchState } from "../../shared/game-types.js";
 import { beginCrewResolution, expeditionEvent } from "../progression/events.js";
+export function refreshChampionIntent(state: MatchState, duel: Duel) {
+  const encounter = state.encounters.find((entry) => entry.id === duel.id);
+  const enemy = encounter?.enemies[0];
+  if (!encounter || !enemy || !duel.npc) return;
+  const move = (["strike", "guard", "feint"] as const)[duel.turn - 1];
+  enemy.block = move === "guard" ? 24 : 0;
+  encounter.block = enemy.block;
+  enemy.intent = {
+    moveId: `champion-${move}`,
+    name: move === "feint" ? "Feint · ignores Guard" : move === "guard" ? "Guard" : "Strike",
+    blockGain: 0,
+    recipientEnemyId: null,
+    targets: state.heroes
+      .filter((hero) => duel.crewIds.includes(hero.crewId) && hero.status === "alive")
+      .map((hero) => ({
+        heroId: hero.id,
+        damage: (move === "strike" ? 2 : move === "feint" ? 1 : 0) * hero.power,
+        stress: 0,
+        bleed: false,
+        injury: null,
+        injuryChance: 0,
+      })),
+  };
+}
 export function resolveChampion(state: MatchState, duel: Duel) {
   const npc = duel.npc;
   if (!npc) throw new Error("Champion missing");
@@ -57,7 +81,8 @@ export function resolveChampion(state: MatchState, duel: Duel) {
   }
   const enemy = state.encounters.find((e) => e.id === duel.id);
   if (enemy) {
-    enemy.bodyHp = npc.hp;
+    enemy.hp = npc.hp;
+    if (enemy.enemies[0]) enemy.enemies[0].hp = npc.hp;
     expeditionEvent(
       state,
       id,

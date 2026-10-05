@@ -1,13 +1,21 @@
 import type { MatchState } from "../../shared/game-types.js";
+import type { ExpeditionMap } from "../../shared/map-types.js";
+export function completedProgress(maps: ExpeditionMap[], ids: string[]) {
+  return maps.reduce(
+    (best, map) =>
+      Math.max(
+        best,
+        ...map.nodes.filter((n) => ids.includes(n.id)).map((n) => (map.chapter - 1) * 12 + n.row),
+      ),
+    0,
+  );
+}
 export function ranking(state: MatchState) {
   return state.crews
     .map((crew) => ({
       crewId: crew.id,
       bosses: crew.bossesDefeated,
-      progress: crew.completedNodeIds.reduce(
-        (max, id) => Math.max(max, Number(id.split("-")[1]) * 7 + Number(id.split("-")[2])),
-        0,
-      ),
+      progress: completedProgress(state.chapterMaps, crew.completedNodeIds),
       trialUnits: crew.trialScoreUnits,
     }))
     .sort((a, b) => b.bosses - a.bosses || b.progress - a.progress || b.trialUnits - a.trialUnits);

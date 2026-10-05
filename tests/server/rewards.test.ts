@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { enterNode } from "../../src/game/progression/encounters.js";
 import { createCrewResult } from "../../src/game/progression/results.js";
 import { enterCrew } from "../../src/server/crew-clock.js";
+import { fillMissingChoice } from "../../src/server/crew-decisions.js";
 import { createRoomManager } from "../../src/server/room-manager.js";
 import type { ActionResult, Receipt } from "../../src/shared/protocol.js";
 import type { PlayerRoomView } from "../../src/shared/view-types.js";
@@ -16,7 +17,7 @@ it("durable personal rewards survive failed saves, retries, restart and result r
   const f = await serverFixture();
   try {
     const hostSecret = secret(),
-      created = await f.server.manager.create(hostSecret, false, "dungeon-v4");
+      created = await f.server.manager.create(hostSecret, false, "dungeon-v5");
     const host = await f.connect(),
       a = await f.connect(),
       b = await f.connect();
@@ -146,6 +147,7 @@ it("durable personal rewards survive failed saves, retries, restart and result r
             claim: {
               offerId: otherOffer.id,
               optionId: null,
+              // @ts-expect-error Verify obsolete clients cannot defer rewards.
               disposition: "defer",
               replacementItemId: null,
             },
@@ -153,12 +155,41 @@ it("durable personal rewards survive failed saves, retries, restart and result r
           done,
         ),
       ),
-    ).toMatchObject({ ok: true });
+    ).toMatchObject({ ok: false });
+    expect(room().state.rewardOffers.find((o) => o.id === otherOffer.id)).toMatchObject({
+      status: "pending",
+      deferred: false,
+    });
+    // Absence still preserves offers; returning players must choose before manually readying.
+    await f.server.manager.transaction(created.code, (r) => {
+      fillMissingChoice(r, r.runs[crewId], otherId);
+      r.runs[crewId].ready = r.runs[crewId].ready.filter((p) => p !== otherId);
+    });
+    expect(await ack((done) => b.emit("result:ready", env(otherId), done))).toMatchObject({
+      ok: false,
+      code: "INVALID",
+    });
+    await ack((done) =>
+      b.emit(
+        "reward:claim",
+        {
+          ...env(otherId),
+          inventoryRevision: 0,
+          claim: {
+            offerId: otherOffer.id,
+            optionId: null,
+            disposition: "leave",
+            replacementItemId: null,
+          },
+        },
+        done,
+      ),
+    );
     await ack((done) => a.emit("result:ready", env(id), done));
     await ack((done) => b.emit("result:ready", env(otherId), done));
     expect(room().runs[crewId].progress.phase.kind).toBe("route");
     expect(room().state.rewardOffers.find((o) => o.id === otherOffer.id)).toMatchObject({
-      status: "pending",
+      status: "declined",
       deferred: true,
     });
     expect(room().state.rewardOffers.filter((o) => o.status === "claimed")).toHaveLength(1);

@@ -15,10 +15,10 @@
   stroke-linecap="round"
   stroke-linejoin="round"
 >
-  {#if kind === "body-blade"}
+  {#if kind === "blade"}
     <path d="m17 29 19-23 5 1-1 6-20 19Z" fill="#87afc3" />
     <path d="m11 27 11 10m-7-6-9 10" stroke="#895122" stroke-width="5" />
-  {:else if kind === "seal-pick"}
+  {:else if kind === "piercing-blade"}
     <path d="m12 33 12-18 13-8 5 4-12 8-12 20Z" fill="#a57cbd" />
     <path d="m7 39 11-12" stroke="#895122" stroke-width="6" />
   {:else if kind === "guard-coat"}
@@ -27,6 +27,9 @@
   {:else if kind === "ward-vest"}
     <path d="m24 5-17 6v13c0 12 17 19 17 19s17-7 17-19V11Z" fill="#79a8c7" />
     <path d="m24 13 3 8 9 3-9 3-3 9-3-9-9-3 9-3Z" fill="#f1d888" />
+  {:else if kind === "haste-charm"}
+    <path d="M12 5c0 18 24 18 24 0M24 22v5" stroke="#ae862c" stroke-width="3" />
+    <path d="m25 25-10 12h8l-2 9 12-15h-8Z" fill="#e5b53b" />
   {:else if kind === "calm-charm" || kind === "healer-charm"}
     <path d="M12 5c0 18 24 18 24 0M24 22v6" stroke="#ae862c" stroke-width="3" />
     <path d="m24 26 10 8-10 10-10-10Z" fill={kind === "calm-charm" ? "#ae8ec7" : "#72b98a"} />

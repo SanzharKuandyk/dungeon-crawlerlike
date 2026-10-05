@@ -17,6 +17,7 @@ export function claimReward(
   if (
     room.state.status !== "running" ||
     room.state.trial ||
+    room.state.siege ||
     !run ||
     run.ready.includes(id) ||
     !["result", "route", "camp"].includes(run.progress.phase.kind) ||
@@ -45,10 +46,6 @@ export function claimReward(
 export function readyResult(room: StoredRoom, id: string, now: number) {
   requirePhase(room, "result", now, id);
   const hero = ownedHero(room, id);
-  if (
-    room.state.rewardOffers.some(
-      (o) => o.ownerHeroId === hero.id && o.status === "pending" && !o.deferred,
-    )
-  )
-    reject("INVALID", "Choose your equipment or save it for later before travelling.");
+  if (room.state.rewardOffers.some((o) => o.ownerHeroId === hero.id && o.status === "pending"))
+    reject("INVALID", "Equip, store in Bag, upgrade, or leave your rewards before travelling.");
 }

@@ -16,6 +16,7 @@ it("development serves the interface but never question solutions, saves or temp
     expect((await fetch(`${base}/src/client/main.ts`)).status).toBe(200);
     for (const path of [
       "content/learning/week-4.json",
+      "content/learning/trials.reviewed.json",
       ".Codex/task_plan.md",
       "src/server/content.ts",
       ".git/HEAD",

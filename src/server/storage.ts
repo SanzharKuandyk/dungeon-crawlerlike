@@ -33,8 +33,8 @@ export function fileStorage(directory: string): Storage {
         try {
           const room: StoredRoom = JSON.parse(await readFile(join(directory, name), "utf8"));
           if (
-            room.schemaVersion !== 9 ||
-            room.state.rulesVersion !== "dungeon-v4" ||
+            room.schemaVersion !== 10 ||
+            room.state.rulesVersion !== "dungeon-v5" ||
             room.state.code !== name.slice(0, 6) ||
             !room.sessions ||
             !room.processed ||

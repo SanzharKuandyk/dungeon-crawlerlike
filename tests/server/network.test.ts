@@ -12,7 +12,7 @@ async function setup() {
   const f = await serverFixture();
   fixtures.push(f);
   const secret = token(),
-    created = await f.server.manager.create(secret, false, "dungeon-v4");
+    created = await f.server.manager.create(secret, false, "dungeon-v5");
   const host = await f.connect(),
     player = await f.connect();
   const ack = (send: (done: (r: ActionResult<Receipt>) => void) => void) =>
@@ -153,20 +153,38 @@ it("rejects stale, unauthorized, invalid targets and actions beyond deadlines", 
   expect(
     await f.ack((done) =>
       f.player.emit(
-        "hero:action",
-        { ...f.env(), action: { kind: "mend", targetHeroId: "someone-else" } },
+        "hero:plan",
+        {
+          ...f.env(),
+          plan: {
+            kind: "hero",
+            actions: [{ kind: "mend", targetHeroId: "someone-else" }],
+            activation: null,
+            inventoryRevision: 0,
+          },
+        },
         done,
       ),
     ),
   ).toMatchObject({ ok: false, code: "INVALID" });
-  const accepted = { ...f.env(), action: { kind: "attack" as const, part: "body" as const } };
-  expect((await f.ack((done) => f.player.emit("hero:action", accepted, done))).ok).toBe(true);
+  const accepted = {
+    ...f.env(),
+    plan: {
+      kind: "hero" as const,
+      actions: [
+        { kind: "attack" as const, enemyId: f.current().state.encounters[0].enemies[0].id },
+      ] as [{ kind: "attack"; enemyId: string }],
+      activation: null,
+      inventoryRevision: 0,
+    },
+  };
+  expect((await f.ack((done) => f.player.emit("hero:plan", accepted, done))).ok).toBe(true);
   await f.advance(Object.values(f.current().runs)[0].clock.deadline ?? 0);
-  expect(await f.ack((done) => f.player.emit("hero:action", accepted, done))).toMatchObject({
+  expect(await f.ack((done) => f.player.emit("hero:plan", accepted, done))).toMatchObject({
     ok: true,
   });
   expect(
-    await f.ack((done) => f.player.emit("hero:action", { ...accepted, requestId: token() }, done)),
+    await f.ack((done) => f.player.emit("hero:plan", { ...accepted, requestId: token() }, done)),
   ).toMatchObject({ ok: false, code: "STALE" });
 });
 it("latest tab controls an identity; reconnect restores its submitted action", async () => {

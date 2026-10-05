@@ -14,6 +14,8 @@ export function createHeroes(s: MatchState) {
       if (!definition || members.length > definition.maxCrewSize)
         throw new Error("Class is not available for this crew size.");
       s.heroes.push({
+        block: 0,
+        nextTurnBlock: 0,
         pendingBlessings: [],
         expeditionUses: [],
         inventory: {

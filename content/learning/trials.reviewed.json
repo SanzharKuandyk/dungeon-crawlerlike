@@ -1,0 +1,459 @@
+{
+  "fixture": false,
+  "categories": ["Run Rules", "Hits & Rewards", "Time & Feedback"],
+  "questions": [
+    {
+      "id": "week5-subway-pause",
+      "category": "Run Rules",
+      "value": 100,
+      "prompt": "In a Subway Surfers-style prototype, Pause should freeze the run. The runner stops, but distance points keep increasing. What needs fixing?",
+      "code": null,
+      "choices": [
+        "Hide the score while paused.",
+        "Make movement and scoring both respect Pause.",
+        "Reset the score whenever Pause is pressed.",
+        "Disable Pause after the first use."
+      ],
+      "correctIndex": 1,
+      "explanation": "Pause must stop the run's movement and distance scoring while keeping Resume usable.",
+      "distractors": [
+        "Hiding the number leaves the underlying score increasing.",
+        "Both gameplay systems must obey the same paused state.",
+        "Pausing should preserve the attempt, not erase it.",
+        "This avoids the button without fixing the scoring rule."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 5, 8, 15"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-angrybirds-start-tap",
+      "category": "Run Rules",
+      "value": 100,
+      "prompt": "In an Angry Birds-style prototype, tapping Play opens the level. That same tap also releases the first bird before you aim. What should change?",
+      "code": null,
+      "choices": [
+        "Remove the first bird from every level.",
+        "Make the first bird fly more slowly.",
+        "Hide the slingshot until the next frame.",
+        "Consume the Play tap before passing input to the level."
+      ],
+      "correctIndex": 3,
+      "explanation": "The Play tap belongs to the menu. Changing state must not reuse that touch as a gameplay action.",
+      "distractors": [
+        "This changes the level rather than preventing unintended input.",
+        "The unintended launch still happens.",
+        "A visual change does not reliably consume the touch.",
+        "One touch should perform its intended menu action only."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slide 9"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-angrybirds-retry",
+      "category": "Run Rules",
+      "value": 200,
+      "prompt": "In an Angry Birds-style prototype, Retry restores three birds and zero attempt points, but preserves the best score. You finish with one bird, 8,000 points and a best of 12,000. What appears after this reset?",
+      "code": "birds = 3;\nscore = 0;\n// best stays unchanged",
+      "choices": [
+        "3 birds · 0 points · best 12,000",
+        "1 bird · 8,000 points · best 12,000",
+        "3 birds · 0 points · best 0",
+        "3 birds · 8,000 points · best 12,000"
+      ],
+      "correctIndex": 0,
+      "explanation": "Current attempt data resets; deliberately saved records persist.",
+      "distractors": [
+        "The fresh attempt resets birds and score while the record remains.",
+        "These are the old attempt's values; Retry must reset them.",
+        "Retry should not erase the saved best score.",
+        "The bird count resets, but keeping old attempt points violates the rule."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 12–13"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-candy-retry-data",
+      "category": "Run Rules",
+      "value": 200,
+      "prompt": "In a Candy Crush-style prototype, a fresh attempt starts with 20 moves and zero cleared targets. Your sound setting persists. Before Retry, five moves remain, seven targets are cleared, and sound is muted. Which value is still wrong after this code?",
+      "code": "moves = 20;\n// targetsCleared and muted stay unchanged",
+      "choices": [
+        "Moves should still be 5.",
+        "Sound must become unmuted.",
+        "The cleared-target count should reset to 0.",
+        "Nothing; every value is correct."
+      ],
+      "correctIndex": 2,
+      "explanation": "Restart resets all attempt progress before play begins, while preserving settings chosen to survive attempts.",
+      "distractors": [
+        "A fresh attempt must restore its starting move budget.",
+        "The stated policy deliberately preserves the sound setting.",
+        "Target progress belongs to the ended attempt and must reset.",
+        "The code leaves seven old targets credited in a fresh attempt."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 12–13"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-subway-background-resume",
+      "category": "Run Rules",
+      "value": 300,
+      "prompt": "In a Subway Surfers-style prototype, leaving the app should pause a local run and returning should show Resume. Opening a message hides the game, but movement and scoring continue; returning places you in front of a train. Which fix covers the full problem?",
+      "code": null,
+      "choices": [
+        "Automatically start a new run when the app returns.",
+        "Freeze run systems on focus loss and wait for Resume on return.",
+        "Stop scoring but let the runner continue moving.",
+        "Add extra health whenever the app returns."
+      ],
+      "correctIndex": 1,
+      "explanation": "For this local-run policy, pause movement, hazards and run scoring when focus is lost, then offer explicit Resume.",
+      "distractors": [
+        "This discards progress and does not preserve the paused attempt.",
+        "The interruption preserves the run and lets the player regain control explicitly.",
+        "The player remains exposed to obstacles while unable to act.",
+        "Compensation does not enforce the intended interruption policy."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 8, 11"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-angrybirds-result-physics",
+      "category": "Run Rules",
+      "value": 300,
+      "prompt": "In an Angry Birds-style prototype, the accepted result must freeze the attempt and show its final score. A result of 9,000 appears, but falling blocks keep awarding points underneath it; the HUD reaches 11,000. Which fix keeps the result consistent?",
+      "code": null,
+      "choices": [
+        "Copy 9,000 back into the score every frame.",
+        "Hide the HUD during results.",
+        "Increase the result score whenever another block falls.",
+        "Stop attempt scoring at Result and show one final score everywhere."
+      ],
+      "correctIndex": 3,
+      "explanation": "An accepted result stops further attempt outcomes. The HUD and result screen read the same final score.",
+      "distractors": [
+        "Repeated overwrites hide ongoing gameplay rather than stop it.",
+        "The attempt still changes behind the screen.",
+        "This violates the stated rule that an accepted result freezes the attempt.",
+        "State rules and all score displays then agree on the accepted result."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 14, 22, 38"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-subway-one-coin",
+      "category": "Hits & Rewards",
+      "value": 100,
+      "prompt": "In a Subway Surfers-style prototype, each coin adds one to your coin count. Touching a single coin for three frames adds three. What rule is missing?",
+      "code": null,
+      "choices": [
+        "Mark the coin collected before another contact can reward it.",
+        "Allow coins to award points only on slower phones.",
+        "Divide every coin reward by three.",
+        "Hide the coin counter during collection."
+      ],
+      "correctIndex": 0,
+      "explanation": "One pickup gives one reward; disable further collection as soon as that pickup is accepted.",
+      "distractors": [
+        "The same pickup must be consumed and credited once.",
+        "Collection should not depend on the phone's frame rate.",
+        "The overlap duration can vary, so a fixed division cannot fix duplication.",
+        "Hiding feedback leaves the duplicate rewards in the game state."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 18, 21"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-brawl-hit-feedback",
+      "category": "Hits & Rewards",
+      "value": 100,
+      "prompt": "In a Brawl Stars-style prototype, a shield fully blocks a shot: health stays at 100. The game still displays '-20 HP' and plays its damage flash. What feedback should it show instead?",
+      "code": null,
+      "choices": [
+        "Display '-20 HP' briefly, then restore 100.",
+        "Lower health by 20 to match the flash.",
+        "Show a block response while leaving health at 100.",
+        "Remove all combat feedback."
+      ],
+      "correctIndex": 2,
+      "explanation": "A blocked hit needs protection feedback, not a false health-loss cue.",
+      "distractors": [
+        "This still falsely tells the player health was lost.",
+        "That changes the blocking rule to fit incorrect feedback.",
+        "Feedback must describe the actual protection outcome.",
+        "The player still needs to understand that the shot was blocked."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 18, 41"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-brawl-heal-cap",
+      "category": "Hits & Rewards",
+      "value": 200,
+      "prompt": "In a Brawl Stars-style prototype, a healing pickup restores 30 health, caps health at 100, and is consumed once. You have 85 health. What remains after the pickup?",
+      "code": "health = Math.min(100, health + 30);\npickupCollected = true;",
+      "choices": [
+        "115 health · pickup gone",
+        "100 health · pickup gone",
+        "100 health · pickup still available",
+        "85 health · pickup gone"
+      ],
+      "correctIndex": 1,
+      "explanation": "The pickup restores 15 usable health, reaches the cap of 100, and cannot be collected again.",
+      "distractors": [
+        "Healing is explicitly capped at 100.",
+        "The cap limits healing and the accepted pickup is consumed.",
+        "The rule says the pickup is consumed once accepted.",
+        "The pickup should restore the missing 15 health before being consumed."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slide 25"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-subway-score-once",
+      "category": "Hits & Rewards",
+      "value": 200,
+      "prompt": "In a Subway Surfers-style challenge, a coin is worth 10 points and finishing adds 50 once. Starting at zero, you collect six coins, finish, then receive a repeated finish notification. What score is correct?",
+      "code": "coinPoints = 6 * 10;\nfinishBonus = 50;",
+      "choices": ["60", "160", "50", "110"],
+      "correctIndex": 3,
+      "explanation": "6 × 10 + 50 = 110. A repeated completion notification must not award another bonus.",
+      "distractors": [
+        "This omits the accepted completion reward.",
+        "This counts the one-time completion bonus twice.",
+        "This omits all six coin rewards.",
+        "Six coins give 60, plus one completion bonus of 50."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 20–21, 38"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-clash-double-deploy",
+      "category": "Hits & Rewards",
+      "value": 300,
+      "prompt": "In a Clash Royale-style prototype, deploying a card spends Elixir. You have 5; each of two rapid deployment attempts costs 4, with no regeneration between them. Both check the original 5 before either spends, so both troops appear. Which rule prevents this?",
+      "code": null,
+      "choices": [
+        "Accept and spend the first deployment before checking the second.",
+        "Spawn both troops, then hide one.",
+        "Let Elixir go negative until it regenerates.",
+        "Delay the Elixir display."
+      ],
+      "correctIndex": 0,
+      "explanation": "A successful action and its resource cost must be coordinated before the next action is evaluated.",
+      "distractors": [
+        "The second check sees 1 Elixir and cannot accept another cost of 4.",
+        "The second troop may already affect the fight; visuals cannot undo the rule error.",
+        "That permits an unaffordable deployment.",
+        "Changing the display does not change the affordability checks."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 18, 21"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-brawl-contact-protection",
+      "category": "Hits & Rewards",
+      "value": 300,
+      "prompt": "In a Brawl Stars-style hazard test, health starts at 100. Contact deals 20 damage and grants one second of protection. Checks arrive at 0.00, 0.05 and 0.10 seconds, but health falls to 40. Which fix matches the rule?",
+      "code": null,
+      "choices": [
+        "Reduce each hit to 5 damage.",
+        "Stop updating the health bar during contact.",
+        "Make every hit check protection; only the first hit removes health.",
+        "Start protection only after contact ends."
+      ],
+      "correctIndex": 2,
+      "explanation": "The first hit leaves 80 health and starts protection immediately. The two later checks must do no health damage.",
+      "distractors": [
+        "This changes the authored hit amount and still permits repeated hits.",
+        "Hidden damage would still violate the protection rule.",
+        "The later checks fall inside protection, leaving 80 health.",
+        "That cannot block repeated damage during the current contact."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 24, 26"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-brawl-cooldown-feedback",
+      "category": "Time & Feedback",
+      "value": 100,
+      "prompt": "In a Brawl Stars-style prototype, a special attack has a two-second cooldown. During that wait, taps correctly do nothing, but the button looks ready. What would make the rule understandable?",
+      "code": null,
+      "choices": [
+        "Make the attack deal more damage.",
+        "Show the remaining wait or a recharge indicator.",
+        "Play a hit sound for every tap.",
+        "Remove the attack button permanently."
+      ],
+      "correctIndex": 1,
+      "explanation": "Show when the attack becomes available, and restore its ready appearance when the cooldown ends.",
+      "distractors": [
+        "Damage does not explain why the button is temporarily unavailable.",
+        "Visible availability feedback distinguishes cooldown from a broken button.",
+        "A hit sound falsely suggests an attack happened.",
+        "The attack should become usable again when the wait ends."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 31, 41"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-candy-muted-completion",
+      "category": "Time & Feedback",
+      "value": 100,
+      "prompt": "In a Candy Crush-style prototype, clearing the final target only plays a victory sound. A player with their phone muted cannot tell that the level ended. Which change helps?",
+      "code": null,
+      "choices": [
+        "Play the sound twice.",
+        "Require the player to unmute their phone.",
+        "Change an unlabeled dot from red to green.",
+        "Show Level complete and a clear Continue action."
+      ],
+      "correctIndex": 3,
+      "explanation": "Important feedback uses readable visual information as well as optional sound; completion also needs a clear next action.",
+      "distractors": [
+        "Repeating inaudible feedback does not help a muted player.",
+        "Important outcomes should remain understandable without audio.",
+        "Color alone does not clearly explain the result or next action.",
+        "Visible outcome and navigation remain understandable with sound off."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 39, 42"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-brawl-paused-cooldown",
+      "category": "Time & Feedback",
+      "value": 200,
+      "prompt": "In an offline Brawl Stars-style training prototype, a two-second cooldown counts only active play time. You play for 0.5 seconds, pause for 5 seconds, then play for another 0.5 seconds. How much cooldown remains?",
+      "code": "remaining = 2;\nremaining -= 0.5;\n// pause: no subtraction\nremaining -= 0.5;",
+      "choices": ["1 second", "0 seconds", "1.5 seconds", "2 seconds"],
+      "correctIndex": 0,
+      "explanation": "2 − 0.5 − 0.5 = 1 second. The stated local-training policy freezes this cooldown during pause.",
+      "distractors": [
+        "Only one second of active play passed.",
+        "This incorrectly counts paused wall-clock time toward the cooldown.",
+        "This ignores the second half-second of active play.",
+        "The two active-play intervals must count."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 30–31"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-clash-frame-timer",
+      "category": "Time & Feedback",
+      "value": 200,
+      "prompt": "In a Clash Royale-style timer prototype, the match clock starts at 60 seconds. This update runs once per frame. A phone renders 30 frames per real second. After 10 real seconds, what does this code display?",
+      "code": "remaining = 60;\n// Every rendered frame:\nremaining -= 1 / 60;",
+      "choices": ["50 seconds", "40 seconds", "55 seconds", "30 seconds"],
+      "correctIndex": 2,
+      "explanation": "At 30 FPS, ten real seconds produce 300 updates and remove only five seconds. Use measured elapsed time to avoid this bug.",
+      "distractors": [
+        "That would be correct elapsed-time behavior, but not this frame-based code.",
+        "The code removes only half a game second per real second at 30 FPS.",
+        "300 frames remove 300/60 = 5 seconds.",
+        "This overestimates how much the fixed per-frame subtraction removes."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slide 29"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-candy-last-move",
+      "category": "Time & Feedback",
+      "value": 300,
+      "prompt": "In a Candy Crush-style prototype, the rule is: finish every match caused by the accepted move, then check the goal; lose only if the goal is unmet and no moves remain. Your last move clears the final target. Both Level complete and Out of moves appear. Which order follows the rule?",
+      "code": null,
+      "choices": [
+        "Declare loss as soon as moves reach zero.",
+        "Finish the move, check the goal first, then accept exactly one result.",
+        "Open both screens and let the player choose.",
+        "Add one extra move whenever the count reaches zero."
+      ],
+      "correctIndex": 1,
+      "explanation": "Resolve the accepted move before choosing the result. Under this explicit policy, goal completion takes priority and the result locks once.",
+      "distractors": [
+        "This ignores the accepted move's result and can reject a valid completion.",
+        "This implements the stated priority: completed goal wins after the move resolves.",
+        "The game must determine its outcome consistently.",
+        "This changes the rules instead of resolving the outcome conflict."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 34, 37–38"
+      },
+      "reviewed": true
+    },
+    {
+      "id": "week5-clash-two-clocks",
+      "category": "Time & Feedback",
+      "value": 300,
+      "prompt": "In a Clash Royale-style prototype, a card-inspection overlay stays interactive while the online match continues. Opening it freezes both the match countdown and its own close-button animation. Which design matches the stated policy?",
+      "code": null,
+      "choices": [
+        "Freeze all clocks whenever any overlay is open.",
+        "Keep the match frozen and only animate the overlay.",
+        "Close the match when the overlay opens.",
+        "Let the match countdown and overlay animation update under their separate policies."
+      ],
+      "correctIndex": 3,
+      "explanation": "Choose clock and update rules per system. A local UI overlay need not pause shared gameplay or its own interface.",
+      "distractors": [
+        "The policy says the shared match continues.",
+        "The countdown still violates the ongoing-match rule.",
+        "Inspection should not end the match.",
+        "A UI overlay is not automatically a pause for the online world."
+      ],
+      "reference": {
+        "file": "MGD_5_week.pptx",
+        "slide": "Slides 10–11, 30"
+      },
+      "reviewed": true
+    }
+  ]
+}

@@ -55,9 +55,11 @@
       >
         Accept rescue
       </Button>
+      <Button disabled={locked || view.decisionReady} onclick={() => (selected = "wait")}
+        >Wait for the host</Button
+      >
     {:else}
-      {#if view.recoveryAvailable ||
-        (view.restAvailable && ["camp", "altar", "shrine"].includes(node?.kind ?? ""))}
+      {#if !view.recoveryAvailable && view.restAvailable && node?.kind === "camp"}
         <Button
           type="button"
           disabled={locked || view.decisionReady}
@@ -81,79 +83,6 @@
           >
         </Button>
       {/if}
-      {#if node?.kind === "event"}
-        <InspectPopover label="Possible outcomes">
-          {#snippet trigger()}
-            <GameIcon name="dice" />
-            <strong
-              >{node.eventId === "trapped-cache"
-                ? "75%"
-                : node.eventId === "coin-fountain"
-                  ? "50%"
-                  : "Guaranteed"}</strong
-            ><GameIcon name="info" size={16} />
-          {/snippet}
-          <p>
-            {node.eventId === "trapped-cache"
-              ? "75% +12 gold · otherwise arm injury"
-              : node.eventId === "coin-fountain"
-                ? "50% rank-I Blessing · otherwise +3 stress"
-                : node.eventId === "sacrificial-altar"
-                  ? `Pay ${view.hero?.power ?? 0} health · guaranteed Ward vest`
-                  : `Heal ${2 * (view.hero?.power ?? 0)} or remove 3 stress`}{view.heroes.some(
-              (h) => h.crewId === view.self.crewId && h.status === "alive" && h.stress >= 7,
-            )
-              ? " · chance reduced by 10%"
-              : ""}
-          </p>
-        </InspectPopover>
-        {#if ["coin-fountain", "trapped-cache"].includes(node.eventId ?? "")}
-          <Button
-            type="button"
-            disabled={locked || view.decisionReady}
-            class={selected === "risk" ? "chosen" : ""}
-            aria-pressed={selected === "risk"}
-            onclick={() => (selected = "risk")}
-          >
-            <GameIcon name="dice" />Take the risk
-          </Button>
-        {:else if node.eventId === "sacrificial-altar"}
-          <Button
-            type="button"
-            disabled={locked ||
-              view.decisionReady ||
-              view.heroes.some(
-                (h) => h.status === "alive" && h.crewId === view.self.crewId && h.hp <= h.power,
-              )}
-            class={selected === "sacrifice" ? "chosen" : ""}
-            aria-pressed={selected === "sacrifice"}
-            onclick={() => (selected = "sacrifice")}
-          >
-            <GameIcon name="heart" />Offer {view.hero?.power} · <GameIcon name="armor" />
-          </Button>
-        {:else}
-          <Button
-            type="button"
-            disabled={locked || view.decisionReady}
-            class={selected === "recover-health" ? "chosen" : ""}
-            aria-pressed={selected === "recover-health"}
-            onclick={() => (selected = "recover-health")}
-          >
-            <GameIcon name="heart" />+{Math.min(
-              2 * (view.hero?.power ?? 0),
-              (view.hero?.maxHp ?? 0) - (view.hero?.hp ?? 0),
-            )}
-          </Button><Button
-            type="button"
-            disabled={locked || view.decisionReady}
-            class={selected === "recover-stress" ? "chosen" : ""}
-            aria-pressed={selected === "recover-stress"}
-            onclick={() => (selected = "recover-stress")}
-          >
-            <GameIcon name="stress" />−{Math.min(3, view.hero?.stress ?? 0)}
-          </Button>
-        {/if}
-      {/if}
       {#if node?.kind === "arena"}
         <InspectPopover label="Arena rules"
           ><small
@@ -161,6 +90,11 @@
             loss remains. One duel per expedition.</small
           >
         </InspectPopover>
+      {/if}
+      {#if view.recoveryAvailable && node?.kind !== "boss"}
+        <Button disabled={locked || view.decisionReady} onclick={() => (selected = "leave")}
+          >Retreat · no reward</Button
+        >
       {/if}
       <Button
         type="button"

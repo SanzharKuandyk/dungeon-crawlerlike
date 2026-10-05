@@ -1,19 +1,19 @@
 export type EquipmentSlot = "weapon" | "armor" | "charm";
-export type ItemKind =
-  | "body-blade"
-  | "seal-pick"
+export type EquipmentKind =
+  | "blade"
+  | "piercing-blade"
   | "guard-coat"
   | "ward-vest"
   | "calm-charm"
   | "healer-charm"
-  | "draught"
-  | "bandage"
-  | "tonic"
-  | "splint";
-export type ItemInstance = { id: string; kind: ItemKind; count: number };
+  | "haste-charm";
+export type ConsumableKind = "draught" | "bandage" | "tonic" | "splint";
+export type ItemKind = EquipmentKind | ConsumableKind;
+export type EquipmentInstance = { id: string; kind: EquipmentKind; count: 1; rank: 1 | 2 };
+export type ItemInstance = EquipmentInstance | { id: string; kind: ConsumableKind; count: number };
 export type Inventory = {
   revision: number;
-  equipment: Record<EquipmentSlot, ItemInstance | null>;
+  equipment: Record<EquipmentSlot, EquipmentInstance | null>;
   backpack: ItemInstance[];
   overflow: ItemInstance[];
 };
@@ -29,6 +29,7 @@ export type ShopVisit = {
   nodeId: string;
   allowances: Record<string, number>;
   offers: Record<string, ShopOffer[]>;
+  upgrades: Record<string, { id: string; targetItemId: string; price: number; used: boolean }[]>;
 };
 export type InventoryCommand =
   | {
@@ -44,6 +45,6 @@ export type InventoryCommand =
   | { kind: "transfer"; itemId: string; targetHeroId: string }
   | { kind: "overflow"; itemId: string; replaceItemId: string | null };
 export type Treatment =
-  | { kind: "heal" | "calm" | "revive" }
+  | { kind: "heal" | "calm" }
   | { kind: "injury"; injury: import("./condition-types.js").InjuryKind }
   | { kind: "affliction"; affliction: import("./condition-types.js").AfflictionKind };

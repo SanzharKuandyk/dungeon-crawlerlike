@@ -21,7 +21,7 @@ test("host moderates one crew and privately recovers its character on another de
   const board = await browser.newContext();
   try {
     await expect(host.page.getByRole("button", { name: "Pause", exact: true })).toBeEnabled();
-    await host.page.getByRole("button", { name: "Next crews", exact: true }).click();
+    await host.page.getByLabel("Controls for Crew 4", { exact: true }).scrollIntoViewIfNeeded();
     await host.page.getByLabel("Controls for Crew 4", { exact: true }).click();
     await host.page.getByRole("button", { name: "Pause crew", exact: true }).click();
     await expect(

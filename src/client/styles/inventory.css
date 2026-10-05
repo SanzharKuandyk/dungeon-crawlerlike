@@ -139,6 +139,14 @@
   font-size: 14px;
   line-height: 1.5;
 }
+.swap-destination {
+  color: var(--primary);
+  font-weight: 600;
+}
+.inventory-lock {
+  color: var(--muted);
+  line-height: 1.4;
+}
 .item-operation-row {
   display: flex;
   align-items: center;
@@ -336,9 +344,40 @@
   margin: 0;
 }
 .inventory-operation > .item-detail {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+}
+.inventory-dialog {
+  height: min(800px, calc(100dvh - 32px));
+}
+.inventory-dialog .ui-dialog-body {
+  flex: 1;
+}
+.reward-replacement {
+  font-size: 12px;
+  color: var(--primary);
+  width: 100%;
+}
+@media (max-width: 480px) {
+  .inventory-dialog {
+    height: 100dvh;
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .inventory-dialog {
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+  .inventory-dialog .dialog-context .hero-effects {
+    display: none;
+  }
+  .inventory-dialog .dialog-context {
+    padding: var(--space-2) var(--space-4);
+  }
+  .inventory-dialog .inventory-footer .feedback-reserved {
+    height: 32px;
+  }
 }
 .inventory-footer .transaction-feedback {
   width: 100%;
@@ -353,7 +392,7 @@
   .combat-console:has(.shop-panel) {
     grid-template-columns: minmax(0, 1fr);
   }
-  .combat-console:has(.shop-panel) > .crew-stage {
+  .combat-console:has(.shop-panel) > .combat-main > .crew-stage {
     display: none;
   }
   .shop-panel {
@@ -410,5 +449,94 @@
     flex-wrap: nowrap;
     overflow-x: auto;
     padding: 0;
+  }
+}
+
+.reward-dialog {
+  width: min(880px, calc(100vw - 32px));
+}
+.reward-dialog .ui-dialog-body {
+  flex: 1;
+}
+.reward-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 14px;
+}
+.reward-source > span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+.reward-dialog .reward-option {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-2);
+}
+.reward-dialog .reward-option > small {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.reward-dialog .item-tile {
+  min-height: 104px;
+}
+.reward-dialog .item-tile > span {
+  font-size: 14px;
+}
+.reward-dialog .reward-detail {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+}
+.reward-dialog .inventory-footer {
+  gap: var(--space-2);
+}
+.reward-dialog .reward-destination {
+  font-size: 12px;
+}
+@media (max-width: 480px) {
+  .reward-dialog {
+    width: 100%;
+  }
+}
+@media (min-width: 600px) {
+  .reward-dialog .reward-choices {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .reward-dialog .reward-choices > header,
+  .reward-dialog .reward-choices > select,
+  .reward-dialog .reward-choices > .inline-notice {
+    grid-column: 1 / -1;
+  }
+  .reward-dialog .reward-options {
+    grid-column: 1;
+  }
+  .reward-dialog .reward-detail {
+    grid-column: 2;
+  }
+  .reward-dialog .reward-operations {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .reward-dialog {
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+  .reward-dialog .dialog-context {
+    padding-block: var(--space-1);
+  }
+  .reward-dialog .reward-choices > header {
+    display: none;
+  }
+  .reward-dialog .reward-choices {
+    gap: var(--space-2) var(--space-3);
+  }
+  .reward-dialog .ui-dialog-body {
+    padding: var(--space-2) var(--space-4);
   }
 }

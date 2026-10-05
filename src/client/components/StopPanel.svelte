@@ -12,7 +12,7 @@
     controller,
     locked,
   }: { view: PlayerRoomView; controller: PlayerController; locked: boolean } = $props();
-  let service = $state<"menu" | "supplies" | "treatment" | "decision">("menu"),
+  let service = $state<"menu" | "supplies" | "treatment" | "upgrades" | "decision">("menu"),
     bag = $state(false),
     phase = $state(-1);
   $effect(() => {
@@ -23,9 +23,11 @@
   });
   let crew = $derived(view.crews.find((c) => c.id === view.self.crewId));
   let node = $derived(view.expeditionMap?.nodes.find((n) => n.id === crew?.mapPosition?.nodeId));
-  let market = $derived(
-    ["merchant", "altar", "shrine"].includes(node?.kind ?? "") && !view.recoveryAvailable,
+  let market = $derived(node?.kind === "merchant" && !view.recoveryAvailable);
+  let checkpoint = $derived(
+    ["altar", "siege"].includes(node?.kind ?? "") && !view.recoveryAvailable,
   );
+  let shared = $derived(view.sharedEvents?.find((e) => e.id === node?.sharedEventId));
 </script>
 <section
   class="stop-panel decision-layout"
@@ -42,7 +44,9 @@
           ? "Shop"
           : service === "treatment"
             ? "Treatment"
-            : "Crew decision"}</strong
+            : service === "upgrades"
+              ? "Upgrade gear"
+              : "Crew decision"}</strong
       >
     </nav>
   {/if}
@@ -50,7 +54,13 @@
     <div class="decision-body">
       <header class="result-heading">
         <GameIcon
-          name={view.recoveryAvailable ? "revive" : node?.kind === "merchant" ? "merchant" : "fire"}
+          name={view.recoveryAvailable
+            ? "revive"
+            : market
+              ? "merchant"
+              : checkpoint
+                ? "trial"
+                : "fire"}
           size={48}
         />
         <div>
@@ -59,16 +69,20 @@
               ? "Recovery"
               : market
                 ? "Trading post"
-                : node?.kind === "event"
-                  ? node.room.name
+                : checkpoint || node?.kind === "event" || node?.kind === "arena"
+                  ? node?.room.name
                   : "Camp"}
           </h2>
           <small
             >{market
               ? "Buy gear · paid treatment"
-              : node?.kind === "event"
-                ? "Inspect your choices"
-                : "Rest with your crew · recover"}</small
+              : checkpoint
+                ? `Shared event · ${shared?.status ?? "not awakened"}`
+                : node?.kind === "arena"
+                  ? "Optional duel · your crew may leave"
+                  : node?.kind === "event"
+                    ? "Inspect your choices"
+                    : "Rest with your crew · recover"}</small
           >
         </div>
       </header>
@@ -77,8 +91,11 @@
           <Button disabled={view.decisionReady} onclick={() => (service = "supplies")}
             ><GameIcon name="merchant" />Supplies</Button
           >
+          <Button disabled={view.decisionReady} onclick={() => (service = "upgrades")}
+            ><GameIcon name="equip" />Upgrade gear</Button
+          >
         {/if}
-        {#if view.shop}
+        {#if view.shop && !checkpoint && node?.kind !== "arena"}
           <Button disabled={view.decisionReady} onclick={() => (service = "treatment")}
             ><GameIcon name="heart" />Treatment</Button
           >
@@ -89,18 +106,20 @@
           {view.decisionReady
             ? "Crew readiness"
             : view.recoveryAvailable
-              ? "Rest / Retry"
+              ? "Retry / recovery"
               : market
                 ? "Leave shop"
-                : "Rest / Leave"}</Button
+                : checkpoint || node?.kind === "arena"
+                  ? "Leave"
+                  : "Rest / Leave"}</Button
         >
       </div>
     </div>
   {:else if service === "decision" && view.hero?.status === "dead" && crew?.status !== "eliminated"}
     <div class="decision-body">
       <p>
-        Living crew members choose when to leave. Use Treatment to revive, or Return with rescue
-        debt.
+        A living teammate revives you at this stop. Ask for help; you can still inspect your Bag and
+        rewards.
       </p>
     </div>
   {:else if service === "decision"}

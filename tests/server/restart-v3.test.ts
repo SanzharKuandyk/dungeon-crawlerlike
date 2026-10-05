@@ -24,13 +24,13 @@ const phases: TrialPhase["kind"][] = [
 it.each(phases)(
   "restart preserves %s without consuming offline time or repeating effects",
   async (kind) => {
-    const directory = await mkdtemp(join(tmpdir(), "dungeon-v4-restart-"));
+    const directory = await mkdtemp(join(tmpdir(), "dungeon-v5-restart-"));
     const storage = fileStorage(directory);
     const room = emptyRoom(fixture(1));
     startCrews(room, 1000);
     const trial = createTrial(room.state, 1, "Crew A awakened the First Trial.");
     room.state.trial = trial;
-    room.state.completedTrials = [1];
+    room.state.sharedEvents = [{ id: "trial-1", status: "active", triggerCrewId: "c0" }];
     const questionId = chooseTile(room.state, trial);
     trial.wagers[room.state.players[0].id] = "bold";
     trial.answers[room.state.players[0].id] = 0;

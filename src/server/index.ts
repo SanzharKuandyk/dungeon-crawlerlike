@@ -3,6 +3,7 @@ import { readConfig } from "./config.js";
 
 const config = readConfig();
 const server = await createGameServer(config);
+
 try {
   await server.listen();
 } catch (error) {
@@ -12,10 +13,12 @@ try {
   await server.close();
   process.exitCode = 1;
 }
+
 if (server.http.listening) {
   console.log(`Dungeon Crawlerlike: http://${config.host}:${config.port}`);
   if (config.testMode) console.log(`Solo playground: http://${config.host}:${config.port}/#/test`);
 }
+
 for (const signal of ["SIGINT", "SIGTERM"] as const)
   process.on(signal, () => {
     void server.close().then(() => process.exit(0));

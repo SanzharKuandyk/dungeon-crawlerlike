@@ -26,12 +26,36 @@ test("battle controls fit phones, tablets and desktop with grounded four-member 
       { width: 768, height: 1024 },
       { width: 844, height: 390 },
       { width: 667, height: 375 },
+      { width: 412, height: 915 },
+      { width: 950, height: 600 },
+      { width: 360, height: 640 },
       { width: 360, height: 800 },
     ]) {
       await player.page.setViewportSize(viewport);
       await noOverflow(player.page);
+      await expect(player.page.locator(".confirm-action")).toBeInViewport();
+      const build = player.page.locator(".scene-build").first();
+      await build.focus();
+      const buildBox = await build.boundingBox();
+      expect(buildBox?.width).toBe(44);
+      expect(buildBox?.height).toBe(44);
       const scene = await player.page.locator(".phone-panel canvas").boundingBox();
       expect(scene?.height).toBeGreaterThan(100);
+      await expect
+        .poll(() =>
+          player.page.evaluate(() => {
+            const canvas = document.querySelector(".phone-panel canvas") as HTMLCanvasElement;
+            const r = canvas.getBoundingClientRect();
+            const scale = Math.min(r.width / canvas.width, r.height / canvas.height);
+            const ground = canvas.height === 1000 ? 350 : 436;
+            const actorFoot = r.top + (r.height - canvas.height * scale) / 2 + ground * scale;
+            const label = document
+              .querySelector(".hero-actor-hud .actor-name")
+              ?.getBoundingClientRect();
+            return label ? Math.abs(label.top - actorFoot) : Infinity;
+          }),
+        )
+        .toBeLessThan(2);
       const confirm = player.page.locator(".confirm-action");
       const rect = await confirm.boundingBox();
       expect(rect?.height).toBeGreaterThanOrEqual(44);
@@ -43,8 +67,7 @@ test("battle controls fit phones, tablets and desktop with grounded four-member 
       }
       await player.page.screenshot({ path: `test-results/layout-player-${viewport.width}.png` });
     }
-    await player.page.getByRole("button", { name: "Seal", exact: true }).click();
-    await player.page.getByRole("button", { name: /(?:Ready|Play turn) · Attack seal/ }).click();
+    await player.page.getByRole("button", { name: /(?:Ready|Play turn) · Attack/ }).click();
     await expect(player.page.locator(".confirmed")).toContainText("Ready");
     await player.page.getByRole("button", { name: "Change", exact: true }).click();
     await player.page.getByRole("button", { name: "Block", exact: true }).click();
@@ -89,6 +112,9 @@ test("host toolbar and crew cards share consistent spacing at desktop and tablet
       { width: 1366, height: 768 },
       { width: 768, height: 1024 },
       { width: 844, height: 390 },
+      { width: 412, height: 915 },
+      { width: 950, height: 600 },
+      { width: 360, height: 640 },
       { width: 360, height: 800 },
     ]) {
       await host.page.setViewportSize(viewport);
@@ -137,13 +163,16 @@ test("map votes and questions remain usable in the responsive player frame", asy
     try {
       await expect(player.page.locator(".phone-panel")).toHaveAttribute(
         "data-phase",
-        scenario === "fresh" ? "route" : "question",
+        scenario === "fresh" ? "route" : "shared-event",
       );
       for (const viewport of [
         { width: 1366, height: 768 },
         { width: 768, height: 1024 },
         { width: 844, height: 390 },
         { width: 667, height: 375 },
+        { width: 412, height: 915 },
+        { width: 950, height: 600 },
+        { width: 360, height: 640 },
         { width: 360, height: 800 },
       ]) {
         await player.page.setViewportSize(viewport);
@@ -155,13 +184,41 @@ test("map votes and questions remain usable in the responsive player frame", asy
           await expect(
             player.page.getByRole("button", { name: "Locate crew", exact: true }),
           ).toBeVisible();
-          await expect(player.page.locator(".map-toolbar")).toContainText("Chapter 1 · 1/7");
+          await expect(player.page.locator(".map-toolbar")).toContainText("Chapter 1 · 1/12");
           await expect.poll(() => map.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
           expect(await map.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
             true,
           );
           await player.page.getByRole("button", { name: "Locate crew", exact: true }).click();
           const bounds = await map.boundingBox();
+          if (viewport.width > viewport.height && viewport.width <= 1100) {
+            expect(bounds?.height).toBeGreaterThan(160);
+          }
+          const hudFits = await player.page.locator(".player-status").evaluate((el) => {
+            const panel = el.getBoundingClientRect();
+            return [...el.querySelectorAll("button, strong, .crew-readiness")].every((child) => {
+              const box = child.getBoundingClientRect();
+              return box.left >= panel.left && box.right <= panel.right;
+            });
+          });
+          expect(hudFits).toBe(true);
+          await expect(player.page.locator(".map-route-picker .primary")).toBeInViewport();
+          const labelsClear = await player.page.locator(".map-canvas").evaluate((el) => {
+            const icons = [...el.querySelectorAll(".map-node")].map((node) =>
+              node.getBoundingClientRect(),
+            );
+            return [...el.querySelectorAll(".map-node-label")].every((label) => {
+              const r = label.getBoundingClientRect();
+              return icons.every(
+                (icon) =>
+                  r.right <= icon.left ||
+                  r.left >= icon.right ||
+                  r.bottom <= icon.top ||
+                  r.top >= icon.bottom,
+              );
+            });
+          });
+          expect(labelsClear).toBe(true);
           for (const node of await player.page.locator(".phone-panel .map-node.reachable").all()) {
             const box = await node.boundingBox();
             expect(box?.y).toBeGreaterThanOrEqual(bounds?.y ?? 0);
@@ -169,27 +226,15 @@ test("map votes and questions remain usable in the responsive player frame", asy
               (bounds?.y ?? 0) + (bounds?.height ?? 0),
             );
           }
-          if (viewport.height >= 768) {
-            await player.page
-              .getByRole("button", { name: "Show whole route", exact: true })
-              .click();
-            await expect(player.page.locator(".map-node.guardian")).toBeInViewport();
-            const overviewBounds = await map.boundingBox();
-            for (const stop of await player.page.locator(".map-stop").all()) {
-              const box = await stop.boundingBox();
-              expect(box?.y).toBeGreaterThanOrEqual(overviewBounds?.y ?? 0);
-              expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(
-                (overviewBounds?.y ?? 0) + (overviewBounds?.height ?? 0),
-              );
-            }
-            await player.page.screenshot({
-              path: `test-results/map-overview-${viewport.width}.png`,
-            });
-            await player.page
-              .getByRole("button", { name: "Show route detail", exact: true })
-              .click();
-            await player.page.getByRole("button", { name: "Locate crew", exact: true }).click();
-          }
+          const toggle = player.page.getByRole("button", {
+            name: "Show compact route",
+            exact: true,
+          });
+          if (await toggle.isVisible()) await toggle.click();
+          await expect(
+            player.page.getByRole("button", { name: "Show route detail", exact: true }),
+          ).toBeVisible();
+          await player.page.screenshot({ path: `test-results/map-overview-${viewport.width}.png` });
           if (viewport.width > viewport.height && viewport.height < 500) {
             expect(
               await player.page.evaluate(
@@ -208,11 +253,16 @@ test("map votes and questions remain usable in the responsive player frame", asy
         });
       }
       if (scenario === "fresh") {
-        const overview = player.page.getByRole("button", { name: "Show whole route", exact: true });
+        const overview = player.page.getByRole("button", {
+          name: "Show route detail",
+          exact: true,
+        });
         await expect(overview.locator("svg")).toBeVisible();
-        expect(await overview.locator("svg").evaluate((el) => getComputedStyle(el).color)).not.toBe(
-          "rgb(255, 255, 255)",
-        );
+        expect(
+          await overview.evaluate(
+            (el) => getComputedStyle(el).color !== getComputedStyle(el).backgroundColor,
+          ),
+        ).toBe(true);
         const map = player.page.locator(".phone-panel .map-viewport");
         const start = await map.evaluate((element) => element.scrollTop);
         await player.page.locator(".phone-panel .map-node.reachable").first().click();
@@ -224,7 +274,7 @@ test("map votes and questions remain usable in the responsive player frame", asy
         );
         expect(await map.evaluate((element) => element.scrollTop)).toBeCloseTo(start, 0);
         const first = await player.page.locator(".map-stop[data-floor='1']").first().boundingBox();
-        const boss = await player.page.locator(".map-stop[data-floor='7']").first().boundingBox();
+        const boss = await player.page.locator(".map-stop[data-floor='12']").first().boundingBox();
         expect(boss?.y).toBeLessThan(first?.y ?? 0);
         await map.evaluate((element) => {
           element.scrollTop = 0;

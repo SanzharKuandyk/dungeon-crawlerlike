@@ -10,7 +10,6 @@
     actor = null,
     selected = null,
     onselect,
-    crewIds = null,
     hostController = null,
     onrecover = () => {},
   }: {
@@ -19,13 +18,12 @@
     actor?: string | null;
     selected?: string | null;
     onselect: (id: string) => void;
-    crewIds?: string[] | null;
     hostController?: import("../host-controller.js").HostController | null;
     onrecover?: (id: string) => void;
   } = $props();
 </script>
 <section class="crew-grid" aria-label="Crew expeditions">
-  {#each arena.crews.filter((c) => crewIds === null || crewIds.includes(c.id)) as crew (crew.id)}
+  {#each arena.crews as crew (crew.id)}
     <div class="host-crew-tile">
       {#if hostController && view.role === "host"}
         <CrewHostMenu {view} crewId={crew.id} controller={hostController} {onrecover} />

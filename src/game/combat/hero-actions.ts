@@ -21,10 +21,10 @@ export function legalHeroActions(state: MatchState, hero: Hero): HeroAction[] {
       { kind: "observe" },
       ...living.map((h) => ({ kind: "ward" as const, targetHeroId: h.id })),
     ];
-  const parts = enemy.weakHp > 0 ? (["body", "weak-point"] as const) : (["body"] as const);
+  const targets = enemy.enemies.filter((e) => e.hp > 0);
   const actions: HeroAction[] = [
     { kind: "brace" },
-    ...parts.map((part) => ({ kind: "attack" as const, part })),
+    ...targets.map((e) => ({ kind: "attack" as const, enemyId: e.id })),
   ];
   if (p.turn >= hero.skillReadyTurn) {
     const skill = SKILLS[hero.classId];
@@ -33,8 +33,7 @@ export function legalHeroActions(state: MatchState, hero: Hero): HeroAction[] {
         (h) => skill !== "mend" || h.hp < h.maxHp || h.conditions.combatEffects.length,
       ))
         actions.push({ kind: skill, targetHeroId: target.id });
-    else if (skill === "pilfer") actions.push({ kind: skill });
-    else for (const part of parts) actions.push({ kind: skill, part });
+    else for (const target of targets) actions.push({ kind: skill, enemyId: target.id });
   }
   for (const item of hero.inventory.backpack.filter((i) =>
     ["draught", "bandage", "tonic"].includes(i.kind),
@@ -54,7 +53,7 @@ export function legalHeroActions(state: MatchState, hero: Hero): HeroAction[] {
   return actions;
 }
 export type ActionEffect = {
-  stat: "damage" | "healing" | "barrier" | "stress" | "gold" | "bleed";
+  stat: "damage" | "healing" | "barrier" | "stress" | "gold" | "bleed" | "mark";
   value: number;
 };
 export function actionEffects(
@@ -93,15 +92,15 @@ export function actionEffects(
           ...(kind === "bandage" ? [{ stat: "bleed" as const, value: -1 }] : []),
         ];
   }
-  const multiplier =
-    action.kind === "hex" ? 3 : action.kind === "pilfer" || action.kind === "channel" ? 1 : 2;
+  const multiplier = action.kind === "pilfer" || action.kind === "channel" ? 1 : 2;
   const effects: ActionEffect[] = [
     {
       stat: "damage",
-      value: outgoingDamage(hero, multiplier * hero.power, "part" in action ? action.part : "body"),
+      value: outgoingDamage(hero, multiplier * hero.power),
     },
   ];
-  if (action.kind === "hex") effects.push({ stat: "stress", value: 2 });
+  if (action.kind === "hex")
+    effects.push({ stat: "mark", value: hero.power }, { stat: "stress", value: 2 });
   if (action.kind === "skirmish") {
     effects.push({ stat: "barrier", value: barrierAmount(hero, hero.power) });
     if (skirmishStress) effects.push({ stat: "stress", value: skirmishStress });

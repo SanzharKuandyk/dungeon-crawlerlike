@@ -6,7 +6,7 @@ import { goldReward } from "../progression/economy.js";
 import { expeditionEvent } from "../progression/events.js";
 import { applyStress, useOnce } from "./conditions.js";
 import { calculateHealing, healingAmount } from "./damage.js";
-import { barrierAmount, braceBarrier } from "./protection.js";
+import { addBlockSource, type BlockLedger, barrierAmount, braceBarrier } from "./protection.js";
 
 export function applyHealing(state: MatchState, source: Hero, target: Hero, amount: number) {
   amount = healingAmount(source, amount);
@@ -17,6 +17,18 @@ export function applyHealing(state: MatchState, source: Hero, target: Hero, amou
       useOnce(source, "field-medic");
   }
   target.hp = result.hp;
+  expeditionEvent(
+    state,
+    source.crewId,
+    {
+      kind: "effect",
+      actor: source.id,
+      effect: { type: "heal", target: target.id, amount: result.restored },
+    },
+    `${state.players.find((p) => p.id === target.playerId)?.name}: +${result.restored} health.`,
+    0.12,
+    "heal",
+  );
   expeditionEvent(
     state,
     source.crewId,
@@ -31,9 +43,21 @@ export function applySupport(
   hero: Hero,
   action: HeroAction,
   barriers: Map<string, number>,
+  sources: BlockLedger,
 ) {
   const add = (target: Hero, amount: number) => {
+    const total = barrierAmount(target, amount);
+    const base =
+      action.kind === "brace" && hero.inventory.equipment.armor?.kind === "guard-coat"
+        ? barrierAmount(
+            target,
+            Math.floor(2 * hero.power * (hero.conditions.injuries.includes("leg") ? 0.75 : 1)),
+          )
+        : total;
+    addBlockSource(sources, target.id, ACTION_NAMES[action.kind], base);
+    if (total > base) addBlockSource(sources, target.id, "Guard coat", total - base);
     barriers.set(target.id, (barriers.get(target.id) ?? 0) + barrierAmount(target, amount));
+    target.block = barriers.get(target.id) ?? 0;
     expeditionEvent(
       state,
       hero.crewId,
@@ -42,7 +66,7 @@ export function applySupport(
         actor: hero.id,
         effect: { type: "barrier", target: target.id, amount: barrierAmount(target, amount) },
       },
-      `${CLASS_NAMES[hero.classId]} protects ${state.players.find((p) => p.id === target.playerId)?.name}.`,
+      `${CLASS_NAMES[hero.classId]} protects ${state.players.find((p) => p.id === target.playerId)?.name}: ${total} Block this turn${total > base ? ` · ${total - base} from Guard coat` : ""}.`,
       0.15,
       "barrier",
     );
@@ -106,8 +130,7 @@ export function applySupport(
   }
   if (action.kind === "use-item" && target) {
     const item = ownsItem(hero.inventory, action.itemId);
-    if (!item || action.inventoryRevision !== hero.inventory.revision)
-      throw new Error("Consumable changed before lock.");
+    if (!item) throw new Error("Consumable changed before lock.");
     if (item.kind === "tonic") applyStress(target, -3);
     else {
       applyHealing(state, hero, target, (item.kind === "draught" ? 2 : 1) * target.power);

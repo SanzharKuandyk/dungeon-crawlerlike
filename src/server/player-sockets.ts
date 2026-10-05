@@ -1,24 +1,26 @@
 import { z } from "zod";
+import { chooseExploration } from "../game/progression/exploration.js";
 import {
   inventoryEnvelopeSchema,
   shopSchema,
   treatmentSchema,
+  upgradeSchema,
 } from "../shared/inventory-validation.js";
 import type { Envelope } from "../shared/protocol.js";
 import { rewardClaimSchema } from "../shared/reward-validation.js";
 import { trialCommandSchema, wagerSchema } from "../shared/trial-validation.js";
 import {
-  actionSchema,
   campSchema,
   classSchema,
   envelopeSchema,
   nameSchema,
+  planSchema,
 } from "../shared/validation.js";
 import { challenge, queueArena, submitDuel, voteDuel } from "./duel-commands.js";
 import { reject } from "./errors.js";
-import { buy, inventoryCommand, rescue, treat } from "./handlers/builds.js";
+import { buy, inventoryCommand, recoverCrew, treat, upgrade } from "./handlers/builds.js";
 import { voteCamp, voteRoute } from "./handlers/crew-decisions.js";
-import { submitAction, voteWithdraw } from "./handlers/hero-actions.js";
+import { submitPlan, voteWithdraw } from "./handlers/hero-actions.js";
 import { chooseClass, createCrew, joinCrew } from "./handlers/lobby.js";
 import { claimReward, readyResult } from "./handlers/rewards.js";
 import { answerTrial, chooseBlessing, voteTrial, wagerTrial } from "./handlers/trials.js";
@@ -33,6 +35,33 @@ export function attachPlayerSockets(
   respond: Responder,
   clock: () => number,
 ) {
+  socket.on(
+    "siege:choose",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const v = envelopeSchema
+          .extend({ siegeId: z.literal("siege-1"), role: z.enum(["attack", "protect", "supply"]) })
+          .strict()
+          .parse(input);
+        return mutate(
+          v,
+          v,
+          (room, id) => {
+            if (
+              room.state.status !== "running" ||
+              room.state.siege?.id !== v.siegeId ||
+              room.state.siege.phase !== "choice"
+            )
+              reject("CLOSED", "This siege choice is closed.");
+            const hero = room.state.heroes.find((h) => h.playerId === id);
+            if (!hero || (hero.status === "dead" && v.role !== "supply"))
+              reject("INVALID", "Spirits can send supplies.");
+            room.state.siege.choices[id] = v.role;
+          },
+          "social",
+        );
+      }),
+  );
   const mutate = (
     input: Envelope,
     payload: unknown,
@@ -48,6 +77,56 @@ export function attachPlayerSockets(
       decision,
     );
   };
+  socket.on(
+    "event:choose",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const choice = z
+          .discriminatedUnion("kind", [
+            z
+              .object({
+                kind: z.literal("coin"),
+                side: z.enum(["heads", "tails"]),
+                prize: z.enum(["gold", "blessing"]),
+              })
+              .strict(),
+            z
+              .object({
+                kind: z.enum(["risk", "sacrifice", "recover-health", "recover-stress", "leave"]),
+              })
+              .strict(),
+          ])
+          .parse(input.choice) as import("../shared/exploration-types.js").ExplorationChoice;
+        return mutate(
+          input,
+          input,
+          (room, id) => {
+            const hero = room.state.heroes.find((h) => h.playerId === id);
+            if (!hero || room.state.crewProgress[hero.crewId]?.phase.kind !== "event")
+              reject("CLOSED", "This event is closed.");
+            try {
+              chooseExploration(room.state, hero, choice);
+            } catch (error) {
+              reject("INVALID", error instanceof Error ? error.message : "Invalid event choice.");
+            }
+          },
+          "confirm",
+        );
+      }),
+  );
+  socket.on(
+    "shop:upgrade",
+    (input, ack) =>
+      void respond(ack, async () => {
+        const v = upgradeSchema.parse(input);
+        return mutate(
+          v,
+          v,
+          (r, id) => upgrade(r, id, v.offerId, v.targetItemId, v.inventoryRevision, v.requestId),
+          "social",
+        );
+      }),
+  );
   socket.on(
     "reward:claim",
     (input, ack) =>
@@ -154,13 +233,19 @@ export function attachPlayerSockets(
         mutate(input, input, (r, id) => chooseClass(r, id, classSchema.parse(input.classId))),
       ),
   );
-  socket.on("hero:action", (input, ack) => {
+  socket.on("hero:plan", (input, ack) => {
     const now = clock();
     void respond(ack, async () =>
       mutate(
         input,
         input,
-        (r, id) => submitAction(r, id, actionSchema.parse(input.action), now),
+        (r, id) =>
+          submitPlan(
+            r,
+            id,
+            planSchema.parse(input.plan) as import("../shared/turn-plans.js").TurnPlan,
+            now,
+          ),
         "confirm",
       ),
     );
@@ -235,9 +320,23 @@ export function attachPlayerSockets(
       ),
   );
   socket.on(
-    "camp:rescue",
+    "crew:recover",
     (input, ack) =>
-      void respond(ack, async () => mutate(input, input, (r, id) => rescue(r, id), "social")),
+      void respond(ack, async () => {
+        const command = z
+          .discriminatedUnion("kind", [
+            z.object({ kind: z.literal("request-help") }).strict(),
+            z
+              .object({
+                kind: z.literal("revive"),
+                targetHeroId: z.string().min(1).max(200),
+                payment: z.enum(["gold", "debt"]),
+              })
+              .strict(),
+          ])
+          .parse(input.command);
+        return mutate(input, input, (r, id) => recoverCrew(r, id, command), "social");
+      }),
   );
   socket.on(
     "trial:vote",
@@ -281,7 +380,7 @@ export function attachPlayerSockets(
             replace: z
               .enum([
                 "iron-nerve",
-                "sealbreaker",
+                "opener",
                 "last-stand",
                 "field-medic",
                 "clear-purpose",
@@ -307,7 +406,7 @@ export function attachPlayerSockets(
         (room) => {
           if (
             room.state.status !== "running" ||
-            !["combat", "route", "camp", "result"].includes(
+            !["combat", "route", "camp", "result", "event"].includes(
               room.state.crewProgress[
                 room.state.players.find((p) => p.id === binding(true).session?.playerId)?.crewId ??
                   ""

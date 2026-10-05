@@ -3,10 +3,10 @@ export function blessingDescription(kind: BlessingKind, rank: 1 | 2, power: numb
   switch (kind) {
     case "iron-nerve":
       return `Prevent the first ${rank} stress gained each encounter.`;
-    case "sealbreaker":
-      return `First seal attack each encounter gains ${rank * power} damage.`;
+    case "opener":
+      return `First damaging action each encounter gains ${rank * power} damage.`;
     case "last-stand":
-      return `First fall below half health each encounter grants ${rank * power} barrier.`;
+      return `First fall below half health each encounter reserves ${rank * power} Block for the next turn.`;
     case "field-medic":
       return `First healing action or draught each encounter gains ${rank * power} healing.`;
     case "clear-purpose":

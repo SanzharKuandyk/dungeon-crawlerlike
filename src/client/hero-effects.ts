@@ -44,7 +44,7 @@ export function heroEffects(hero: Hero): EffectBadge[] {
     add({
       id: affliction.kind,
       icon: affliction.kind,
-      label: affliction.kind,
+      label: affliction.kind[0].toUpperCase() + affliction.kind.slice(1),
       value: "",
       tone: "harm",
       detail: AFFLICTION_DETAILS[affliction.kind].replace("power", String(hero.power)),
@@ -58,7 +58,10 @@ export function heroEffects(hero: Hero): EffectBadge[] {
     add({
       id: blessing.kind,
       icon: blessing.kind,
-      label: blessing.kind.replaceAll("-", " "),
+      label: blessing.kind
+        .split("-")
+        .map((word) => word[0].toUpperCase() + word.slice(1))
+        .join(" "),
       value: used ? "Used" : `Rank ${"I".repeat(blessing.rank)}`,
       tone: "benefit",
       used,
@@ -67,7 +70,7 @@ export function heroEffects(hero: Hero): EffectBadge[] {
   }
   for (const item of Object.values(hero.inventory.equipment)) {
     if (!item) continue;
-    const used = hero.encounterUses.includes(item.kind);
+    const used = hero.encounterUses.includes(item.kind === "haste-charm" ? "haste" : item.kind);
     add({
       id: item.id,
       icon: item.kind,
@@ -75,7 +78,7 @@ export function heroEffects(hero: Hero): EffectBadge[] {
       value: used ? "Used" : "",
       tone: "benefit",
       used,
-      detail: `${itemDescription(item.kind, hero.power)}. ${used ? "Available again next encounter." : "Equipped effect."}`,
+      detail: `${itemDescription(item.kind, hero.power, item.rank)}. ${used ? "Available again next encounter." : "Equipped effect."}`,
     });
   }
   return effects;

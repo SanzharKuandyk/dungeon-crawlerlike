@@ -3,7 +3,7 @@ import { reject } from "./errors.js";
 import type { StoredRoom } from "./room-types.js";
 
 export function duelMember(room: StoredRoom, playerId: string) {
-  if (room.state.status !== "running" || room.state.trial?.id)
+  if (room.state.status !== "running" || (room.state.trial || room.state.siege)?.id)
     reject("CLOSED", "Finish the current event first.");
   const hero = room.state.heroes.find(
     (hero) => hero.playerId === playerId && hero.status === "alive",
@@ -11,6 +11,7 @@ export function duelMember(room: StoredRoom, playerId: string) {
   if (!hero) reject("INVALID", "Only living crew members can challenge.");
   return hero;
 }
+
 export function challenge(room: StoredRoom, playerId: string, targetCrewId: string, now: number) {
   if (!room.pvpEnabled) reject("CLOSED", "New challenges are disabled by the host.");
   const hero = duelMember(room, playerId);
@@ -18,6 +19,12 @@ export function challenge(room: StoredRoom, playerId: string, targetCrewId: stri
   const target = room.state.crews.find((crew) => crew.id === targetCrewId);
   const nodeId = own?.mapPosition?.nodeId;
   const ownRun = room.runs[hero.crewId];
+  const targetRun = room.runs[targetCrewId];
+  const targetNode =
+    targetRun &&
+    room.state.chapterMaps[targetRun.progress.chapter - 1].nodes.find(
+      (n) => n.id === targetRun.progress.nodeId,
+    );
   const node = room.state.chapterMaps[(ownRun?.progress.chapter ?? 1) - 1].nodes.find(
     (n) => n.id === nodeId,
   );
@@ -28,6 +35,7 @@ export function challenge(room: StoredRoom, playerId: string, targetCrewId: stri
     target.status !== "active" ||
     !node ||
     node.kind !== "arena" ||
+    targetNode?.kind !== "arena" ||
     room.runs[targetCrewId]?.progress.chapter !== ownRun.progress.chapter ||
     room.runs[targetCrewId]?.progress.phase.kind !== "camp"
   )
@@ -67,6 +75,7 @@ export function challenge(room: StoredRoom, playerId: string, targetCrewId: stri
     saved: {},
   });
 }
+
 export function voteDuel(
   room: StoredRoom,
   playerId: string,
@@ -85,6 +94,7 @@ export function voteDuel(
   duel.votes[playerId] = accept;
   if (!accept) duel.status = "declined";
 }
+
 export function submitDuel(
   room: StoredRoom,
   playerId: string,
@@ -127,6 +137,7 @@ export function queueArena(room: StoredRoom, playerId: string, now: number) {
     room.duels.some((d) => d.crewIds.includes(hero.crewId) && d.status !== "declined")
   )
     reject("CLOSED", "Wait for a challenger at an unused arena.");
+
   if (
     room.state.heroes.some(
       (h) => h.crewId === hero.crewId && h.status === "alive" && h.hp < 2 * h.power,

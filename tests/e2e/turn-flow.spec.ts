@@ -60,21 +60,13 @@ test("crew sees committed actions, can change readiness, and resolves together",
     await first.page.getByRole("button", { name: "Change", exact: true }).click();
     await expect(second.page.locator(".turn-ready")).toHaveText("0/2");
     await first.page.getByRole("button", { name: /Ready · Block/ }).click();
-    await second.page.getByRole("button", { name: "Seal", exact: true }).click();
     await second.page.setViewportSize({ width: 1366, height: 768 });
     await second.page.screenshot({ path: ".Codex/ui/turn-choice-desktop.png" });
-    await second.page.getByRole("button", { name: /Ready · Attack seal/ }).click();
+    await second.page.getByRole("button", { name: /Ready · Attack/ }).click();
     await expect(first.page.locator(".phone-panel")).toHaveAttribute("data-phase", "combat-reveal");
     await expect(second.page.locator(".battle-outcome")).toBeVisible();
     await expect(second.page.locator(".confirm-action")).toHaveCount(0);
     await expect(second.page.locator(".battle-outcome li").first()).toBeVisible();
-    await expect(
-      second.page.getByRole("button", { name: "Seal broken", exact: true }),
-    ).toBeVisible();
-    await second.page.screenshot({ path: ".Codex/ui/turn-reveal-desktop.png" });
-    await second.page.getByRole("button", { name: "Seal broken", exact: true }).click();
-    await expect(second.page.getByText(/Your crew disabled the seal's attack bonus/)).toBeVisible();
-    await second.page.keyboard.press("Escape");
     await expect(second.page.locator(".phone-panel")).toHaveAttribute("data-phase", "combat", {
       timeout: 20000,
     });
@@ -103,10 +95,9 @@ test("condition chips explain penalties without covering phone controls", async 
     "player",
   );
   try {
-    await player.page.getByRole("button", { name: "Arm injury", exact: true }).click();
-    await expect(
-      player.page.getByText("25% less outgoing damage. Persists until treated at a recovery stop."),
-    ).toBeVisible();
+    await player.page.locator(".scene-build").first().click();
+    await expect(player.page.getByRole("dialog")).toContainText("Arm injury");
+    await expect(player.page.getByRole("dialog")).toContainText("25% less outgoing damage");
     await player.page.keyboard.press("Escape");
     for (const viewport of [
       { width: 1366, height: 768 },
@@ -115,12 +106,10 @@ test("condition chips explain penalties without covering phone controls", async 
     ]) {
       await player.page.setViewportSize(viewport);
       await noOverflow(player.page);
-      await expect(player.page.locator(".hero-effects")).toContainText("−25%");
+      await expect(player.page.locator(".scene-build").first()).toBeVisible();
       await expect(player.page.locator(".confirm-action")).toBeInViewport();
       const button = await player.page.locator(".confirm-action").boundingBox();
       expect((button?.y ?? 0) + (button?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
-      const bars = await player.page.locator(".enemy-bars").boundingBox();
-      expect((bars?.y ?? 0) + (bars?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
       await player.page.screenshot({ path: `.Codex/ui/turn-effects-${viewport.width}.png` });
     }
   } finally {

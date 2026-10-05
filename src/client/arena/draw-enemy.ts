@@ -10,7 +10,7 @@ export function drawEnemy(
 ) {
   const image = enemyModel(scene, e.definition.family)
     .setPosition(250, 270)
-    .setAlpha(e.bodyHp > 0 ? 1 : 0.2);
+    .setAlpha(e.hp > 0 ? 1 : 0.2);
   layer.add(image);
   layer.add(
     scene.add
@@ -24,7 +24,7 @@ export function drawEnemy(
   );
   layer.add(
     scene.add
-      .text(250, 397, e.bodyHp === 0 ? "DEFEATED" : `${e.bodyHp}/${e.maxBodyHp} HEALTH`, {
+      .text(250, 397, e.hp === 0 ? "DEFEATED" : `${e.hp}/${e.maxHp} HEALTH`, {
         fontFamily: "Arial",
         fontSize: "18px",
         fontStyle: "bold",
@@ -34,7 +34,7 @@ export function drawEnemy(
   );
   layer.add(
     scene.add
-      .text(250, 424, e.weakHp > 0 ? `SEAL ${e.weakHp}/${e.maxWeakHp}` : "SEAL BROKEN", {
+      .text(250, 424, `BLOCK ${e.block}`, {
         fontFamily: "Arial",
         fontSize: "12px",
         color: NEUTRALS.muted,

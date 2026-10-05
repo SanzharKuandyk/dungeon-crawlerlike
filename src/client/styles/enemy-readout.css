@@ -8,8 +8,6 @@
   z-index: 3;
 }
 .enemy-readout .intent-hud {
-  left: var(--enemy-x);
-  top: var(--intent-top);
   transform: translateX(-50%);
   pointer-events: auto;
 }
@@ -23,8 +21,7 @@
 }
 .enemy-applied-effects {
   position: absolute;
-  left: var(--enemy-x);
-  top: var(--effect-top);
+
   transform: translateX(-50%);
   pointer-events: auto;
 }
@@ -38,8 +35,21 @@
 .enemy-effect-chip {
   display: inline-flex;
   align-items: center;
-  color: var(--seal-fill);
+  color: var(--primary);
 }
 .enemy-readout .inspect-trigger:hover {
   background: transparent;
+}
+.compact-intents .intent-hud .inspect-trigger {
+  padding: 4px 0;
+  width: 44px;
+}
+.compact-intents .intent-symbols {
+  flex-direction: column;
+  gap: 0;
+  font-size: 14px;
+}
+.compact-intents .intent-symbols .game-icon {
+  width: 16px;
+  height: 16px;
 }

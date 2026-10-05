@@ -89,25 +89,11 @@
 }
 .enemy-bars {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   flex-shrink: 0;
   border-top: 1px solid var(--border);
-}
-.enemy-bars > div:first-child {
-  position: relative;
-}
-.enemy-bars > div:first-child::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: var(--shield, 0%);
-  height: 6px;
-  border: 1px solid var(--text);
-  border-radius: 4px;
-  pointer-events: none;
 }
 .shield-badge {
   display: flex;
@@ -130,14 +116,193 @@
   font-size: 16px;
   font-weight: 700;
 }
-@media (max-width: 760px) {
+@media (max-width: 600px) {
   .crew-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.encounter-detail > .dungeon-arena {
+.encounter-detail > .inspectable-arena {
+  position: relative;
   height: auto;
   aspect-ratio: 1200 / 580;
   min-height: 200px;
+}
+.inspectable-arena > .dungeon-arena {
+  position: absolute;
+  inset: 0;
+}
+.crew-exploration {
+  padding: var(--space-2) var(--space-3);
+  max-height: 128px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+}
+.crew-exploration p {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.scene-builds {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.scene-build {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  min-width: 44px;
+  transform: translateX(-50%);
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+}
+.scene-build-icons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+  justify-content: center;
+  width: 100%;
+}
+.scene-build-icons small {
+  font-size: 12px;
+}
+.scene-build-icons .used {
+  opacity: 0.5;
+}
+.build-inspection-row {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.build-inspection-row .game-icon {
+  flex-shrink: 0;
+}
+.ally-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+}
+.ally-recovery p {
+  font-size: 12px;
+}
+
+/* Native-size readouts and hit areas sit over the same contained canvas coordinates. */
+.combat-scene .combat-art {
+  height: var(--combat-art-height, 100%);
+}
+.combat-scene .battle-narration {
+  display: none;
+}
+.scene-targets {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.scene-actor-hud {
+  position: absolute;
+  width: var(--actor-width);
+  transform: translateX(-50%);
+}
+.scene-target {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--actor-height) 0 0;
+  pointer-events: auto;
+  display: grid;
+  gap: 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text);
+}
+.scene-target:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.scene-target[aria-pressed="true"] {
+  background: transparent;
+  color: var(--text);
+}
+.scene-target:hover:not(:disabled),
+.scene-target[aria-pressed="true"]:hover:not(:disabled) {
+  background: transparent;
+}
+.scene-target:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.actor-name {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+.hero-actor-hud .actor-name {
+  color: var(--team);
+}
+.scene-target[aria-pressed="true"] .actor-name,
+.scene-target:hover:not(:disabled) .actor-name {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.actor-health-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--border);
+  overflow: hidden;
+}
+.actor-health-track > span {
+  display: block;
+  height: 100%;
+  background: var(--health-fill);
+}
+.actor-block-track {
+  height: 4px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #24739b22;
+}
+.actor-block-track > span {
+  display: block;
+  height: 100%;
+  background: #24739b;
+}
+.actor-numbers {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+  line-height: 1;
+}
+.actor-block {
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary);
+  justify-content: center;
+}
+.scene-actor-hud.fallen {
+  opacity: 0.5;
+}
+
+.rows-of-two .animated-battle {
+  aspect-ratio: 1200 / 1184;
 }

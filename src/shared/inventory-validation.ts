@@ -10,7 +10,7 @@ export const inventoryCommandSchema = z.discriminatedUnion("kind", [
       replace: z
         .enum([
           "iron-nerve",
-          "sealbreaker",
+          "opener",
           "last-stand",
           "field-medic",
           "clear-purpose",
@@ -33,10 +33,10 @@ export const inventoryEnvelopeSchema = envelopeSchema
 export const shopSchema = envelopeSchema
   .extend({ offerId: id, inventoryRevision: z.number().int().min(0) })
   .strict();
+export const upgradeSchema = shopSchema.extend({ targetItemId: id }).strict();
 export const treatmentSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("heal") }).strict(),
   z.object({ kind: z.literal("calm") }).strict(),
-  z.object({ kind: z.literal("revive") }).strict(),
   z.object({ kind: z.literal("injury"), injury: z.enum(["arm", "leg"]) }).strict(),
   z
     .object({

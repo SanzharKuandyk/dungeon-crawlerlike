@@ -5,10 +5,11 @@ export type CombatEffect =
       type: "hit";
       action: string;
       target: string;
-      part: "body" | "weak-point" | "hero";
+      part: "body" | "hero";
       attempted: number;
       blocked: number;
       damage: number;
+      sources?: { label: string; amount: number }[];
     }
   | { type: "heal" | "barrier" | "ward"; target: string; amount: number }
   | { type: "interrupt" | "death" | "panic" | "loot"; target: string; amount: number };
@@ -26,7 +27,12 @@ type EventBase = {
 };
 export type GameEvent = EventBase &
   (
-    | { kind: "hero"; actor: string; hero: Hero }
+    | {
+        kind: "hero";
+        actor: string;
+        hero: Hero;
+        exploration?: { landing: "heads" | "tails" | null; success: boolean | null };
+      }
     | { kind: "enemy"; actor: string | null; encounter: RoomEncounter }
     | { kind: "crew"; actor: string; crew: Crew }
     | ({ kind: "host-intervention"; actor: null } & import("./host-types.js").HostIntervention)

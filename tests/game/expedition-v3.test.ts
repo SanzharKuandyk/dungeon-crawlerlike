@@ -29,11 +29,14 @@ import {
 } from "../../src/game/trials/board.js";
 import { projectTrial } from "../../src/game/trials/projections.js";
 import { lockTrialQuestion } from "../../src/game/trials/scoring.js";
-import { content, fixture, next } from "../fixtures/match.js";
+import { content, fixture, next, plan } from "../fixtures/match.js";
 
-const fight = (s: ReturnType<typeof fixture>, kind: "body" | "weak-point" = "body") => {
-  for (const h of s.heroes)
-    s.crewProgress[h.crewId].actions[h.playerId] = { kind: "attack", part: kind };
+const fight = (s: ReturnType<typeof fixture>) => {
+  for (const [i, h] of s.heroes.entries())
+    plan(s, i, {
+      kind: "attack",
+      enemyId: s.encounters.find((e) => e.crewIds.includes(h.crewId))?.enemies[0].id ?? "missing",
+    });
   return resolveCombat(s, { crewId: s.crews[0].id }).state;
 };
 describe("chapter routes and normalization", () => {
@@ -47,7 +50,11 @@ describe("chapter routes and normalization", () => {
       power = h.power;
     h.hp = 0;
     h.status = "dead";
-    applyRescue(s, "c0", h.id);
+    for (const hero of s.heroes) {
+      hero.hp = 0;
+      hero.status = "dead";
+    }
+    applyRescue(s, "c0");
     expect(h.power).toBe(power);
     for (const classId of [
       "knight",
@@ -61,14 +68,14 @@ describe("chapter routes and normalization", () => {
       expect(legalHeroActions(s, h).length).toBeGreaterThan(2);
     }
   });
-  it("three persisted maps meet every authored route guarantee", () => {
+  it("two persisted maps meet every authored route guarantee", () => {
     for (let seed = 1; seed < 30; seed++)
-      for (const c of [1, 2, 3] as const) {
+      for (const c of [1, 2] as const) {
         const map = chapterMap(content, seed, c);
         validateMap(map);
-        expect(map.rows).toBe(7);
+        expect(map.rows).toBe(12);
         expect(map.nodes.filter((n) => n.kind === "boss")).toHaveLength(1);
-        expect(map.nodes.some((n) => n.kind === "altar")).toBe(c !== 3);
+        expect(map.nodes.some((n) => n.kind === "altar")).toBe(true);
       }
     const map = chapterMap(content, 1, 1);
     map.nodes[0].nextIds = [];
@@ -76,30 +83,28 @@ describe("chapter routes and normalization", () => {
   });
 });
 describe("deterministic combat", () => {
-  it("seal overflow reaches body; killed enemies do not attack; input is immutable", () => {
+  it("killed enemies cancel their announced attack and preserve immutable input", () => {
     const s = fixture(1);
-    const before = structuredClone(s);
-    s.encounters[0].bodyHp = 10;
-    const hp = s.heroes[0].hp;
-    const result = fight(s, "weak-point");
-    expect(result.encounters[0].weakHp).toBe(0);
-    expect(result.encounters[0].bodyHp).toBe(0);
+    s.encounters[0].enemies[0].hp = 10;
+    const before = structuredClone(s),
+      hp = s.heroes[0].hp;
+    const result = fight(s);
+    expect(result.encounters[0].hp).toBe(0);
     expect(result.heroes[0].hp).toBe(hp);
-    expect(s.encounters[0].weakHp).toBe(before.encounters[0].weakHp);
+    expect(s).toEqual({ ...before, crewProgress: s.crewProgress });
     expect(() => resolveCombat(result, { crewId: "c0" })).toThrow();
   });
-  it("shield absorbs separately from seal and body", () => {
+  it("Block absorbs damage then expires before the next enemy move", () => {
     const s = fixture(1);
-    s.encounters[0].shield = 20;
-    const result = fight(s, "weak-point");
-    expect(result.encounters[0].shield).toBe(0);
-    expect(result.encounters[0].weakHp).toBe(8);
-    expect(result.encounters[0].bodyHp).toBe(48);
+    s.encounters[0].enemies[0].block = 20;
+    const result = fight(s);
+    expect(result.encounters[0].enemies[0].hp).toBe(32);
+    expect(result.encounters[0].enemies[0].block).toBe(0);
   });
   it("cooldown lasts two turns and supports all solo classes", () => {
     let s = fixture(1);
     s.heroes[0].classId = "wanderer";
-    s.crewProgress.c0.actions[s.heroes[0].playerId] = { kind: "skirmish", part: "body" };
+    plan(s, 0, { kind: "skirmish", enemyId: s.encounters[0].enemies[0].id });
     s = resolveCombat(s, { crewId: "c0" }).state;
     next(s);
     expect(legalHeroActions(s, s.heroes[0]).some((a) => a.kind === "skirmish")).toBe(false);
@@ -108,32 +113,32 @@ describe("deterministic combat", () => {
   });
   it("simultaneous attacks retain every declared hit", () => {
     const s = fixture(1, [4]);
-    s.encounters[0].bodyHp = 24;
+    s.encounters[0].enemies[0].hp = 24;
     const result = fight(s);
-    expect(result.encounters[0].bodyHp).toBe(0);
+    expect(result.encounters[0].hp).toBe(0);
     expect(
       result.crewProgress.c0.events.filter((e) => e.kind === "effect" && e.effect.type === "hit"),
     ).toHaveLength(4);
     expect(result.heroes.every((h) => h.hp === h.maxHp)).toBe(true);
   });
-  it("boss seals regenerate only at the next turn boundary", () => {
+  it("boss phases change only at the next turn boundary", () => {
     let s = fixture(1);
     s.encounters[0].kind = "boss";
-    s.encounters[0].bodyHp = 32;
-    s = fight(s, "weak-point");
-    expect(s.encounters[0].weakHp).toBe(0);
+    s.encounters[0].enemies[0].maxHp = 72;
+    s.encounters[0].enemies[0].hp = 60;
+    s.encounters[0].maxHp = 72;
+    s = fight(s);
     expect(s.encounters[0].bossPhase).toBe(1);
     nextCombatTurn(s, "c0");
     expect(s.encounters[0].bossPhase).toBe(2);
-    expect(s.encounters[0].weakHp).toBe(12);
   });
   it("stress uses locked bands and arm penalties cannot erase damage", () => {
     const h = fixture(1).heroes[0];
-    expect(outgoingDamage(h, 24, "body", 0)).toBe(24);
-    expect(outgoingDamage(h, 24, "body", 4)).toBe(21);
-    expect(outgoingDamage(h, 24, "body", 7)).toBe(19);
+    expect(outgoingDamage(h, 24, 0)).toBe(24);
+    expect(outgoingDamage(h, 24, 4)).toBe(21);
+    expect(outgoingDamage(h, 24, 7)).toBe(19);
     h.conditions.injuries = ["arm"];
-    expect(outgoingDamage(h, 1, "body", 9)).toBe(1);
+    expect(outgoingDamage(h, 1, 9)).toBe(1);
   });
   it("fully blocked moves cannot injure; seeded rolls repeat and follow odds", () => {
     let s = fixture(1);
@@ -165,7 +170,11 @@ describe("deterministic combat", () => {
     expect(preventDeath(h)).toBe(true);
     h.status = "dead";
     h.hp = 0;
-    applyRescue(s, "c0", h.id);
+    for (const hero of s.heroes) {
+      hero.hp = 0;
+      hero.status = "dead";
+    }
+    applyRescue(s, "c0");
     h.hp = 0;
     expect(preventDeath(h)).toBe(false);
     applyAffliction(h, "shaken");
@@ -182,7 +191,7 @@ describe("inventory, recovery and once-only economy", () => {
       h = s.heroes[0];
     c.shop = createShop(s, c.id, "visit");
     const offer =
-      c.shop.offers[h.id].find((o) => o.kind === "body-blade") ??
+      c.shop.offers[h.id].find((o) => o.kind === "blade") ??
       c.shop.offers[h.id].find((o) => o.price === 6);
     if (!offer) throw new Error("Missing shop offer");
     applyPurchase(s, h, offer.id, h.inventory.revision);
@@ -195,7 +204,7 @@ describe("inventory, recovery and once-only economy", () => {
     const s = fixture(1, [2]),
       h = s.heroes[0];
     for (let i = 0; i < 6; i++)
-      h.inventory = addItem(h.inventory, { id: `gear-${i}`, kind: "body-blade", count: 1 });
+      h.inventory = addItem(h.inventory, { id: `gear-${i}`, kind: "blade", count: 1, rank: 1 });
     expect(h.inventory.overflow).toHaveLength(1);
     const item = h.inventory.overflow[0];
     applyInventoryCommand(
@@ -232,7 +241,7 @@ describe("inventory, recovery and once-only economy", () => {
   it("node victory and boss credit cannot be farmed", () => {
     const s = fixture(1),
       e = s.encounters[0];
-    e.bodyHp = 0;
+    e.hp = 0;
     e.kind = "boss";
     awardEncounter(s, "c0", e);
     awardEncounter(s, "c0", e);
@@ -307,6 +316,58 @@ describe("competitive trials and privacy", () => {
     expect(JSON.stringify(publicView)).not.toContain('correctIndex":0');
     expect(publicView.heroes[0].inventory.backpack).toEqual([]);
     expect(() => validateTrialPack(s.trialPack, true)).toThrow();
+  });
+  it("trial gold normalizes all roster sizes, repays debt and cannot settle twice", () => {
+    const s = fixture(4, [1, 2, 3, 4]);
+    s.trial = createTrial(s, 1, "altar");
+    const id = chooseTile(s, s.trial);
+    s.trial.phase = { kind: "answer", questionId: id };
+    const q = trialQuestion(s);
+    if (!q) throw new Error("Missing question");
+    for (const player of s.players) {
+      s.trial.answers[player.id] = q.correctIndex;
+      s.trial.wagers[player.id] = "bold";
+    }
+    const spirit = s.heroes.at(-1);
+    if (!spirit) throw new Error("Missing spirit");
+    spirit.status = "dead";
+    spirit.hp = 0;
+    s.crews[0].economy.rescueDebt = 5;
+    lockTrialQuestion(s);
+    const earned = (q.value / 100) * 12;
+    expect(s.crews.map((c) => c.economy.gold)).toEqual([
+      24 + earned - 5,
+      24 + earned,
+      24 + earned,
+      24 + earned,
+    ]);
+    expect(s.trial.questionGold?.c0).toEqual({ earned, debtPaid: 5 });
+    expect(projectTrial(s)?.goldRewards).toEqual({});
+    s.trial.phase = { kind: "reveal", questionId: id };
+    expect(projectTrial(s)?.goldRewards.c3.earned).toBe(earned);
+    const committed = structuredClone(s);
+    expect(() => lockTrialQuestion(s)).toThrow();
+    expect(s).toEqual(committed);
+    s.trial = createTrial(s, 1, "partial accuracy");
+    const partialId = chooseTile(s, s.trial);
+    s.trial.phase = { kind: "answer", questionId: partialId };
+    const partialQ = trialQuestion(s);
+    if (!partialQ) throw new Error("Missing partial question");
+    for (const id of s.crews[3].playerIds.slice(0, 2)) s.trial.answers[id] = partialQ.correctIndex;
+    const beforePartial = s.crews[3].economy.gold;
+    lockTrialQuestion(s);
+    expect(s.crews[3].economy.gold - beforePartial).toBe((partialQ.value / 100) * 3);
+    expect(s.trial.questionGold?.c1.earned).toBe(0);
+    delete s.content.balance?.trialGoldPer100;
+    s.trial = createTrial(s, 1, "older saved balance", "trial-2");
+    const nextId = chooseTile(s, s.trial);
+    s.trial.phase = { kind: "answer", questionId: nextId };
+    const nextQ = trialQuestion(s);
+    if (!nextQ) throw new Error("Missing next question");
+    for (const p of s.players) s.trial.answers[p.id] = nextQ.correctIndex;
+    const wallets = s.crews.map((c) => c.economy.gold);
+    lockTrialQuestion(s);
+    expect(s.crews.map((c) => c.economy.gold)).toEqual(wallets);
   });
   it("Blessing rewards upgrade, require replacement and grant once including spirits", () => {
     const s = fixture(1);

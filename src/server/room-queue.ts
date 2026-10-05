@@ -79,7 +79,7 @@ export function createRoomQueue(
               new Set(run.progress.resolvedPhaseIds).size !== run.progress.resolvedPhaseIds.length
             )
               throw new Error("Crew phase resolved twice");
-            if (run.progress.depth > 7 || run.progress.turn > 6)
+            if (run.progress.depth > 12 || run.progress.turn > 8)
               throw new Error("Invalid crew progress");
           }
           next.state.revision = draft.state.revision + 1;
@@ -129,7 +129,7 @@ export function createRoomQueue(
         });
         const audience =
           !globalChange &&
-          draft.state.rulesVersion === "dungeon-v4" &&
+          draft.state.rulesVersion === "dungeon-v5" &&
           draft.state.status !== "lobby"
             ? [
                 ...new Set([

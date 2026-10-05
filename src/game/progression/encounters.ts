@@ -1,14 +1,23 @@
 import DEFAULT_BALANCE from "../../../content/dungeon/balance.json" with { type: "json" };
+import DEFAULT_PATTERNS from "../../../content/dungeon/enemies.json" with { type: "json" };
+import type { EnemyInstance } from "../../shared/encounter-types.js";
+import type { EnemyPatternId, EnemyPatterns } from "../../shared/enemy-content-types.js";
 import type { MatchState, RoomEncounter } from "../../shared/game-types.js";
 import type { MapNode } from "../../shared/map-types.js";
+import { publishIntents } from "../combat/enemy-patterns.js";
 import { createShop } from "../inventory/shops.js";
 import { goldReward } from "./economy.js";
 import { grantEquipmentOffers } from "./equipment-rewards.js";
 import { beginCrewResolution, expeditionEvent } from "./events.js";
 
+export function refreshEncounter(enemy: RoomEncounter) {
+  enemy.hp = enemy.enemies.reduce((n, e) => n + e.hp, 0);
+  enemy.maxHp = enemy.enemies.reduce((n, e) => n + e.maxHp, 0);
+  enemy.block = enemy.enemies.reduce((n, e) => n + e.block, 0);
+}
 export function spawnEncounter(state: MatchState, crewId: string, node: MapNode) {
-  const p = state.crewProgress[crewId];
-  const crew = state.crews.find((c) => c.id === crewId);
+  const p = state.crewProgress[crewId],
+    crew = state.crews.find((c) => c.id === crewId);
   if (!crew || !["battle", "elite", "boss"].includes(node.kind))
     throw new Error("Not a combat node.");
   const kind = node.kind as "battle" | "elite" | "boss";
@@ -16,36 +25,62 @@ export function spawnEncounter(state: MatchState, crewId: string, node: MapNode)
   const power = state.heroes.filter((h) => h.crewId === crewId).reduce((n, h) => n + h.power, 0);
   const rules = state.content.balance ?? DEFAULT_BALANCE;
   const hp =
-    ((kind === "boss"
-      ? rules.bossHealthBase
-      : kind === "elite"
-        ? rules.eliteHealthBase
-        : rules.ordinaryHealthBase) +
-      p.chapter) *
-    power;
+    (kind === "boss"
+      ? rules.bossHealthBase + 2 * p.chapter
+      : (kind === "elite" ? rules.eliteHealthBase : rules.ordinaryHealthBase) + p.chapter) * power;
+  const roles: EnemyInstance["role"][] =
+    kind === "boss"
+      ? [p.chapter === 1 ? "guard" : "devourer"]
+      : p.chapter === 1 && node.row <= 2
+        ? [node.row === 1 ? "raider" : "guard"]
+        : kind === "elite"
+          ? ["guard", "supporter", "whisperer"]
+          : node.room.family === "devourer"
+            ? ["devourer", "raider"]
+            : node.room.family === "seer"
+              ? ["whisperer", "supporter"]
+              : ["guard", "raider"];
   const id = `${node.id}:${crewId}`;
+  const patterns = state.content.enemyPatterns ?? (DEFAULT_PATTERNS as EnemyPatterns);
+  const patternIds: EnemyPatternId[] =
+    kind === "boss" ? [p.chapter === 1 ? "iron-warden" : "hollow-regent"] : [...new Set(roles)];
+  const enemies: EnemyInstance[] = roles.map((role, index) => {
+    const health = Math.floor(hp / roles.length) + (index < hp % roles.length ? 1 : 0);
+    return {
+      id: `${id}:enemy:${index}`,
+      role,
+      name: kind === "boss" ? node.room.name : patterns[role].name,
+      family:
+        role === "devourer"
+          ? "devourer"
+          : role === "whisperer" || role === "supporter"
+            ? "seer"
+            : "sentinel",
+      hp: health,
+      maxHp: health,
+      block: 0,
+      effects: [],
+      intent: { moveId: "", name: "", targets: [], blockGain: 0, recipientEnemyId: null },
+    };
+  });
   const enemy: RoomEncounter = {
     id,
     rules: structuredClone(rules),
-    definition: {
-      ...node.room,
-      family:
-        kind === "boss"
-          ? (["sentinel", "seer", "devourer"] as const)[p.chapter - 1]
-          : node.room.family,
-    },
+    patterns: Object.fromEntries(
+      patternIds.map((patternId) => [patternId, structuredClone(patterns[patternId])]),
+    ),
+    definition: node.room,
     crewIds: [crewId],
     enteringPower: { [crewId]: power },
     spawnPower: power,
-    bodyHp: hp,
-    maxBodyHp: hp,
-    weakHp: rules.sealPower * power,
-    maxWeakHp: rules.sealPower * power,
+    hp,
+    maxHp: hp,
+    enemies,
     status: "active",
     contribution: {},
     purseAwarded: false,
     chapter: p.chapter,
-    shield: 0,
+    block: 0,
     bossPhase: 1,
     pendingBossPhase: 1,
     attempt: (prior?.attempt ?? 0) + 1,
@@ -53,30 +88,31 @@ export function spawnEncounter(state: MatchState, crewId: string, node: MapNode)
     kind,
     pilfered: prior?.pilfered ?? [],
   };
-  // Preserve boss damage so injury and debt cannot trap a crew in an unwinnable retry.
   if (kind === "boss" && prior && prior.status !== "defeated") {
-    enemy.bodyHp = prior.bodyHp;
-    enemy.maxBodyHp = prior.maxBodyHp;
-    enemy.weakHp = prior.weakHp;
-    enemy.shield = prior.shield;
-    enemy.bossPhase = prior.bossPhase;
+    enemy.enemies = prior.enemies.map((e) => ({ ...structuredClone(e), block: 0, effects: [] }));
+    enemy.bossPhase = prior.pendingBossPhase;
     enemy.pendingBossPhase = prior.pendingBossPhase;
-    if (enemy.pendingBossPhase > enemy.bossPhase) {
-      enemy.bossPhase = enemy.pendingBossPhase;
-      enemy.weakHp = enemy.maxWeakHp;
-    }
+    refreshEncounter(enemy);
   }
   state.encounters = state.encounters.filter((e) => e.id !== id);
   state.encounters.push(enemy);
   p.encounterId = id;
   p.turn = 1;
   p.actions = {};
+  p.plans = {};
   p.withdrawVotes = {};
   for (const hero of state.heroes.filter((h) => h.crewId === crewId)) {
     hero.skillReadyTurn = 1;
     hero.encounterUses = [];
     hero.conditions.combatEffects = [];
+    hero.block = 0;
+    hero.nextTurnBlock = 0;
   }
+  publishIntents(
+    enemy,
+    state.heroes.filter((h) => h.crewId === crewId),
+    1,
+  );
   crew.location = { kind: "room", roomId: id };
   crew.shop = null;
   expeditionEvent(
@@ -88,12 +124,11 @@ export function spawnEncounter(state: MatchState, crewId: string, node: MapNode)
     "arrival",
   );
 }
-
 export function enterNode(state: MatchState, crewId: string, nodeId: string) {
-  const p = state.crewProgress[crewId];
-  const map = state.chapterMaps[p.chapter - 1];
-  const node = map.nodes.find((n) => n.id === nodeId);
-  const crew = state.crews.find((c) => c.id === crewId);
+  const p = state.crewProgress[crewId],
+    map = state.chapterMaps[p.chapter - 1];
+  const node = map.nodes.find((n) => n.id === nodeId),
+    crew = state.crews.find((c) => c.id === crewId);
   if (!node || !crew) throw new Error("Destination not found.");
   beginCrewResolution(state, crewId);
   p.campVotes = {};
@@ -127,14 +162,22 @@ export function nextCombatTurn(state: MatchState, crewId: string) {
   const p = state.crewProgress[crewId];
   p.turn++;
   p.actions = {};
+  p.plans = {};
   p.withdrawVotes = {};
+  for (const hero of state.heroes.filter((h) => h.crewId === crewId)) {
+    hero.block = hero.nextTurnBlock;
+    hero.nextTurnBlock = 0;
+  }
   const enemy = state.encounters.find((e) => e.id === p.encounterId);
-  if (enemy && enemy.pendingBossPhase > enemy.bossPhase) {
+  if (enemy) {
     enemy.bossPhase = enemy.pendingBossPhase;
-    enemy.weakHp = enemy.maxWeakHp;
+    publishIntents(
+      enemy,
+      state.heroes.filter((h) => h.crewId === crewId),
+      p.turn,
+    );
   }
 }
-
 export function completeNode(state: MatchState, crewId: string, nodeId: string) {
   const crew = state.crews.find((c) => c.id === crewId);
   if (!crew) throw new Error("Crew missing.");

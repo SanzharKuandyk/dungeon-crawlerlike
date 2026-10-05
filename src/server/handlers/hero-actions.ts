@@ -1,7 +1,10 @@
 import { actionKey, legalActions } from "../../game/action-options.js";
+import { validateTurnPlan } from "../../game/combat/turn-plans.js";
 import { fighting } from "../../game/routes.js";
 import type { HeroAction } from "../../shared/command-types.js";
 import type { PhaseKind } from "../../shared/game-types.js";
+import type { TurnPlan } from "../../shared/turn-plans.js";
+import { planActions } from "../../shared/turn-plans.js";
 import { playerRun } from "../crew-decisions.js";
 import { reject } from "../errors.js";
 import type { StoredRoom } from "../room-types.js";
@@ -10,7 +13,8 @@ export function requirePhase(room: StoredRoom, kind: PhaseKind, now: number, pla
   if (
     room.state.status !== "running" ||
     (run?.progress.phase.kind ?? room.state.phase.kind) !== kind ||
-    room.state.trial
+    room.state.trial ||
+    room.state.siege
   )
     reject("CLOSED", "That decision is not open.");
   const deadline = run?.clock.deadline ?? room.deadline;
@@ -27,6 +31,27 @@ export function submitAction(room: StoredRoom, id: string, action: HeroAction, n
   if (!legalActions(room.state, hero).some((a) => actionKey(a) === actionKey(action)))
     reject("INVALID", "That action or target is unavailable.");
   room.state.crewProgress[hero.crewId].actions[id] = action;
+  room.state.crewProgress[hero.crewId].plans[id] =
+    hero.status === "dead"
+      ? { kind: "spirit", action: action as import("../../shared/turn-plans.js").SpiritAction }
+      : {
+          kind: "hero",
+          actions: [action as import("../../shared/turn-plans.js").CombatAction],
+          activation: null,
+          inventoryRevision: hero.inventory.revision,
+        };
+}
+export function submitPlan(room: StoredRoom, id: string, plan: TurnPlan, now: number) {
+  requirePhase(room, "combat", now, id);
+  const hero = ownedHero(room, id);
+  try {
+    validateTurnPlan(room.state, hero, plan);
+  } catch (error) {
+    reject("INVALID", error instanceof Error ? error.message : "Invalid plan.");
+  }
+  const p = room.state.crewProgress[hero.crewId];
+  p.plans[id] = structuredClone(plan);
+  p.actions[id] = planActions(plan)[0];
 }
 export function voteWithdraw(room: StoredRoom, id: string, withdraw: boolean, now: number) {
   requirePhase(room, "combat", now, id);

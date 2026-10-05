@@ -27,6 +27,7 @@ export type TrialPack = {
 export type TrialTile = { id: string; category: string; value: TrialValue };
 export type BlessingOffer = {
   id: string;
+  groupId?: string;
   kind: import("./condition-types.js").BlessingKind;
   rank: import("./condition-types.js").TraitRank;
 };
@@ -39,6 +40,8 @@ export type TrialAnswerResult = {
   consequence: string;
 };
 export type Trial = {
+  eventId: import("./shared-event-types.js").SharedEventId;
+  selection: { tileId: string; crewVotes: Record<string, string>; reason: string } | null;
   id: string;
   chapter: 1 | 2;
   cause: string;
@@ -57,8 +60,14 @@ export type Trial = {
   choices: Record<string, string>;
   resolvedQuestions: string[];
   rewardsGranted: boolean;
+  questionGold?: Record<string, { earned: number; debtPaid: number }>;
 };
 export type TrialView = {
+  eventId: import("./shared-event-types.js").SharedEventId;
+  questionCount: number;
+  crewVotes: { crewId: string; tileId: string | null; submitted: number; total: number }[];
+  selectionReason: string | null;
+  wagers: { playerId: string; wager: WagerLevel }[];
   selectedTile: TrialTile | null;
   id: string;
   chapter: number;
@@ -75,4 +84,6 @@ export type TrialView = {
   totals: Record<string, number>;
   accuracy: { crewId: string; correct: number; total: number }[];
   oath: import("./condition-types.js").AfflictionKind;
+  goldPer100: number;
+  goldRewards: Record<string, { earned: number; debtPaid: number }>;
 };

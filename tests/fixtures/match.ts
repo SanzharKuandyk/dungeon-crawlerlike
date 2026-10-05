@@ -3,7 +3,8 @@ import classes from "../../content/dungeon/classes.json";
 import rooms from "../../content/dungeon/rooms.json";
 import pack from "../../content/learning/trials.fixture.json";
 import { createMatch, startMatch } from "../../src/game/create-match.js";
-import { enterNode } from "../../src/game/progression/encounters.js";
+import { enterNode, nextCombatTurn } from "../../src/game/progression/encounters.js";
+import type { HeroAction } from "../../src/shared/command-types.js";
 import type { DungeonContent } from "../../src/shared/content-types.js";
 import type { MatchState } from "../../src/shared/game-types.js";
 export const content = {
@@ -56,12 +57,21 @@ export function fixture(count = 2, sizes: number[] = []): MatchState {
   s.phaseId = 2;
   return s;
 }
+export function plan(s: MatchState, heroIndex: number, action: HeroAction) {
+  const h = s.heroes[heroIndex],
+    p = s.crewProgress[h.crewId];
+  p.actions[h.playerId] = action;
+  p.plans[h.playerId] =
+    action.kind === "observe" || action.kind === "ward"
+      ? { kind: "spirit", action }
+      : {
+          kind: "hero",
+          actions: [action],
+          activation: null,
+          inventoryRevision: h.inventory.revision,
+        };
+}
 export function next(s: MatchState) {
-  for (const p of Object.values(s.crewProgress)) {
-    p.phaseId++;
-    p.turn++;
-    p.actions = {};
-    p.withdrawVotes = {};
-  }
+  for (const c of s.crews) nextCombatTurn(s, c.id);
   return s;
 }

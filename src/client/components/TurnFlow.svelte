@@ -29,26 +29,37 @@
       : view.phase.kind !== "combat"
         ? ["", "Crew actions resolve together", "Enemy response", "Turn outcome"][stage]
         : view.speed === "manual"
-          ? "Manual test · use Next phase to resolve"
+          ? "Manual test · Next phase resolves"
           : view.intermissionPending
             ? "A Trial is starting"
             : view.crewInputs.length === 1
-              ? "Play turn resolves your chosen action"
+              ? "Choose your move"
               : view.decisionReady
                 ? `Waiting for ${waiting.map((p) => p.name).join(", ") || "the crew"}`
-                : "Choose an action · all ready starts the turn",
+                : "Choose your move · all ready starts the turn",
   );
 </script>
 <section class="turn-flow" aria-label="Turn progress">
   <div class="turn-heading">
     <strong>Turn {view.turn}</strong>
+    <span class="turn-stage"
+      >{view.status === "paused"
+        ? "Paused"
+        : view.decisionReady && stage === 0
+          ? "Waiting for crew"
+          : ["Choose", "Crew acts", "Enemy acts", "Outcome"][stage]}</span
+    >
     <span class="turn-status">{description}</span>
-    {#if view.phase.kind === "combat"}
+    {#if view.phase.kind === "combat" && view.crewInputs.length > 1}
       <span class="turn-ready"
         ><GameIcon name="ready" size={14} />{ready}/{view.crewInputs.length}</span
       >
     {/if}
-    <RoundTimer {view} />
+    {#if view.deadline !== null || view.status === "paused" || view.speed === "manual"}
+      <RoundTimer {view} compact />
+    {:else}
+      <small class="turn-clock">At your pace</small>
+    {/if}
   </div>
   <ol class="turn-steps">
     {#each ["Choose", "Crew", "Enemy", "Outcome"] as label, index}

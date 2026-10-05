@@ -16,7 +16,7 @@ export function hostControl(room: StoredRoom, input: HostInput, now: number) {
       room.pauseReasons = [];
       startMatch(room.state);
       enter(room, { kind: "route" }, now);
-      if (room.state.rulesVersion === "dungeon-v4") startCrews(room, now);
+      if (room.state.rulesVersion === "dungeon-v5") startCrews(room, now);
       break;
     case "pause":
       if (room.state.status !== "running" && room.state.status !== "paused")

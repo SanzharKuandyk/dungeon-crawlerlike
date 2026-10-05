@@ -1,4 +1,6 @@
 export type HeroBuild = {
+  block: number;
+  nextTurnBlock: number;
   expeditionUses: string[];
   pendingBlessings: import("./trial-types.js").BlessingOffer[];
   inventory: import("./inventory-types.js").Inventory;

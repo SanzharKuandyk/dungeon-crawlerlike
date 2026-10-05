@@ -11,10 +11,12 @@ import {
   updateActor,
   updateHeroConditions,
 } from "./battle-actors.js";
+import { actorY, enemyX, heroX, sceneHeight } from "./scene-layout.js";
 
 export class DungeonScene extends Phaser.Scene {
   private actors = new Map<string, BattleActor>();
   private background: Phaser.GameObjects.Image | null = null;
+  private secondBackdrop: Phaser.GameObjects.Image | null = null;
   private seal: Phaser.GameObjects.Graphics | null = null;
   private targetMarker: Phaser.GameObjects.Graphics | null = null;
   private effects: Phaser.GameObjects.Graphics | null = null;
@@ -29,6 +31,8 @@ export class DungeonScene extends Phaser.Scene {
     reduced: boolean;
     crewId: string | null;
     targetId: string | null;
+    combatHud: boolean;
+    rows: boolean;
   } | null = null;
 
   constructor() {
@@ -43,6 +47,10 @@ export class DungeonScene extends Phaser.Scene {
   create() {
     this.background = this.add.image(600, 290, "room-camp").setDisplaySize(1200, 580);
 
+    this.secondBackdrop = this.add
+      .image(600, 750, "room-camp")
+      .setDisplaySize(1200, 500)
+      .setVisible(false);
     this.targetMarker = this.add.graphics().setDepth(1);
     this.seal = this.add.graphics().setDepth(5);
     this.effects = this.add.graphics().setDepth(10);
@@ -71,8 +79,10 @@ export class DungeonScene extends Phaser.Scene {
     reduced: boolean,
     crewId: string | null = null,
     targetId: string | null = null,
+    combatHud = false,
+    rows = false,
   ) {
-    this.current = { view, arena, roomId, reduced, crewId, targetId };
+    this.current = { view, arena, roomId, reduced, crewId, targetId, combatHud, rows };
     if (this.revision !== view.revision) {
       this.revision = view.revision;
       this.received = Date.now();
@@ -82,9 +92,18 @@ export class DungeonScene extends Phaser.Scene {
 
   private refresh() {
     if (!this.current || !this.background) return;
-    const { view, arena, roomId, crewId, targetId } = this.current;
+    const { view, arena, roomId, crewId, targetId, combatHud, rows } = this.current;
     this.targetMarker?.clear();
-    const encounter = arena.encounters.find((entry) => entry.id === roomId);
+    if (this.scale.gameSize.height !== sceneHeight(rows)) {
+      this.scale.setGameSize(1200, sceneHeight(rows));
+      this.cameras.main.setSize(1200, sceneHeight(rows));
+    }
+    this.background.setPosition(600, rows ? 250 : 290).setDisplaySize(1200, rows ? 500 : 580);
+    this.secondBackdrop?.setVisible(rows);
+    const encounter =
+      view.role === "player" && view.recoveryAvailable
+        ? undefined
+        : arena.encounters.find((entry) => entry.id === roomId);
     const champion = view.duels.some((d) => d.id === encounter?.id && !!d.npc);
     const rivalry = !!encounter?.rivalry && !champion;
     const selectedCrew = arena.crews.find((crew) => crew.id === crewId);
@@ -92,10 +111,11 @@ export class DungeonScene extends Phaser.Scene {
       ?.flatMap((map) => map.nodes)
       .find((node) => node.id === selectedCrew?.mapPosition?.nodeId);
     const key =
-      encounter?.definition.family ??
-      (["merchant", "altar", "shrine"].includes(node?.kind ?? "") ? "merchant" : "camp");
+      (view.role === "player" && view.recoveryAvailable ? "camp" : encounter?.definition.family) ??
+      (["merchant"].includes(node?.kind ?? "") ? "merchant" : "camp");
     if (key !== this.roomKey) {
-      this.background.setTexture(`room-${key}`).setDisplaySize(1200, 580);
+      this.background.setTexture(`room-${key}`);
+      this.secondBackdrop?.setTexture(`room-${key}`);
       this.roomKey = key;
     }
     const heroes = arena.heroes
@@ -112,7 +132,8 @@ export class DungeonScene extends Phaser.Scene {
       )
       .slice(0, rivalry ? 8 : 4);
     const visible = new Set(heroes.map((hero) => hero.id));
-    if (encounter && (!encounter.rivalry || champion)) visible.add(encounter.id);
+    if (encounter && (!encounter.rivalry || champion))
+      for (const enemy of encounter.enemies) visible.add(enemy.id);
     for (const [id, actor] of this.actors)
       if (!visible.has(id)) {
         actor.root.destroy(true);
@@ -124,7 +145,7 @@ export class DungeonScene extends Phaser.Scene {
       const side = rivalry && hero.crewId !== crewId ? 0 : 600;
       const x = rivalry
         ? side + ((allies.indexOf(hero) + 0.5) * 560) / allies.length
-        : 600 + ((index + 0.5) * 560) / Math.max(1, heroes.length);
+        : heroX(index, heroes.length, rows);
       let actor = this.actors.get(hero.id);
       if (!actor) {
         const name =
@@ -140,14 +161,15 @@ export class DungeonScene extends Phaser.Scene {
               ? `${name.slice(0, 6)}…${name.slice(-3)}`
               : name,
           x,
-          436,
+          actorY(index, rows),
         );
         this.actors.set(hero.id, actor);
       }
       actor.x = x;
+      actor.y = actorY(index, rows);
       if (hero.id === targetId) {
         const color = Number.parseInt(teamColor(crew?.colorId ?? "blue").hex.slice(1), 16);
-        this.targetMarker?.lineStyle(4, color).strokeEllipse(x, 436, 112, 28);
+        this.targetMarker?.lineStyle(4, color).strokeEllipse(x, actorY(index, rows), 112, 28);
       }
       updateHeroConditions(actor, hero);
       updateActor(
@@ -159,27 +181,36 @@ export class DungeonScene extends Phaser.Scene {
       );
     }
     if (encounter && (!encounter.rivalry || champion)) {
-      let actor = this.actors.get(encounter.id);
-      if (!actor) {
-        actor = createEnemyActor(this, encounter, 245, 436);
-        if (champion) actor.title.setText("CHAMPION");
-        this.actors.set(encounter.id, actor);
+      for (const [index, enemy] of encounter.enemies.entries()) {
+        const x = enemyX(index, encounter.enemies.length, rows);
+        let actor = this.actors.get(enemy.id);
+        if (!actor) {
+          actor = createEnemyActor(
+            this,
+            { ...encounter, definition: { ...encounter.definition, family: enemy.family } },
+            x,
+            actorY(index, rows),
+          );
+          actor.title.setText(enemy.name.toUpperCase());
+          this.actors.set(enemy.id, actor);
+        }
+        actor.x = x;
+        actor.y = actorY(index, rows);
+        updateActor(actor, enemy.hp, enemy.maxHp, `Block ${enemy.block}`, enemy.hp === 0, true);
+        if (encounter.enemies.length > 1) actor.model.setScale(rows ? 0.9 : 0.6);
+        actor.detail.setText(
+          enemy.hp === 0
+            ? "FALLEN"
+            : `${enemy.hp}/${enemy.maxHp}${enemy.block ? ` · Block ${enemy.block}` : ""}`,
+        );
+        if (enemy.id === targetId)
+          this.targetMarker?.lineStyle(4, 0x286e9b).strokeEllipse(x, actorY(index, rows), 112, 28);
       }
-      updateActor(
-        actor,
-        encounter.bodyHp,
-        encounter.maxBodyHp,
-        `seal ${encounter.weakHp} · shield ${encounter.shield}`,
-        encounter.bodyHp === 0,
-        true,
-      );
-
-      actor.detail.setVisible(
-        encounter.weakHp > 0 || encounter.bodyHp === 0 || !!encounter.rivalry,
-      );
-      actor.health.setVisible(
-        encounter.weakHp > 0 || encounter.bodyHp === 0 || !!encounter.rivalry,
-      );
+    }
+    for (const actor of this.actors.values()) {
+      actor.title.setVisible(!combatHud);
+      actor.detail.setVisible(!combatHud);
+      actor.health.setVisible(!combatHud);
     }
   }
 

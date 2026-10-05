@@ -9,7 +9,7 @@ export function assertInvariants(state: MatchState) {
   const unique = (values: string[], name: string) => {
     if (new Set(values).size !== values.length) fail(name);
   };
-  if (state.rulesVersion !== "dungeon-v4") fail("rules version");
+  if (state.rulesVersion !== "dungeon-v5") fail("rules version");
   unique(
     state.players.map((p) => p.id),
     "players",
@@ -27,8 +27,11 @@ export function assertInvariants(state: MatchState) {
     "hero ownership",
   );
   unique(state.usedTrialQuestions, "trial questions");
-  unique(state.completedTrials.map(String), "trial triggers");
-  if (state.chapterMaps.length !== 3) fail("three chapter maps");
+  unique(
+    state.sharedEvents.map((e) => e.id),
+    "shared triggers",
+  );
+  if (state.chapterMaps.length !== 2) fail("two chapter maps");
   for (const map of state.chapterMaps) validateMap(map);
   for (const crew of state.crews) {
     const members = state.players.filter((p) => p.crewId === crew.id);
@@ -41,7 +44,7 @@ export function assertInvariants(state: MatchState) {
         crew.trialScoreUnits,
         crew.bossesDefeated,
       ].every((n) => Number.isInteger(n) && n >= 0) ||
-      crew.bossesDefeated > 3
+      crew.bossesDefeated > 2
     )
       fail("crew economy/ranking");
     unique(crew.rewardedNodeIds, "node rewards");
@@ -56,11 +59,11 @@ export function assertInvariants(state: MatchState) {
       if (
         !p ||
         p.chapter < 1 ||
-        p.chapter > 3 ||
+        p.chapter > 2 ||
         p.depth < 1 ||
-        p.depth > 7 ||
+        p.depth > 12 ||
         p.turn < 1 ||
-        p.turn > 6
+        p.turn > 8
       )
         fail("crew progress");
       unique(p.resolvedPhaseIds.map(String), "crew resolution");
@@ -110,11 +113,10 @@ export function assertInvariants(state: MatchState) {
   }
   for (const enemy of state.encounters)
     if (
-      enemy.bodyHp < 0 ||
-      enemy.bodyHp > enemy.maxBodyHp ||
-      enemy.weakHp < 0 ||
-      enemy.weakHp > enemy.maxWeakHp ||
-      enemy.shield < 0 ||
+      enemy.hp < 0 ||
+      enemy.hp > enemy.maxHp ||
+      enemy.block < 0 ||
+      enemy.enemies.some((e) => e.hp < 0 || e.hp > e.maxHp || e.block < 0) ||
       enemy.spawnPower <= 0
     )
       fail("enemy bounds");

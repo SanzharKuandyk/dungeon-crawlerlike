@@ -4,14 +4,17 @@
   import { teamColor } from "../../shared/palette.js";
   import type { PlayerRoomView } from "../../shared/view-types.js";
   import ActionPanel from "../components/ActionPanel.svelte";
+  import AllyRecovery from "../components/AllyRecovery.svelte";
   import CrewEncounters from "../components/CrewEncounters.svelte";
   import EncounterResult from "../components/EncounterResult.svelte";
+  import ExplorationPanel from "../components/ExplorationPanel.svelte";
   import GameIcon from "../components/GameIcon.svelte";
   import HeroEffects from "../components/HeroEffects.svelte";
   import InventoryDialog from "../components/InventoryDialog.svelte";
   import RewardsDialog from "../components/RewardsDialog.svelte";
   import RoundTimer from "../components/RoundTimer.svelte";
   import RoutePicker from "../components/RoutePicker.svelte";
+  import SiegePanel from "../components/SiegePanel.svelte";
   import SpiritPanel from "../components/SpiritPanel.svelte";
   import StopPanel from "../components/StopPanel.svelte";
   import TrialPanel from "../components/TrialPanel.svelte";
@@ -97,11 +100,17 @@
 >
   <header class="player-status">
     <div class="player-heading">
-      <span class="team-badge">{crew?.symbol}</span><strong>{crew?.name} · YOU</strong>
+      <span class="team-badge">{crew?.symbol}</span>
+      <div class="player-identity">
+        <strong>{crew?.name} · YOU</strong>
+        {#if hero}
+          <span>{view.self.name} · {CLASS_NAMES[hero.classId]}</span>
+        {/if}
+      </div>
       {#if view.independent && !quiz && !battleTurn}
         {@const ready = view.participation.find((entry) => entry.crewId === view.self.crewId)}
         <span class="crew-readiness">{ready?.ready ?? 0}/{ready?.total ?? 0} ready</span>
-      {:else if !battleTurn}
+      {:else if !battleTurn && !quiz}
         <RoundTimer {view} />
       {/if}
     </div>
@@ -113,35 +122,46 @@
         {/if}
         <span title="Gold"><GameIcon name="gold" size={16} />{crew?.economy.gold ?? 0}</span>
         <strong class="route-secured" title="Bosses defeated"
-          ><GameIcon name="boss" size={16} />{crew?.bossesDefeated ?? 0}/3</strong
+          ><GameIcon name="boss" size={16} />{crew?.bossesDefeated ?? 0}/2</strong
         >
-        <Button type="button" aria-label="Backpack" class="quiet" onclick={() => (bagOpen = true)}>
-          <GameIcon name="backpack" />
+        <Button
+          type="button"
+          aria-label="Backpack"
+          class="quiet player-bag"
+          onclick={() => (bagOpen = true)}
+        >
+          <GameIcon name="backpack" />Bag · {view.hero?.inventory.backpack.length ?? 0}/6
         </Button>
       </section>
     {:else}
       {#if hero}
         <div class="player-vitals">
           <div>
-            <strong>{view.self.name} · {CLASS_NAMES[hero.classId]}</strong>
             <VitalsStrip {hero} effects={false} />
           </div>
         </div>
       {/if}
-      <div class="treasure-strip">
-        <span title="Gold"><GameIcon name="gold" size={16} />{crew?.economy.gold ?? 0}</span
-        ><strong title="Bosses defeated"
-          ><GameIcon name="boss" size={16} />{crew?.bossesDefeated ?? 0}/3</strong
-        >
-      </div>
+      {#if !battleTurn}
+        <div class="treasure-strip">
+          <span title="Gold"><GameIcon name="gold" size={16} />{crew?.economy.gold ?? 0}</span
+          ><strong title="Bosses defeated"
+            ><GameIcon name="boss" size={16} />{crew?.bossesDefeated ?? 0}/2</strong
+          >
+        </div>
+      {/if}
       {#if hero}
-        <Button type="button" class="quiet" aria-label="Backpack" onclick={() => (bagOpen = true)}>
-          <GameIcon name="backpack" />{view.hero?.inventory.backpack.length ?? 0}/6
+        <Button
+          type="button"
+          class="quiet player-bag"
+          aria-label="Backpack"
+          onclick={() => (bagOpen = true)}
+        >
+          <GameIcon name="backpack" />Bag · {view.hero?.inventory.backpack.length ?? 0}/6
         </Button>
       {/if}
     {/if}
   </header>
-  {#if hero && !routeChoice}
+  {#if hero && !routeChoice && !battleTurn && !quiz}
     <HeroEffects {hero} />
   {/if}
   {#if battleTurn}
@@ -183,12 +203,10 @@
   {/if}
   <RewardsDialog bind:open={rewardsOpen} {view} {controller} {locked} />
   <InventoryDialog presentedHero={hero} {view} {controller} {locked} bind:open={bagOpen} />
-  {#if hero?.status === "dead" && ["route", "camp", "floor-result"].includes(view.phase.kind)}
-    <Button type="button" disabled={locked} onclick={() => void controller.rescue()}>
-      Return · {2 * hero.power} rescue debt
-    </Button>
-  {/if}
   <CrewEncounters {view} {controller} {locked} />
+  {#if ["camp", "result", "floor-result"].includes(view.phase.kind) && !quiz && !duel}
+    <AllyRecovery {view} {controller} {locked} />
+  {/if}
   <div class="player-expedition" hidden={view.status === "finished"}>
     <ActionPanel
       {view}
@@ -199,15 +217,16 @@
       cursor={current.cursor}
       active={interactiveCombat}
       message={view.status === "paused" ? "Expedition paused" : current.message}
-      panel={duel
-        ? "combat"
-        : quiz
-          ? "question"
+      panel={quiz
+        ? "question"
+        : duel
+          ? "combat"
           : view.phase.kind === "route" && view.expeditionMap
             ? "map"
             : (view.phase.kind === "route" && hero?.status === "alive") ||
                 campChoice ||
                 view.phase.kind === "result" ||
+                view.phase.kind === "event" ||
                 (view.phase.kind === "combat" && !interactiveCombat)
               ? "phase"
               : "combat"}
@@ -215,11 +234,17 @@
       {#if view.status === "paused"}
         <section class="decision-card"><h2>Expedition paused</h2></section>
       {:else if quiz}
-        <TrialPanel {view} {controller} {locked} />
+        {#if view.siege}
+          <SiegePanel {view} {controller} {locked} />
+        {:else}
+          <TrialPanel {view} {controller} {locked} />
+        {/if}
       {:else if view.phase.kind === "route" && (hero?.status === "alive" || view.expeditionMap)}
         <RoutePicker {view} {controller} locked={locked || hero?.status !== "alive"} />
       {:else if view.phase.kind === "result"}
         <EncounterResult {view} {controller} {locked} />
+      {:else if view.phase.kind === "event"}
+        <ExplorationPanel {view} {controller} {locked} />
       {:else if campChoice}
         <StopPanel {view} {controller} {locked} />
       {:else if view.phase.kind === "combat" && !interactiveCombat}

@@ -8,7 +8,6 @@ import { playerRun } from "./crew-decisions.js";
 import { reject } from "./errors.js";
 import { expeditionDue, progressExpedition } from "./expedition-scheduler.js";
 import { bindProgress } from "./progress-bindings.js";
-import { questionActive } from "./question-coordinator.js";
 import { createLimits } from "./request-limits.js";
 import { advancePhase } from "./room-clock.js";
 import { hostExpired, pauseRoom, requireLiveRoom } from "./room-lifecycle.js";
@@ -16,11 +15,12 @@ import { createRoomProjector } from "./room-projection.js";
 import { createRoomQueue, type Publisher } from "./room-queue.js";
 import type { Binding, StoredRoom } from "./room-types.js";
 import { createSession, hashToken, newToken } from "./sessions.js";
+import { questionActive } from "./shared-event-coordinator.js";
 import type { Storage } from "./storage.js";
 
 export function emptyRoom(state: StoredRoom["state"], testMode = false): StoredRoom {
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     savedAt: 0,
     absentSince: {},
     timer: newClock(0, 0, false),
@@ -75,7 +75,7 @@ export function createRoomManager(
         bindProgress(room);
         assertInvariants(room.state);
         if (
-          room.state.rulesVersion === "dungeon-v4" &&
+          room.state.rulesVersion === "dungeon-v5" &&
           room.lifecycle.kind === "live" &&
           ["running", "paused"].includes(room.state.status)
         ) {
@@ -94,7 +94,7 @@ export function createRoomManager(
         rooms.set(room.state.code, room);
       }
     },
-    async create(secret = newToken(), testMode = false, rulesVersion: "dungeon-v4" = "dungeon-v4") {
+    async create(secret = newToken(), testMode = false, rulesVersion: "dungeon-v5" = "dungeon-v5") {
       const task = creating
         .catch(() => {})
         .then(async () => {
@@ -109,11 +109,12 @@ export function createRoomManager(
             code = randomBytes(3).toString("hex").toUpperCase();
           } while (rooms.has(code));
           const seed = randomBytes(4).readUInt32LE();
-          const state = createMatch(randomUUID(), code, content, seed);
+          const state = createMatch(randomUUID(), code, content, seed, {
+            outcome: randomBytes(4).readUInt32LE(),
+            reward: randomBytes(4).readUInt32LE(),
+            trial: randomBytes(4).readUInt32LE(),
+          });
           state.rulesVersion = rulesVersion;
-          state.outcomeSeed = randomBytes(4).readUInt32LE();
-          state.trialRng = randomBytes(4).readUInt32LE();
-          state.rewardSeed = randomBytes(4).readUInt32LE();
           const room = emptyRoom(state, testMode);
           state.learningEnabled = !!content.trialPack && (testMode || !content.trialPack.fixture);
           room.creationKeyHash = tokenHash;
@@ -183,7 +184,7 @@ export function createRoomManager(
             if (decision === "confirm" && !run.ready.includes(playerId)) run.ready.push(playerId);
             if (decision === "edit") run.ready = run.ready.filter((id) => id !== playerId);
           } else edit(room);
-          if (room.state.rulesVersion === "dungeon-v4") progressExpedition(room, clock());
+          if (room.state.rulesVersion === "dungeon-v5") progressExpedition(room, clock());
           const value = { revision: room.state.revision + 1 };
           room.processed[cacheKey] = { fingerprint, receipt: value };
           return { ok: true, value };
@@ -196,13 +197,13 @@ export function createRoomManager(
       const results = await Promise.allSettled(
         [...rooms.values()]
           .filter((r) =>
-            r.state.rulesVersion === "dungeon-v4"
+            r.state.rulesVersion === "dungeon-v5"
               ? hostExpired(r, now) || expeditionDue(r, now)
               : r.state.status === "running" && r.deadline !== null && r.deadline <= now,
           )
           .map((r) =>
             transaction(r.state.code, (room) => {
-              if (room.state.rulesVersion === "dungeon-v4") {
+              if (room.state.rulesVersion === "dungeon-v5") {
                 if (hostExpired(room, now)) pauseRoom(room, "host-offline", now);
                 else progressExpedition(room, now);
               } else if (

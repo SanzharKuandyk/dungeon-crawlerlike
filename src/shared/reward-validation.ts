@@ -7,7 +7,7 @@ export const rewardClaimSchema = envelopeSchema
       .object({
         offerId: z.string().min(1),
         optionId: z.string().nullable(),
-        disposition: z.enum(["equip", "keep", "leave", "defer"]),
+        disposition: z.enum(["equip", "keep", "upgrade", "leave"]),
         replacementItemId: z.string().nullable(),
       })
       .strict(),

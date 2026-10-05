@@ -42,6 +42,7 @@ export function issueRecovery(room: StoredRoom, input: RecoveryIssue, now: numbe
     redeemedBy: null,
   });
 }
+
 export function redeemRecovery(room: StoredRoom, input: RecoveryRedeem, now: number) {
   requireLiveRoom(room, now);
   const record = room.recovery.find((r) => r.codeHash === hashToken(input.recoveryCode));
@@ -75,6 +76,7 @@ export function redeemRecovery(room: StoredRoom, input: RecoveryRedeem, now: num
   );
   return { playerId: record.playerId };
 }
+
 export function recoverHost(room: StoredRoom, input: HostRecovery, now: number) {
   requireLiveRoom(room, now);
   const hash = hashToken(input.bootstrapSecret);
