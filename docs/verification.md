@@ -1,3 +1,10 @@
+# README simplification · 2026-10-05
+
+Documentation only: README now contains startup instructions and one mechanics table; the
+standalone docs/gameplay.md table matches it. Checked current maps, authored balance, combat,
+inventory, revival, trial scoring/gold, siege and arena consent against source. Markdown table
+structure, lint and whitespace checks passed. No application changes or gameplay test reruns.
+
 # Target selection and immediate rewards · 2026-10-05
 
 Removed the blue selected/hover frame around scene actors; target names underline instead,

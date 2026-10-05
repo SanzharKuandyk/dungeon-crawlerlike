@@ -1,283 +1,104 @@
 # Dungeon Crawlerlike
 
-A two-chapter dungeon expedition for phones, tablets and laptops. Every student controls a
-character; crews of 1–4 explore independently. There is no fixed crew limit. Two bosses,
-persistent builds, recovery, three shared Trials of Wagers and a cooperative siege lead to a ranked result.
+## Start
 
-## Launch
+1. In the project folder, using Node 24:
 
-From `C:\Projects\lectures\dungeon-crawlerlike`:
+   ```powershell
+   npm ci
+   npm run dev
+   ```
 
-```powershell
-npm install
-npm run dev
-```
+2. Open **http://localhost:47831** → **Host a match**. Students join a crew and choose a class; press **Start expedition**.
+3. For remote students, run `cloudflared tunnel --url http://localhost:47831` in a second terminal and share its HTTPS address. Stop the server with **Ctrl+C**.
 
-Open **http://localhost:47831**, click **Host a match**, invite students, then **Start expedition**.
-No account or installation key is needed. Students join a crew and choose their own class.
-Invite provides the room link/QR. The host's crew grid shows readiness, connections and encounters;
-all crews appear in two columns with more rows below, stacking into one column on narrow phones.
-Map, Dungeon and Log are separate views. The host can pause, resume, moderate or end the expedition.
-Combat keeps identity, health/stress, intent and a compact action dock visible. Untimed turns say
-At your pace; crew readiness remains visible, with effects inspectable before confirmation.
-On narrow portrait phones, larger encounters use two-character rows. Tap an enemy or ally in the
-scene to select the action target; tap character effect icons or crew portraits to inspect builds
-and confirmed actions. Bag stays in the HUD, and Ready stays below the scrolling scene/choices.
-Post-fight equipment choices open over the scene with item effects, comparison and fixed action
-buttons. Choose Equip, Store in Bag, Upgrade or Leave reward before travelling. Closing the popup
-does not decide: reopen with Choose reward. Ready to travel is a separate crew decision.
-Equipping names the replaced item and moves it to the Bag. Gear stays fixed during fights,
-shared events and readiness; at a safe stop, Change reopens choices. Unequip needs a free Bag slot.
-Blue Block below health shows damage protection remaining this turn, not healing. Guard coat
-adds protection when choosing Block; Ward vest absorbs part of the first hit that reaches it.
-Last turn and the event log name the actual source and amount of absorbed damage.
+## Game mechanics
 
-For production:
-
-```powershell
-npm run build
-npm start
-```
-
-Use the pinned Node 24 runtime/dependencies. Development runs `tsx watch`; production runs compiled
-JavaScript. In PowerShell, use `npm.cmd` when passing extra arguments. `--port` or `PORT` overrides
-47831. LAN binding is explicit: `npm.cmd run dev -- --host 0.0.0.0`. An invite base URL changes
-links only. Tunnel setup remains external to this project.
-Source TypeScript uses `.js` imports because the server compiles with NodeNext: TypeScript resolves
-the corresponding `.ts` source while Node loads the emitted `.js` file. Keep these import paths.
-
-## Expedition
-
-Each chapter has twelve ascending authored rows, with teaching battles, merchants, caches,
-camps, optional danger, events and a distinct boss. Both maps are generated and saved at Start.
-Crews have independent chapters, locations and clocks. The compact overview and detailed route
-preserve browsing by room/crew/chapter; **Locate crew** returns to your position.
-
-Enemies have **Health + temporary Block**. Damage consumes Block before health. Enemy Block
-protects the next player phase, then expires; there is no Seal or separate weak-point target.
-Published intent shows actual targets, damage, stress, Bleed and disclosed injury odds. Raiders,
-guards, whisperers, supporters and devourers have distinct patterns. Ordinary/elite rooms may
-contain multiple enemies; chapter bosses combine learned patterns and change phase at thresholds.
-Their move cycles, magnitudes and disclosed injury odds live in `content/dungeon/enemies.json`,
-validated at startup and frozen in each match/encounter. Guards teach Block → Strike → Heavy strike;
-the Iron Warden uses defense → heavy blow → exposed strike. Health/reward tuning remains in
-`content/dungeon/balance.json`. See [the complete player feature table](docs/gameplay.md) and
-[measured verification results](docs/verification.md).
-
-Every living character normally chooses one action. A **Haste Charm** can grant a second action
-once per encounter attempt (rank II also gives personal Block). Choose both slots before Ready;
-a plan allows at most one signature skill and one consumable. Mage **Blast** damages and Marks;
-an eligible follow-up action consumes Mark for extra damage. The creator's same action cannot
-consume its new Mark. Effects, expiry and used traits are visible under characters and enemies.
-All six classes work at all crew sizes; skills are available two turns after use.
-
-Choosing an action is a local preview. Press **Ready** to commit it; teammates immediately see the
-submitted action in the crew strip. **Change** removes readiness while the decision remains open.
-The last ready member starts the turn automatically; a solo character uses **Play turn** instead.
-Fallback is off by default for new matches. When enabled, its visible timer resolves missing
-choices at the deadline (60 seconds for results). Manual test mode requires
-**Next phase**. The turn strip follows Choose → Crew → Enemy → Outcome, and the action panel shows
-resolved effects during the reveal. Health and conditions follow those presentation events.
-**Last turn** retains a structured summary after the animation. Selecting a support target
-highlights that character in the scene. Named effect chips show injuries, Bleed damage/duration, equipped bonuses and Blessings; tap for
-details. Used encounter bonuses are marked **Used**, with their reset rule in the inspection.
-
-Heroes start with equal crew-wide budgets: 48 total health and 24 basic attack damage. Power stays
-frozen after disconnects, deaths and revival. Prices, equipment, healing and barriers scale by power.
-Stress bands reduce damage before panic at ten stress. Injuries, Afflictions, equipment and up to two
-Blessings form a persistent build. Inspect compact condition badges or open **Backpack** for details.
-Health/stress bars, enemy intent and action previews use icons and numbers. Tap an indicator for its
-explanation. Backpack's **Gear** tab has three equipment slots and six item slots; select one item
-to inspect, equip, use or transfer it. **Traits** contains Blessings and lasting conditions.
-Merchants use item tiles and one purchase panel; wager cards show their multiplier and consequence.
-Map icons distinguish merchants, shrines, trials and arenas with restrained category colors.
-
-After the final combat reveal, **Victory**, **Escaped** or **Defeated** stays open for your crew.
-Results show actual gold, rescue-debt repayment and character changes. Every first victory and cache offer each registered hero one of two equipment
-items, including spirits. Choose **Equip**, **Store in Bag**, **Upgrade**, or **Leave reward**.
-Gear has two ranks; owned rank-I choices can upgrade to II. Fully developed builds receive useful
-supply options. Every offer is private, frozen and once-only.
-Equip moves the old item to the backpack; a full backpack requires an explicit replacement.
-**Rewards** at a later safe stop contains saved offers. Refreshes do not reroll or lose them.
-
-Every member presses **Ready to travel** after resolving their pending offers. The last ready
-member continues; **Change** reopens your decision before that happens. Other crews continue
-independently. An absent member's offers remain saved after the existing 15-second default;
-a crew with nobody connected stays suspended. Manual test mode always requires Next phase.
-Shared trials preserve an open result and its remaining time.
-
-Safe stops open one service at a time: **Supplies**, **Treatment**, **Backpack**, or the crew's
-**Rest / Leave** decision. Individual purchases and treatment require confirmation and show the
-actual committed item, price and destination. **Your budget** is your reserved share, not all crew
-gold. Shopping locks once you are ready; Change reopens it while the crew is still there. Rest shows
-its health/stress preview, then a **Rested** result before travel. Ordinary stops cannot be rested
-repeatedly. Camp Rest is once per node. Merchants sell supplies and rank-II upgrades; checkpoints are not shops.
-
-Gold buys weapon/armor/charm equipment, consumables, treatment and revival. There is no carried or
-secured treasure, banking or generic Loot action. Six backpack slots support stacks of three
-consumables. Item overflow asks Keep, Replace or Leave. Each shop visit freezes stock and reserves
-an individual allowance from the crew wallet; another member cannot spend that allowance.
-
-Fallen characters become spirits and can Ward living teammates. **Only a living teammate** can
-revive a fallen ally, at a camp/merchant or safe postfight recovery decision. The named Revive
-button is outside the shopping menu: pay `2 × target power` shared gold, or rescue debt if gold
-is insufficient. A spirit's **Request revival** only notifies teammates; it never revives itself.
-No combat skill, consumable, Block or Mark revives a dead character.
-
-A full wipe (including a dead solo character) offers **external rescue**: lose half the available
-gold, add 24 debt, return at half health and at least 3 stress. Gear, traits, injuries and spent
-expedition uses survive. After the recovery result, choose Retry or ordinary-room retreat.
-Bosses must be defeated; retries preserve boss damage/thresholds but clear temporary Block/Mark.
-Ordinary battles allow four turns, elites five, bosses eight. Retries cannot farm rewards or Steal.
-
-Ranking is **bosses defeated → furthest completed chapter/room → normalized trial points**. Gold
-is spending money, not score. Completion and rewards are once per node; refresh/retry cannot farm
-them. Second-boss survivors finish and may still participate in a pending class trial. Ties share victory.
-35–45 minutes is a classroom playtest target, not an automatic cutoff.
-
-### Trials of Wagers
-
-Three scheduled checkpoints trigger two questions each: chapter 1 row 5 (100/200), chapter 1
-row 10 (200/300), chapter 2 row 6 (100/300). Every trial has three categories and uses each available
-value band once. Members vote; every crew contributes one class vote, regardless of size. Tile
-badges show crew choices, selection explains ties, and committed stakes can be inspected publicly.
-Other crews finish running reveals before the handoff; paused reveals preserve their elapsed time.
-
-Before seeing the problem, each student commits Steady (1×; wrong +1 stress), Bold (2×; wrong +3
-stress), or Oath (3×; wrong adds the named Affliction). Missing stakes default to Steady. Answers are
-private and final. Crew points average all registered members including spirits, using exact integer
-units over 12. Reveal retains the question/options, marks your answer and the correct answer, and
-explains the result. Correct students earn a rank-I/II Blessing choice; tied winning crews receive
-three offers rather than two. Offers and grants survive refresh/restart without duplication.
-Speed gives no bonus. New matches also award gold per question: `floor(value / 100 × 6 × sum
-of correct wager multipliers / registered crew size)`. A fully correct crew earns 6/12/18 gold
-on a 100 question with Steady/Bold/Oath; 200 and 300 scale proportionally. Spirits count and
-can earn rewards. Gold first repays rescue debt. Older saved matches retain their frozen rules.
-
-**Week 5 trial content is installed** in `content/learning/trials.reviewed.json`: 18 distinct
-questions across Run Rules, Hits & Rewards, and Time & Feedback, with two variants per value cell.
-Self-contained hypothetical scenarios use Subway Surfers, Angry Birds, Candy Crush, Clash Royale
-and Brawl Stars. Rules and numbers are supplied in each question; students need no prior game or
-lecture knowledge. These are original teaching scenarios, not reports of bugs in those games.
-Each answer and distractor is explained, and each question cites checked slides from
-`MGD/presentations/MGD_5_week.pptx`. Short code traces appear in 200-point questions.
-The pack is available in normal and developer rooms; questions appear only in the three scheduled checkpoint
-trials, not after fights, caches, shops or arenas. Learning can be disabled before Start.
-Existing expeditions retain their frozen content, including older fixture packs. Create a new room
-to use an updated bank. Teacher playtesting of difficulty and reading time remains necessary.
-The labelled development fixture is only a fallback if the reviewed pack is absent; it cannot
-enable classroom trials. The old Week 4 bank is not loaded.
-
-### Optional arenas
-
-An arena is consent-based and separate from knowledge trials. Crews in the same chapter may
-challenge one another; every member can decline and each crew needs a strict majority. A waiting
-crew may cancel or choose an NPC champion after 20 seconds. Each crew can complete one physical
-arena encounter. Three Strike/Guard/Feint exchanges are nonlethal. Dungeon equipment, conditions,
-Blessings and class skills are suspended, then restored unchanged; resolved health loss remains.
-Both crews must be at arena nodes in the same chapter. A single living No vetoes participation.
-Winner: 12 gold, personal equipment choice and consumables; loser/draw: 6 gold and consumables. Arena rewards never add rank points.
-
-### Exploration and siege
-
-A coin fountain lets each student choose Heads/Tails and gold/Blessing, stake their reserved
-power-scaled gold, or Leave. The fair 50/50 result, stake and reward/consequence are visible to
-the host. Trapped caches publish injury odds; sacrificial altars publish health costs; quiet
-shrines offer deterministic recovery. Refreshing never rerolls a committed event.
-
-Chapter 2 row 10 starts a three-round **cooperative siege**. All crews choose Attack, Protect or
-Supply together; spirits may Supply. Three visible class meters determine success. Success grants
-12 gold per crew and a healing draught per registered hero; failure causes 2 stress, including
-normal panic rules. Crew turns, shopping, results and arena continuations resume afterward.
-
-See [the complete player feature table](docs/gameplay.md) for every mechanic, node and restriction.
-
-## Developer playground
-
-```powershell
-npm.cmd run dev -- --test
-npm.cmd run dev -- --test --port 3001
-npm run build
-npm.cmd start -- --test
-```
-
-Open the displayed `/#/test` URL and **Join test match**. Four crews contain 1, 2, 3 and 4 players,
-each with a separate authenticated session and pending-request storage. Switch among all ten
-identities, including spirits. Auto bots use normal validated client commands; Manual lets you
-choose classes, paths, actions, stakes, answers, equipment and treatment yourself.
-
-The collapsed debugger provides fast/normal/manual timing, phase advance, reset, selected-identity
-disconnect/reconnect and active-answer inspection. Scenarios cover fresh/split fights, critical
-health, injuries, panic, inventory overflow, shop contention, revival, every trial phase, boss
-thresholds, final chapter, duels, personal rewards, full backpacks, multi-enemy combos/Haste,
-coin choices and the siege. Reset creates a new in-memory match. Manual mode never advances
-automatically. Test endpoints are unavailable on normal startup; test mode requires loopback binding.
-
-The development-only `/#/gallery` shows populated shared controls, reward comparisons, pending,
-rejected, full-backpack and reconnect states. It is unavailable in normal mode.
-
-`npm test` runs automated tests. The `--test` launch argument starts the playable developer game.
-
-## Recovery and persistence
-
-Schema **10**, rules **dungeon-v5**, saves **data/rules-v10/**. Older save directories remain untouched;
-this version does not reinterpret older expeditions. Authenticated identities, accepted commands,
-request receipts, frozen content, RNG, builds, shop budgets and reward markers are saved atomically.
-Duplicate successful requests return receipts; changed-payload request-ID reuse fails.
-
-Host loss has a 90-second grace, then pauses and preserves play. Reconnecting or restarting restores
-access but requires explicit Resume. Offline server time never consumes the saved clocks. Pause
-reasons compose across room/crew/trial/duel. A save failure keeps the previous committed state and
-shows a persistent host banner. Read-only tabs do not count as controlling presence.
-
-Crew menus offer pause/resume, timed extension, missing-choice resolution and private device recovery.
-Host recovery uses a private recovery key for existing rooms; it does not gate ordinary room creation.
-End, forced resolution, duel cancellation and device replacement require confirmation. Public views
-and logs never contain recovery codes, session material, private answers or future solutions.
-
-## Verification
-
-```powershell
-npm run lint
-npm run check
-npm test
-npm run build
-npm run test:e2e
-npm run test:load
-npm run test:balance
-npx.cmd tsx scripts/simulate-rewards.ts
-```
-
-The focused `simulate-rewards.ts` run uses 60 clients in 15 crews, durable claims, duplicate
-requests, readiness, coin/trial submissions, reconnect bursts and combat plans. It does not repeat
-the unrelated full load suite for styling changes.
-
-Load tests use real Socket.IO clients and atomic temporary saves for 32, 60 and 128 clients. Balance
-simulations cover all six solo classes and representative 2/3/4-member crews. Reports go to ignored
-`test-results/`; Playwright clears that directory at startup, so preserve reports before another run.
-Measured results and balance adjustments are in [docs/verification.md](docs/verification.md).
-
-All art is original code/vector geometry. White surfaces, visible borders, short labels, touch
-inspection, reduced motion and a persistent Phaser scene support portrait/landscape phones and
-classroom displays. Bits UI is pinned at 2.19.5 with date peer 3.8.1; existing stack versions remain
-pinned. `.Codex/` is ignored temporary development planning and is never imported by the application.
-
-
-The trading post uses compact stock, a fixed item inspector and purchase footer. Camp focuses on
-rest, treatment and backpack; Supplies opens at trading locations. Original colored item artwork
-and semantic action/stat icons retain white surfaces. The map offers larger detail, a compact scrollable
-route and Locate crew; live snapshots preserve manual browsing.
-The developer debugger's `rescue` scenario starts a wiped crew at a failed encounter so revival,
-rescue debt, retry and refreshed-session recovery can be exercised through normal controls.
-
-Character names are Knight, Healer, Mage, Thief, Fighter and Priest. Their skills are Protect,
-Heal, Blast, Steal, Hit & Block and Drain. The former Brace action is labelled Block. Saved IDs
-stay unchanged. Enemy intent sits above the enemy; actual Mark and Block effects appear beneath it
-when their events resolve. Tap either badge for details; displayed damage is before your protection.
-
-Responsive routes reserve readable space for each node and label. On short landscape screens,
-the map scrolls beside its destination inspector and travel controls. Bag stays on one line.
-**Store in Bag** claims the selected reward immediately. Rewards must be resolved before manually
-readying travel; automatic absence/host defaults preserve unclaimed choices. Target selection uses
-a quiet name underline with visible keyboard focus. Combat health/build controls follow the contained
-scene coordinates, with bounded touch targets rather than full-width invisible buttons.
+| Mechanic / location | What you do or receive | Limits / consequences |
+|---|---|---|
+| **Goal and ranking** | Finish two chapters; ranking compares bosses defeated → completed chapter/room → trial points. | Gold is spending money, not score. Exact ties share victory; host may end early. |
+| **Crews** | 1–4 students, one character each; crews explore independently. | No fixed crew limit. Membership and classes lock when the host starts. |
+| **Power (`P`)** | Per-hero power is 12 / 6 / 4 / 3 for crews of 1 / 2 / 3 / 4. Start at `4P` health and `2P` Attack; each crew totals 48 health and 24 damage. | Death, disconnects and revival never rescale power. Effects and prices below use this frozen value. |
+| **Chapter maps** | Two saved maps, 12 rows each; choose connected routes through battles, services, events and a boss. | Map overlap never starts PvP. Both maps stay fixed after Start. |
+| **Route voting** | Inspect a reachable node, select it, then Ready to travel. Locate crew returns to your position. | Crew votes decide the destination; you cannot select an unconnected room. Browsing survives updates. |
+| **Opening battles** | Chapter 1 starts with a Raider, then a Guard, teaching attacks, intent and Block. | Real combat and rewards, not a separate tutorial mode. |
+| **Ordinary battle** | Defeat the enemies for 12 crew gold and a personal equipment choice. | Four turns; timeout forces escape. No victory reward for escape or defeat. |
+| **Elite battle** | Choose a harder enemy group for 24 crew gold and personal equipment choices. | Five turns. Rewards only on first victory. |
+| **Chapter bosses** | Iron Warden, then Hollow Regent; win for 36 crew gold, equipment and permanent boss credit. | Eight turns per attempt. Bosses change phase at health thresholds; they must be defeated to advance. |
+| **Enemy patterns** | Raiders attack; Guards alternate defense and blows; Whisperers pressure stress; Supporters aid enemies; Devourers pressure wounds/Bleed. | Inspect each enemy's actual next move and recipient; a group shares one starting strength budget. |
+| **Enemy intent** | Icons above each enemy show planned damage, targets, Block and conditions. | Damage shown is before your protection. Killing that enemy cancels its attack. |
+| **Health + Block** | Incoming damage spends Block first, then health. Blue Block below HP shows remaining protection. | No Seal or separate weak point. Hero Block clears at next player-turn start; enemy Block expires after the next player phase. |
+| **Attack** | Deal `2P` base damage to one living enemy. | Gear, stress, injuries and combos adjust the preview; enemy Block can absorb it. |
+| **Block** | Gain `2P` personal Block and remove 1 stress. | Protection lasts this turn; it does not restore health. |
+| **Knight — Protect** | Give yourself or a living crew ally `3P` Block this turn. | No healing or revival. |
+| **Healer — Heal** | Heal yourself or a living ally by `2P`; remove Bleed. | Cannot heal beyond maximum HP or revive a spirit. |
+| **Mage — Blast** | Deal `2P` base damage, apply Mark and gain 2 stress. | The same action cannot consume its newly applied Mark. |
+| **Thief — Steal** | Deal `P` base damage and gain `P` crew gold. | Gold is granted once per hero per node; cooldown reuse and retries cannot farm it. |
+| **Fighter — Hit & Block** | Deal `2P` base damage, gain `P` personal Block and 2 stress. | This is one combined action, not two free actions. |
+| **Priest — Drain** | Deal `P` base damage, heal yourself by `P` and remove 1 stress. | Only a living Priest can use it; no resurrection. |
+| **Skill cooldowns** | A signature used on turn 1 becomes available on turn 3. | Reset between encounter attempts; at most one signature per turn, even with Haste. |
+| **Mark combo** | The next eligible hit gains the marking Mage's `P` bonus; coordinate a follow-up action. | Marks do not stack. Unused Mark expires after next-turn player actions. |
+| **Haste Charm** | Once per fight attempt, activate two ordered action slots. Rank II also grants `P` Block. | Normally one action. Never a third; at most one skill and one consumable. No spirit/arena use or swap reset. |
+| **Ready / Play turn / Change** | Selection is a preview. Ready commits a crew member's plan; Play turn commits a solo plan. Change reopens it before lock. | The last required Ready advances play. Confirmed teammate actions and targets are visible. |
+| **Turn reveal / Last turn** | Follow Choose → Crew → Enemy → Outcome; inspect damage, healing, cancelled attacks and protection sources afterward. | No animation click is required to advance; Last turn retains the explanation. |
+| **Withdrawal** | Living crew members vote to escape. | Requires a majority; adds stress and gives no victory reward. Spirits do not decide withdrawal. |
+| **Stress** | 0–3: normal damage; 4–6: −10%; 7–9: −20%, with worse trapped-cache odds. | Penalty uses stress at action lock; it never randomly replaces your chosen action. |
+| **Panic** | At 10 stress, lose `P` health, reset to 6 stress and gain an Affliction. | At most once per resolution; panic can be lethal. Trait-cap consequences may leave stress above 6. |
+| **Bleed** | Take the displayed damage for its remaining duration; clear it with Heal or a Bandage. | A temporary combat condition, distinct from persistent injuries and curses. |
+| **Arm / leg injuries** | Arm: −25% outgoing damage. Leg: −25% Block-action protection. Treat the chosen injury. | Enemy injury rolls require actual HP damage; odds are disclosed. One of each; a duplicate adds 2 stress. |
+| **Blessing slots and ranks** | Keep two lasting Blessings, upgrade duplicates, or explicitly replace/decline a new one. | Ranks I/II only. Gear, death and revival do not reset spent expedition uses. |
+| **Iron Nerve** | Prevent the first 1 / 2 stress gained per fight at rank I / II. | Once per fight attempt. |
+| **Opener** | First damaging action gains `P` / `2P` damage. | Not an extra bonus on every hit. |
+| **Last Stand** | First living drop below half health reserves `P` / `2P` Block for the next turn. | Once per fight attempt; does not revive from zero. |
+| **Field Medic** | First actual heal gains `P` / `2P` healing. | Does not consume its use on zero healing or revive a dead target. |
+| **Clear Purpose** | First Block removes 1 / 2 additional stress. | Once per fight attempt. |
+| **Second Breath** | Once per expedition, survive lethal damage at 1 HP / `P` HP. | Death prevention, not resurrection; revival/replacement does not restore its use. |
+| **Affliction slots** | Inspect and treat up to two lasting curses. | Duplicate curses or gaining one at capacity adds 3 stress instead of replacing a curse. |
+| **Shaken / Doubtful** | Shaken: first damaging enemy hit adds 1 stress. Doubtful: first damaging action loses `P` damage. | Triggers reset per encounter attempt. |
+| **Brittle / Haunted** | Brittle: received Block is 25% weaker. Haunted: Rest removes 1 less stress. | Treatment removes the chosen curse; ordinary revival does not. |
+| **Build inspection** | Tap character effects or a crew portrait; Bag has Gear and Traits tabs. Host can inspect public builds. | Private inventories and unselected reward offers remain private. |
+| **Victory / cache rewards** | Each registered hero, including spirits, chooses one of two frozen options: Equip, Store in Bag, Upgrade or Leave. | Decide before manually readying travel; no Decide later. Refresh does not reroll or grant twice. |
+| **Reward results** | Review outcome, gold, debt repayment and character changes, then Ready to travel. | Each member has separate readiness. Closing the chooser is not a decision; reopen Choose reward. |
+| **Fully upgraded build** | When gear choices are exhausted, receive useful consumable-bundle options. | Still choose one option; make Bag space explicitly. |
+| **Equipment / upgrades** | One weapon, armor and charm; rank I gear costs `2P`. Eligible merchant upgrades to II cost `P`. | Rank II generally doubles the listed gear bonus; no rank III or duplicate-slot stacking. |
+| **Blade / Piercing blade** | Blade adds `P` / `2P` direct damage; Piercing blade ignores `P` / `2P` enemy Block per attack. | Piercing bypasses protection; it does not add damage. |
+| **Guard coat / Ward vest** | Coat adds `P` / `2P` when choosing Block. Vest absorbs up to `P` / `2P` on the first enemy hit reaching it. | Coat is not passive healing. Vest is once per fight attempt, not every hit; logs name actual absorption. |
+| **Calm charm / Healer charm** | Calm prevents the first 1 / 2 stress; Healer boosts the first actual heal by `P` / `2P`. | Uses reset per fight attempt; swapping/reconnecting does not replenish them. |
+| **Bag / equipment swaps** | Six backpack slots; consumables stack to three. Equip moves the displaced gear into Bag; Unequip returns gear there. | Gear operations only at open safe decisions, never combat/trials/duels. Unequip needs space; Ready locks editing until Change. |
+| **Transfer / sell** | Transfer a Bag item to a same-crew hero with space; sell Bag items at a merchant. | No transfers during combat or to rival crews. Selling returns gold to the shared wallet. |
+| **Full Bag / overflow** | Explicitly replace an owned Bag item, make space, or leave the reward. | No silent destruction of displaced gear. Automatic absence/host handling preserves unclaimed rewards. |
+| **Healing draught / Bandage** | Draught heals a living target by `2 × target P`; Bandage heals `target P` and removes Bleed. Each costs owner `P`. | Uses your combat action and consumes one item; healing bonuses may apply. No revival. |
+| **Calming tonic / Splint** | Tonic removes 3 stress, costs `P`; Splint removes one chosen injury outside combat, costs `2P`. | Splint cannot be used midfight. Tonic uses a combat action. |
+| **Gold / personal budget** | Start with 24 crew gold. A visit reserves each hero `floor(entry gold × P / 12)` as Your budget. | Purchases/treatment cannot spend another hero's reserve; gold is not ranking score. Trials wager consequences are not gold stakes. |
+| **Rescue debt** | Future gold first repays outstanding debt; results show earned gold and repayment. | Debt repayment can leave no spendable gold from a reward. |
+| **Merchant node** | Buy supplies/gear, upgrade, sell, treat or revive; Ready to leave when finished. | Stock and budgets freeze on arrival. No free Rest; refresh cannot reroll the shop. |
+| **Camp node** | Rest once: living heroes heal `2P` and lose 2 stress; also treat, revive, inspect Bag or Leave. | No equipment shop. Haunted removes only 1 stress; no unlimited free Rest. |
+| **Treatment** | Pay `P` to heal `2P` or remove 3 stress; pay `2P` to remove a chosen injury or curse. | Individual confirmed transaction from Your budget; not a crew Rest vote. |
+| **Cache / Treasure node** | Receive 12 crew gold and a personal equipment choice for every registered hero. | Once per node; no fight or question required. |
+| **Mystery / exploration node** | Inspect the event's odds/costs; each hero commits an eligible personal choice or Leave. | No hidden reroll on refresh; commitment cannot be undone after seeing the result. |
+| **Coin fountain** | Stake `P` gold, choose Heads/Tails and gold/Blessing. Fair 50/50: success returns `2P` gold or a rank-I Blessing offer. | Failure loses the stake and adds 1 stress. Spirits may play; host sees choices, stakes and landings. |
+| **Trapped cache** | Risk for `2P` gold, or Leave. Success: 75%, dropping to 65% at stress 7+. | Failure causes an arm injury. Spirits cannot take the physical risk. |
+| **Sacrificial altar** | Pay `P` health for a guaranteed personal equipment offer, or Leave. | Must be living and remain above zero HP; no repeated reward. |
+| **Quiet shrine event** | Choose heal `2P`, remove 3 stress, or Leave. | One personal recovery; no chance roll. |
+| **Recovery shrine node** | Supported safe recovery location with treatment/ally revival. | Not placed on the current two chapter maps; the Quiet shrine event is the shrine players currently encounter. |
+| **Fallen spirit** | Ward a living ally, answer trials, claim build rewards, Supply in siege, or Request revival. | Cannot attack, self-revive or activate gear effects. Ward is capped at the recipient's `P`, even with multiple spirits. |
+| **Ally revival** | A living teammate selects a spirit at camp/merchant/shrine, postfight result or failed-fight recovery; pay `2 × target P`. | No midfight/self/rival revive. If gold is insufficient, choose that amount as debt. Returns half HP and at least 3 stress; build stays. |
+| **Full-party / solo rescue** | A fully fallen crew accepts external rescue: halve available gold, add 24 debt, restore half HP and at least 3 stress. | Not a dead character casting resurrection. Injuries, curses, equipment and spent expedition uses remain. |
+| **Retry / failed encounter** | Recover, then Retry; nonboss recovery can also allow retreat. | Boss damage/phases persist across retry; ordinary enemies reset. Temporary Block/Mark clears. No reward or Steal farming. |
+| **Trial altar nodes** | Three trials, two questions each: chapter 1 row 5 (100/200), row 10 (200/300); chapter 2 row 6 (100/300). | First arrival announces the class event; later arrivals cannot trigger it again. Learning can be disabled before Start. |
+| **Trial tile votes** | Vote category/value; each crew contributes one class vote. Crew badges show choices; rotating priority breaks ties. | No fastest-click selection or extra class votes for a larger crew. Each trial uses its two value bands once. |
+| **Trial wagers** | Before the question: Steady 1×, Bold 2×, Oath 3×. Correct answers earn that multiplier. | Wrong/missing: +1 stress / +3 stress / named curse. No wager defaults to Steady; accepted wagers persist. |
+| **Trial answers / reveal** | Every student answers privately once. Lock when everyone answers or after 45 / 60 / 75 seconds for 100 / 200 / 300. | No speed bonus or answer changes. Reveal retains all options, correct answer, your choice and explanation. |
+| **Trial points / gold** | Crew points = sum of correct value × multiplier ÷ starting roster. Gold = `floor(value/100 × 6 × correct multiplier sum ÷ roster)`. | Spirits count in the denominator. A fully correct 100-value crew gets 6 / 12 / 18 gold at Steady / Bold / Oath; debt is paid first. |
+| **Trial Blessing reward** | At least one correct answer earns a choice. Correct multipliers total 1–3: rank I; 4+: rank II. | Best/tied crews normally get three options, others two; choose one eligible trait. No duplicate settlement. Points break final progress ties. |
+| **Question content** | Three categories: Run Rules, Hits & Rewards, Time & Feedback; 18 self-contained Week 5/mobile-game scenarios. | Questions occur only in scheduled trials, not after battles, shops, caches or arenas. No prior game knowledge required. |
+| **Class siege node** | Chapter 2 row 10: all crews coordinate Attack, Protect or Supply for up to three rounds; spirits Supply. | Fill all three class meters. Success: 12 crew gold + one draught per hero; failure: +2 stress, with normal panic rules. |
+| **Arena node / consent** | Meet another crew at an arena in the same chapter, challenge, wait/cancel, or choose an NPC after 20 seconds. | Every living fighter needs half HP; each crew needs a strict Yes majority. A No cancels a pending offer. Host may disable new challenges. |
+| **Arena combat / rewards** | Three nonlethal Strike / Guard / Feint exchanges; winner gets 12 gold, gear choice and supplies; loser/draw gets 6 gold and supplies. | One completed arena per crew. Dungeon skills/gear/traits are suspended; actual health loss remains afterward. No direct ranking points. |
+| **Shared-event handoff** | Trials/siege interrupt at a safe boundary after active reveals, then restore each crew's saved decision and clock. | Never rerun settled damage, purchases, rewards or duel exchanges. Other crews otherwise progress independently. |
+| **Host view / moderation** | See all crews, public builds, readiness, votes, stakes and coin outcomes; pause/resume, resolve missing choices, cancel duels, skip events, recover devices or End. | No arbitrary gold/stat edits, resurrection or production impersonation. Private answers/offers/session secrets stay hidden. |
+| **Offline / restart** | Refresh/reconnect preserves identity, committed choices, build and progress. Absent-member defaults preserve offers after 15 seconds. | All-offline crews suspend. Host absence: 90-second grace, then pause; reconnection/restart needs explicit Resume. Failed saves preserve the last committed state. |
+| **Decision timing** | Normal crews advance when all required choices are ready. Optional inactivity fallback supplies missing choices; result timeout is 60 seconds. | Fallback starts off. Manual developer mode requires Next phase; ordinary combat reveals remain automatic outside manual mode. |
+| **Finished crew** | After boss two, inspect builds/standings and join pending shared events. | No more dungeon farming. 35–45 minutes is a playtest target, not a forced cutoff. |
+| **Developer playground** | Launch `npm.cmd run dev -- --test`, open `/#/test`; control ten separate identities, bots/manual and populated scenarios. | Test mode is loopback-only and unavailable in normal classroom startup. `npm test` runs automated tests instead. |
+| **Saved matches** | Current schema 10 / dungeon-v5 saves live in `data/rules-v10/`; matches retain their frozen content/rules. | Older save directories are untouched; no automatic migration. Existing saves without trial gold keep their old rewards. |
